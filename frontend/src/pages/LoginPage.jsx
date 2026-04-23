@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { backendBaseURL } from "../api/client";
 import { routeForRole, useAuth } from "../auth/AuthContext";
 
 function FieldError({ errors }) {
@@ -37,6 +38,10 @@ export default function LoginPage() {
 
     try {
       const currentUser = await login(form.username, form.password);
+      if (currentUser?.role === "admin") {
+        window.location.assign(`${backendBaseURL()}/admin/`);
+        return;
+      }
       const fallbackRoute = routeForRole(currentUser);
       navigate(fallbackRoute ?? "/unsupported-role", { replace: true });
     } catch (error) {

@@ -5,7 +5,7 @@ def user_role(user):
     if not user or not user.is_authenticated:
         return "anonymous"
     if user.is_superuser:
-        return "user"
+        return "admin"
     if user.groups.filter(name="Staff").exists():
         return "staff"
     if hasattr(user, "doctor_profile"):

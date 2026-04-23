@@ -68,7 +68,7 @@ def test_login_returns_current_user_for_valid_credentials():
 
 
 @pytest.mark.django_db
-def test_superuser_is_not_reported_as_portal_admin_role():
+def test_superuser_is_reported_as_admin_for_django_admin_redirect():
     User = get_user_model()
     User.objects.create_superuser(
         username="admin",
@@ -81,7 +81,7 @@ def test_superuser_is_not_reported_as_portal_admin_role():
     response = client.get("/api/auth/me/")
 
     assert response.status_code == 200
-    assert response.data["role"] == "user"
+    assert response.data["role"] == "admin"
 
 
 @pytest.mark.django_db

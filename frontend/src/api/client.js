@@ -19,6 +19,10 @@ const api = axios.create({
   withCredentials: true,
 });
 
+export function backendBaseURL() {
+  return api.defaults.baseURL.replace(/\/api\/?$/, "");
+}
+
 api.interceptors.request.use((config) => {
   const method = config.method?.toLowerCase();
 

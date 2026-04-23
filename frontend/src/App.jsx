@@ -54,7 +54,7 @@ function UnsupportedRolePage() {
         <h1>Ruolo non supportato</h1>
         <p>
           Questo account è autenticato, ma il suo ruolo non può accedere al portale appuntamenti.
-          Contatta lo staff della struttura se deve avere accesso come paziente, medico o staff.
+          Gli amministratori devono usare il pannello Django admin; contatta lo staff se serve accesso come paziente, medico o staff.
         </p>
       </div>
       <div className="alert alert-warning" role="alert">
