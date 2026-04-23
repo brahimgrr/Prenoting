@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate, login, logout
+from django.middleware.csrf import get_token
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -15,6 +16,7 @@ class RegisterView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         profile = user.patient_profile
+        get_token(request)
         return Response(
             {
                 "user": UserSerializer(user).data,
@@ -50,10 +52,19 @@ class LoginView(APIView):
             )
 
         login(request, user)
+        get_token(request)
         return Response({"user": UserSerializer(user).data})
 
 
 class LogoutView(APIView):
     def post(self, request):
         logout(request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CsrfView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        get_token(request)
         return Response(status=status.HTTP_204_NO_CONTENT)

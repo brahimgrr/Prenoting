@@ -30,6 +30,11 @@ class RegisterSerializer(serializers.Serializer):
             raise serializers.ValidationError("A user with that username already exists.")
         return value
 
+    def validate_password(self, value):
+        if len(value) < 8:
+            raise serializers.ValidationError("Password must be at least 8 characters.")
+        return value
+
     @transaction.atomic
     def create(self, validated_data):
         phone = validated_data.pop("phone")
