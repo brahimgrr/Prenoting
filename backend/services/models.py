@@ -8,7 +8,7 @@ class MedicalService(models.Model):
         VISIT = "visit", "Visit"
         EXAM = "exam", "Exam"
 
-    name = models.CharField(max_length=120)
+    name = models.CharField(max_length=160)
     category = models.CharField(
         max_length=16,
         choices=Category.choices,

@@ -44,7 +44,7 @@ class Appointment(models.Model):
     start_at = models.DateTimeField()
     end_at = models.DateTimeField()
     status = models.CharField(
-        max_length=16,
+        max_length=24,
         choices=Status.choices,
         default=Status.CONFIRMED,
     )
@@ -66,8 +66,8 @@ class AppointmentStatusHistory(models.Model):
         on_delete=models.CASCADE,
         related_name="status_history",
     )
-    previous_status = models.CharField(max_length=16, blank=True)
-    new_status = models.CharField(max_length=16)
+    previous_status = models.CharField(max_length=24, blank=True)
+    new_status = models.CharField(max_length=24)
     changed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

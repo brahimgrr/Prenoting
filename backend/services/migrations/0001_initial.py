@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                         max_length=16,
                     ),
                 ),
-                ("name", models.CharField(max_length=120)),
+                ("name", models.CharField(max_length=160)),
                 ("duration_minutes", models.PositiveIntegerField(default=30)),
                 ("price", models.DecimalField(blank=True, decimal_places=2, max_digits=8, null=True)),
                 ("is_active", models.BooleanField(default=True)),

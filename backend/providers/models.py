@@ -19,14 +19,14 @@ class DoctorProfile(models.Model):
         on_delete=models.CASCADE,
         related_name="doctor_profile",
     )
-    display_name = models.CharField(max_length=120)
+    display_name = models.CharField(max_length=160)
     specialty = models.ForeignKey(
         Specialty,
         on_delete=models.PROTECT,
         related_name="doctors",
     )
     bio = models.TextField(blank=True)
-    license_number = models.CharField(max_length=64, blank=True)
+    license_number = models.CharField(max_length=80, blank=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:

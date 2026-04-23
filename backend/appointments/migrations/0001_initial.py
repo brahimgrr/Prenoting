@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                             ("no_show", "No show"),
                         ],
                         default="confirmed",
-                        max_length=16,
+                        max_length=24,
                     ),
                 ),
                 ("notes", models.TextField(blank=True)),
@@ -91,8 +91,8 @@ class Migration(migrations.Migration):
             name="AppointmentStatusHistory",
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("previous_status", models.CharField(blank=True, max_length=16)),
-                ("new_status", models.CharField(max_length=16)),
+                ("previous_status", models.CharField(blank=True, max_length=24)),
+                ("new_status", models.CharField(max_length=24)),
                 ("changed_at", models.DateTimeField(auto_now_add=True)),
                 (
                     "appointment",

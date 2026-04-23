@@ -28,9 +28,9 @@ class Migration(migrations.Migration):
             name="DoctorProfile",
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("display_name", models.CharField(max_length=120)),
+                ("display_name", models.CharField(max_length=160)),
                 ("bio", models.TextField(blank=True)),
-                ("license_number", models.CharField(blank=True, max_length=64)),
+                ("license_number", models.CharField(blank=True, max_length=80)),
                 ("is_active", models.BooleanField(default=True)),
                 (
                     "specialty",
