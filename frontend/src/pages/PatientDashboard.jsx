@@ -16,10 +16,10 @@ function isUpcoming(appointment) {
 
 function formatDateTime(value) {
   if (!value) {
-    return "Time pending";
+    return "Orario in attesa";
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat("it-IT", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -29,11 +29,11 @@ function AppointmentRow({ appointment }) {
   return (
     <article className="appointment-row">
       <div>
-        <h3>{appointment.service_name || "Appointment"}</h3>
+        <h3>{appointment.service_name || "Appuntamento"}</h3>
         <p>{formatDateTime(appointment.start_at)}</p>
       </div>
       <div className="appointment-row__meta">
-        <span>{appointment.doctor_name || "Doctor pending"}</span>
+        <span>{appointment.doctor_name || "Medico in attesa"}</span>
         <StatusBadge status={appointment.status} />
       </div>
     </article>
@@ -59,7 +59,7 @@ export default function PatientDashboard() {
         }
       } catch {
         if (active) {
-          setError("Appointments could not be loaded. Please refresh and try again.");
+          setError("Impossibile caricare gli appuntamenti. Aggiorna la pagina e riprova.");
         }
       } finally {
         if (active) {
@@ -85,18 +85,18 @@ export default function PatientDashboard() {
   const nextAppointment = upcomingAppointments[0];
 
   if (loading) {
-    return <LoadingState label="Loading patient dashboard" />;
+    return <LoadingState label="Caricamento dashboard paziente" />;
   }
 
   return (
     <section className="portal-section">
       <div className="portal-page-heading portal-heading-row">
         <div>
-          <span className="portal-eyebrow">Patient portal</span>
-          <h1>Dashboard</h1>
+          <span className="portal-eyebrow">Portale paziente</span>
+          <h1>Riepilogo</h1>
         </div>
         <Link className="btn btn-primary" to="/patient/book">
-          Book appointment
+          Prenota visita
         </Link>
       </div>
 
@@ -108,61 +108,61 @@ export default function PatientDashboard() {
 
       <div className="dashboard-grid">
         <section className="metric-panel">
-          <span className="metric-panel__label">Upcoming</span>
+          <span className="metric-panel__label">Prossimi</span>
           <strong>{upcomingAppointments.length}</strong>
-          <span className="metric-panel__caption">confirmed visits</span>
+          <span className="metric-panel__caption">visite confermate</span>
         </section>
 
         <section className="portal-panel next-appointment-panel">
           <div className="section-heading">
-            <h2>Next appointment</h2>
+            <h2>Prossimo appuntamento</h2>
           </div>
           {nextAppointment ? (
             <div className="next-appointment">
               <div>
-                <h3>{nextAppointment.service_name || "Appointment"}</h3>
+                <h3>{nextAppointment.service_name || "Appuntamento"}</h3>
                 <p>{formatDateTime(nextAppointment.start_at)}</p>
               </div>
               <dl>
                 <div>
-                  <dt>Doctor</dt>
-                  <dd>{nextAppointment.doctor_name || "Doctor pending"}</dd>
+                  <dt>Medico</dt>
+                  <dd>{nextAppointment.doctor_name || "Medico in attesa"}</dd>
                 </div>
                 <div>
-                  <dt>Clinic</dt>
-                  <dd>{nextAppointment.clinic_name || "Clinic pending"}</dd>
+                  <dt>Ambulatorio</dt>
+                  <dd>{nextAppointment.clinic_name || "Ambulatorio in attesa"}</dd>
                 </div>
               </dl>
               <StatusBadge status={nextAppointment.status} />
             </div>
           ) : (
             <div className="empty-state">
-              <h3>No upcoming appointment</h3>
-              <p>Your next confirmed visit will appear here.</p>
+              <h3>Nessun appuntamento imminente</h3>
+              <p>La tua prossima visita confermata comparirà qui.</p>
             </div>
           )}
         </section>
       </div>
 
-      <section className="quick-actions" aria-label="Quick actions">
+      <section className="quick-actions" aria-label="Azioni rapide">
         <Link className="quick-action" to="/patient/book?mode=service">
-          <span>Book by service</span>
-          <strong>Find care</strong>
+          <span>Prenota per prestazione</span>
+          <strong>Trova assistenza</strong>
         </Link>
         <Link className="quick-action" to="/patient/book?mode=doctor">
-          <span>Book by doctor</span>
-          <strong>Choose provider</strong>
+          <span>Prenota per medico</span>
+          <strong>Scegli professionista</strong>
         </Link>
         <Link className="quick-action" to="/patient/appointments">
-          <span>My appointments</span>
-          <strong>Manage visits</strong>
+          <span>I miei appuntamenti</span>
+          <strong>Gestisci visite</strong>
         </Link>
       </section>
 
       <section className="portal-panel">
         <div className="section-heading">
-          <h2>Upcoming appointments</h2>
-          <Link to="/patient/appointments">View all</Link>
+          <h2>Appuntamenti imminenti</h2>
+          <Link to="/patient/appointments">Vedi tutti</Link>
         </div>
         {upcomingAppointments.length > 0 ? (
           <div className="appointment-list compact">
@@ -172,8 +172,8 @@ export default function PatientDashboard() {
           </div>
         ) : (
           <div className="empty-state">
-            <h3>No visits scheduled</h3>
-            <p>Book an appointment when you are ready.</p>
+            <h3>Nessuna visita programmata</h3>
+            <p>Prenota un appuntamento quando sei pronto.</p>
           </div>
         )}
       </section>

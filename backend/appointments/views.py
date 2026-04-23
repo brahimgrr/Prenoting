@@ -53,13 +53,18 @@ STAFF_STATUS_TRANSITIONS = {
 
 
 def validate_confirmed_future_appointment(appointment, action):
+    action_labels = {
+        "cancelled": "annullati",
+        "rescheduled": "spostati",
+    }
+    action_label = action_labels.get(action, action)
     if appointment.status != Appointment.Status.CONFIRMED:
         raise ValidationError(
-            {"status": [f"Only confirmed appointments can be {action}."]},
+            {"status": [f"Solo gli appuntamenti confermati possono essere {action_label}."]},
         )
     if appointment.start_at <= timezone.now():
         raise ValidationError(
-            {"start_at": [f"Past appointments cannot be {action}."]},
+            {"start_at": [f"Gli appuntamenti passati non possono essere {action_label}."]},
         )
 
 
@@ -77,7 +82,7 @@ def appointment_queryset():
 
 def validate_status_choice(next_status, allowed_statuses):
     if next_status not in allowed_statuses:
-        raise ValidationError({"status": ["Select a valid status."]})
+        raise ValidationError({"status": ["Seleziona uno stato valido."]})
 
 
 def validate_status_transition(appointment, next_status, transitions):
@@ -85,7 +90,7 @@ def validate_status_transition(appointment, next_status, transitions):
         return
 
     if next_status not in transitions.get(appointment.status, set()):
-        raise ValidationError({"status": ["This status transition is not allowed."]})
+        raise ValidationError({"status": ["Questa transizione di stato non è consentita."]})
 
 
 def free_slot_if_future_cancelled(appointment, next_status):
@@ -124,7 +129,7 @@ def parse_integer_filter(value, field_name):
     try:
         return int(value)
     except (TypeError, ValueError) as exc:
-        raise ValidationError({field_name: ["A valid integer is required."]}) from exc
+        raise ValidationError({field_name: ["È richiesto un numero intero valido."]}) from exc
 
 
 def apply_staff_filters(queryset, params):
@@ -144,7 +149,7 @@ def apply_staff_filters(queryset, params):
     if date_value:
         parsed_date = parse_date(date_value)
         if parsed_date is None:
-            raise ValidationError({"date": ["Use YYYY-MM-DD format."]})
+            raise ValidationError({"date": ["Usa il formato AAAA-MM-GG."]})
         queryset = queryset.filter(start_at__date=parsed_date)
 
     status_value = params.get("status")
@@ -156,7 +161,7 @@ def apply_staff_filters(queryset, params):
 
 
 class IsPatientUser(BasePermission):
-    message = "Authenticated user does not have a patient profile."
+    message = "L'utente autenticato non ha un profilo paziente."
 
     def has_permission(self, request, view):
         return (
@@ -254,7 +259,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             )
             validate_confirmed_future_appointment(locked_appointment, "rescheduled")
             if new_slot_id == locked_appointment.slot_id:
-                raise ValidationError({"slot": ["Select a different slot."]})
+                raise ValidationError({"slot": ["Seleziona un orario diverso."]})
 
             old_slot = AvailabilitySlot.objects.select_for_update().get(
                 pk=locked_appointment.slot_id,
@@ -328,7 +333,7 @@ class DoctorScheduleAPIView(APIView):
         if date_value:
             parsed_date = parse_date(date_value)
             if parsed_date is None:
-                raise ValidationError({"date": ["Use YYYY-MM-DD format."]})
+                raise ValidationError({"date": ["Usa il formato AAAA-MM-GG."]})
             queryset = queryset.filter(start_at__date=parsed_date)
 
         status_value = request.query_params.get("status")

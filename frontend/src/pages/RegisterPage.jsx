@@ -47,7 +47,7 @@ export default function RegisterPage() {
       const currentUser = await register(form);
       navigate(routeForRole(currentUser) ?? "/unsupported-role", { replace: true });
     } catch (error) {
-      setErrors(error.response?.data ?? { detail: "Unable to create the account. Try again." });
+      setErrors(error.response?.data ?? { detail: "Impossibile creare l'account. Riprova." });
     } finally {
       setSubmitting(false);
     }
@@ -59,8 +59,8 @@ export default function RegisterPage() {
         <div className="auth-panel__header">
           <span className="app-brand__mark">M</span>
           <div>
-            <h1>Create account</h1>
-            <p>Register as a patient to book and manage appointments.</p>
+            <h1>Crea account</h1>
+            <p>Registrati come paziente per prenotare e gestire gli appuntamenti.</p>
           </div>
         </div>
 
@@ -71,7 +71,7 @@ export default function RegisterPage() {
           <div className="row g-3">
             <div className="col-md-6">
               <label className="form-label" htmlFor="first_name">
-                First name
+                Nome
               </label>
               <input
                 className={`form-control${errors.first_name ? " is-invalid" : ""}`}
@@ -86,7 +86,7 @@ export default function RegisterPage() {
 
             <div className="col-md-6">
               <label className="form-label" htmlFor="last_name">
-                Last name
+                Cognome
               </label>
               <input
                 className={`form-control${errors.last_name ? " is-invalid" : ""}`}
@@ -101,7 +101,7 @@ export default function RegisterPage() {
 
             <div className="col-12">
               <label className="form-label" htmlFor="username">
-                Email username
+                Email
               </label>
               <input
                 className={`form-control${errors.username ? " is-invalid" : ""}`}
@@ -135,7 +135,7 @@ export default function RegisterPage() {
 
             <div className="col-md-6">
               <label className="form-label" htmlFor="phone">
-                Phone
+                Telefono
               </label>
               <input
                 className={`form-control${errors.phone ? " is-invalid" : ""}`}
@@ -152,12 +152,12 @@ export default function RegisterPage() {
           </div>
 
           <button className="btn btn-primary w-100 mt-4" type="submit" disabled={submitting}>
-            {submitting ? "Creating account..." : "Create account"}
+            {submitting ? "Creazione account..." : "Crea account"}
           </button>
         </form>
 
         <p className="auth-panel__footer">
-          Already registered? <Link to="/login">Sign in</Link>
+          Hai già un account? <Link to="/login">Accedi</Link>
         </p>
       </section>
     </main>

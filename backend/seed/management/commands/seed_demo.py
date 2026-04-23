@@ -15,6 +15,19 @@ from services.models import DoctorService, MedicalService
 class Command(BaseCommand):
     help = "Seed demo medical appointment data."
 
+    def upsert_named(self, model, old_name, new_name, defaults):
+        instance = model.objects.filter(name=new_name).first()
+        if instance is None:
+            instance = model.objects.filter(name=old_name).first()
+        if instance:
+            for field, value in defaults.items():
+                setattr(instance, field, value)
+            instance.name = new_name
+            instance.save(update_fields=["name", *defaults.keys()])
+            return instance
+
+        return model.objects.create(name=new_name, **defaults)
+
     def handle(self, *args, **options):
         User = get_user_model()
 
@@ -22,8 +35,8 @@ class Command(BaseCommand):
             username="admin",
             defaults={
                 "email": "admin@example.com",
-                "first_name": "Admin",
-                "last_name": "User",
+                "first_name": "Amministratore",
+                "last_name": "Sistema",
                 "is_staff": True,
                 "is_superuser": True,
             },
@@ -36,7 +49,7 @@ class Command(BaseCommand):
             defaults={
                 "email": "staff@example.com",
                 "first_name": "Staff",
-                "last_name": "User",
+                "last_name": "Accettazione",
                 "is_staff": True,
             },
         )
@@ -49,8 +62,8 @@ class Command(BaseCommand):
             username="patient",
             defaults={
                 "email": "patient@example.com",
-                "first_name": "Pat",
-                "last_name": "Ient",
+                "first_name": "Mario",
+                "last_name": "Rossi",
             },
         )
         patient_user.set_password("patient123")
@@ -59,25 +72,27 @@ class Command(BaseCommand):
             user=patient_user,
             defaults={
                 "phone": "555-0100",
-                "address": "10 Patient Way",
+                "address": "Via del Paziente 10",
                 "identity_code": "PAT-001",
             },
         )
 
         specialties = {}
-        for name, description in (
-            ("Cardiology", "Heart and vascular care"),
-            ("Dermatology", "Skin health and treatment"),
-            ("Radiology", "Diagnostic imaging"),
+        for old_name, name, description in (
+            ("Cardiology", "Cardiologia", "Cura del cuore e dell'apparato vascolare"),
+            ("Dermatology", "Dermatologia", "Salute e trattamento della pelle"),
+            ("Radiology", "Radiologia", "Diagnostica per immagini"),
         ):
-            specialties[name], _ = Specialty.objects.update_or_create(
-                name=name,
-                defaults={"description": description},
+            specialties[name] = self.upsert_named(
+                Specialty,
+                old_name,
+                name,
+                {"description": description},
             )
 
         doctor_specs = (
-            ("doctor.heart", "Amelia", "Heart", "Dr. Amelia Heart", "Cardiology", "CARD-001"),
-            ("doctor.skin", "Dorian", "Skin", "Dr. Dorian Skin", "Dermatology", "DERM-001"),
+            ("doctor.heart", "Amelia", "Cuori", "Dott.ssa Amelia Cuori", "Cardiologia", "CARD-001"),
+            ("doctor.skin", "Dorian", "Pelle", "Dott. Dorian Pelle", "Dermatologia", "DERM-001"),
         )
         doctors = []
         for username, first_name, last_name, display_name, specialty_name, license_number in doctor_specs:
@@ -104,26 +119,30 @@ class Command(BaseCommand):
             doctors.append(doctor)
 
         clinics = {}
-        for name, address, phone in (
-            ("Downtown Clinic", "1 Main St", "555-1000"),
-            ("Northside Medical Center", "200 North Ave", "555-2000"),
+        for old_name, name, address, phone in (
+            ("Downtown Clinic", "Ambulatorio Centro", "Via Roma 1", "555-1000"),
+            ("Northside Medical Center", "Centro Medico Nord", "Viale Nord 200", "555-2000"),
         ):
-            clinics[name], _ = ClinicLocation.objects.update_or_create(
-                name=name,
-                defaults={"address": address, "phone": phone, "is_active": True},
+            clinics[name] = self.upsert_named(
+                ClinicLocation,
+                old_name,
+                name,
+                {"address": address, "phone": phone, "is_active": True},
             )
 
         service_specs = (
-            ("Cardiology consultation", MedicalService.Category.VISIT, "Cardiology", 30, "150.00"),
-            ("ECG exam", MedicalService.Category.EXAM, "Cardiology", 20, "80.00"),
-            ("Dermatology consultation", MedicalService.Category.VISIT, "Dermatology", 30, "120.00"),
-            ("Ultrasound exam", MedicalService.Category.EXAM, "Radiology", 45, "200.00"),
+            ("Cardiology consultation", "Visita cardiologica", MedicalService.Category.VISIT, "Cardiologia", 30, "150.00"),
+            ("ECG exam", "Elettrocardiogramma", MedicalService.Category.EXAM, "Cardiologia", 20, "80.00"),
+            ("Dermatology consultation", "Visita dermatologica", MedicalService.Category.VISIT, "Dermatologia", 30, "120.00"),
+            ("Ultrasound exam", "Ecografia", MedicalService.Category.EXAM, "Radiologia", 45, "200.00"),
         )
         services = {}
-        for name, category, specialty_name, duration, price in service_specs:
-            services[name], _ = MedicalService.objects.update_or_create(
-                name=name,
-                defaults={
+        for old_name, name, category, specialty_name, duration, price in service_specs:
+            services[name] = self.upsert_named(
+                MedicalService,
+                old_name,
+                name,
+                {
                     "category": category,
                     "specialty": specialties[specialty_name],
                     "duration_minutes": duration,
@@ -133,8 +152,8 @@ class Command(BaseCommand):
             )
 
         doctor_services = {
-            "Dr. Amelia Heart": ("Cardiology consultation", "ECG exam", "Ultrasound exam"),
-            "Dr. Dorian Skin": ("Dermatology consultation",),
+            "Dott.ssa Amelia Cuori": ("Visita cardiologica", "Elettrocardiogramma", "Ecografia"),
+            "Dott. Dorian Pelle": ("Visita dermatologica",),
         }
         for doctor in doctors:
             for service_name in doctor_services[doctor.display_name]:
@@ -157,4 +176,4 @@ class Command(BaseCommand):
                         },
                     )
 
-        self.stdout.write("Demo data seeded")
+        self.stdout.write("Dati demo aggiornati")

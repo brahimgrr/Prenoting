@@ -16,7 +16,7 @@ function ProtectedRoute({ allowedRoles, children }) {
   const location = useLocation();
 
   if (loading) {
-    return <LoadingState label="Loading portal" />;
+    return <LoadingState label="Caricamento portale" />;
   }
 
   if (!user) {
@@ -34,7 +34,7 @@ function PublicOnlyRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <LoadingState label="Checking session" />;
+    return <LoadingState label="Verifica sessione" />;
   }
 
   if (user) {
@@ -50,21 +50,21 @@ function UnsupportedRolePage() {
   return (
     <section className="portal-section">
       <div className="portal-page-heading">
-        <span className="portal-eyebrow">Access unavailable</span>
-        <h1>Unsupported role</h1>
+        <span className="portal-eyebrow">Accesso non disponibile</span>
+        <h1>Ruolo non supportato</h1>
         <p>
-          This account is authenticated, but its role cannot access the appointment portal.
-          Contact clinic staff if this account needs patient, doctor, or staff access.
+          Questo account è autenticato, ma il suo ruolo non può accedere al portale appuntamenti.
+          Contatta lo staff della struttura se deve avere accesso come paziente, medico o staff.
         </p>
       </div>
       <div className="alert alert-warning" role="alert">
-        Current role: <strong>{user?.role || "missing"}</strong>
+        Ruolo attuale: <strong>{user?.role || "mancante"}</strong>
       </div>
     </section>
   );
 }
 
-function PlaceholderPage({ title, eyebrow, description, status = "Preview" }) {
+function PlaceholderPage({ title, eyebrow, description, status = "Anteprima" }) {
   return (
     <section className="portal-section">
       <div className="portal-page-heading">
@@ -77,9 +77,9 @@ function PlaceholderPage({ title, eyebrow, description, status = "Preview" }) {
       </div>
       <div className="portal-panel">
         <div>
-          <h2>Next implementation step</h2>
+          <h2>Prossimo passaggio</h2>
           <p>
-            This route is ready for the appointment workflows that will be added in the next frontend tasks.
+            Questa sezione è pronta per i prossimi flussi di gestione appuntamenti.
           </p>
         </div>
       </div>
@@ -150,9 +150,9 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={["patient"]}>
                   <PlaceholderPage
-                    eyebrow="Profile"
-                    title="Patient profile"
-                    description="Keep patient contact details and appointment preferences current."
+                    eyebrow="Profilo"
+                    title="Profilo paziente"
+                    description="Mantieni aggiornati i dati di contatto e le preferenze per gli appuntamenti."
                   />
                 </ProtectedRoute>
               }

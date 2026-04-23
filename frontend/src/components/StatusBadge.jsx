@@ -8,10 +8,21 @@ const STATUS_VARIANTS = {
   draft: "text-bg-secondary",
 };
 
-function titleize(value) {
-  return String(value)
-    .replace(/[_-]/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+const STATUS_LABELS = {
+  confirmed: "Confermato",
+  checked_in: "Accettato",
+  completed: "Completato",
+  cancelled: "Annullato",
+  canceled: "Annullato",
+  no_show: "Assente",
+  pending: "In attesa",
+  scheduled: "Programmato",
+  draft: "Bozza",
+};
+
+function labelForStatus(value) {
+  const normalized = String(value).toLowerCase();
+  return STATUS_LABELS[normalized] ?? String(value).replace(/[_-]/g, " ");
 }
 
 export default function StatusBadge({ status = "pending", children }) {
@@ -20,7 +31,7 @@ export default function StatusBadge({ status = "pending", children }) {
 
   return (
     <span className={`badge rounded-pill ${variant}`}>
-      {children ?? titleize(status)}
+      {children ?? labelForStatus(status)}
     </span>
   );
 }

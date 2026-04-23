@@ -1,4 +1,4 @@
-export default function LoadingState({ label = "Loading" }) {
+export default function LoadingState({ label = "Caricamento" }) {
   return (
     <div className="loading-state" role="status" aria-live="polite">
       <div className="spinner-border text-primary" aria-hidden="true" />

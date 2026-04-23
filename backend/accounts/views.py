@@ -47,7 +47,7 @@ class LoginView(APIView):
         )
         if user is None:
             return Response(
-                {"detail": "Invalid credentials."},
+                {"detail": "Credenziali non valide."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

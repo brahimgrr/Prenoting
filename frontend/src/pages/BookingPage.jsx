@@ -13,10 +13,10 @@ function todayValue() {
 
 function formatDateTime(value) {
   if (!value) {
-    return "Time pending";
+    return "Orario in attesa";
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat("it-IT", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -27,10 +27,10 @@ function formatTimeRange(slot) {
   const end = slot.end_at ? new Date(slot.end_at) : null;
 
   if (!start) {
-    return "Time pending";
+    return "Orario in attesa";
   }
 
-  const timeFormatter = new Intl.DateTimeFormat(undefined, {
+  const timeFormatter = new Intl.DateTimeFormat("it-IT", {
     hour: "numeric",
     minute: "2-digit",
   });
@@ -41,7 +41,7 @@ function formatTimeRange(slot) {
 function apiMessage(error, fallback) {
   const data = error?.response?.data;
   if (data?.slot) {
-    return "This slot is no longer available. Please choose another time.";
+    return "Questo orario non è più disponibile. Scegli un altro orario.";
   }
   if (typeof data?.detail === "string") {
     return data.detail;
@@ -117,7 +117,7 @@ export default function BookingPage() {
         }
       } catch {
         if (active) {
-          setError("Search results could not be loaded. Please try again.");
+          setError("Impossibile caricare i risultati della ricerca. Riprova.");
         }
       } finally {
         if (active) {
@@ -148,7 +148,7 @@ export default function BookingPage() {
         }
       } catch {
         if (active) {
-          setError("Services could not be loaded for booking. Please try again.");
+          setError("Impossibile caricare le prestazioni per la prenotazione. Riprova.");
         }
       }
     }
@@ -190,7 +190,7 @@ export default function BookingPage() {
         }
       } catch {
         if (active) {
-          setError("Availability could not be loaded. Please adjust your filters and try again.");
+          setError("Impossibile caricare le disponibilità. Modifica i filtri e riprova.");
           setSlots([]);
         }
       } finally {
@@ -249,12 +249,12 @@ export default function BookingPage() {
         service: bookingService.id,
         notes,
       });
-      setSuccess("Appointment confirmed.");
+      setSuccess("Appuntamento confermato.");
       removeSlot(bookedSlotId);
       setSelectedSlot(null);
       setNotes("");
     } catch (appointmentError) {
-      setError(apiMessage(appointmentError, "Appointment could not be booked. Please try again."));
+      setError(apiMessage(appointmentError, "Impossibile prenotare l'appuntamento. Riprova."));
       if (appointmentError?.response?.data?.slot) {
         removeSlot(bookedSlotId);
         setSelectedSlot(null);
@@ -267,8 +267,8 @@ export default function BookingPage() {
   return (
     <section className="portal-section">
       <div className="portal-page-heading">
-        <span className="portal-eyebrow">Booking</span>
-        <h1>Book appointment</h1>
+        <span className="portal-eyebrow">Prenotazione</span>
+        <h1>Prenota visita</h1>
       </div>
 
       {error && (
@@ -278,7 +278,7 @@ export default function BookingPage() {
       )}
       {success && (
         <div className="alert alert-success" role="status">
-          {success} <Link to="/patient/appointments">View appointments</Link>
+          {success} <Link to="/patient/appointments">Vedi appuntamenti</Link>
         </div>
       )}
 
@@ -291,7 +291,7 @@ export default function BookingPage() {
                 className={`nav-link${activeTab === "service" ? " active" : ""}`}
                 onClick={() => setActiveTab("service")}
               >
-                Service
+                Prestazione
               </button>
             </li>
             <li className="nav-item" role="presentation">
@@ -300,24 +300,24 @@ export default function BookingPage() {
                 className={`nav-link${activeTab === "doctor" ? " active" : ""}`}
                 onClick={() => setActiveTab("doctor")}
               >
-                Doctor
+                Medico
               </button>
             </li>
           </ul>
 
           <div className="booking-filters">
             <label className="form-label" htmlFor="booking-search">
-              Search
+              Cerca
             </label>
             <input
               id="booking-search"
               className="form-control"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder={activeTab === "service" ? "Search services" : "Search doctors"}
+              placeholder={activeTab === "service" ? "Cerca prestazioni" : "Cerca medici"}
             />
             <label className="form-label" htmlFor="clinic-filter">
-              Clinic ID
+              ID ambulatorio
             </label>
             <input
               id="clinic-filter"
@@ -326,10 +326,10 @@ export default function BookingPage() {
               pattern="[0-9]*"
               value={clinicId}
               onChange={(event) => setClinicId(event.target.value.replace(/\D/g, ""))}
-              placeholder="Optional"
+              placeholder="Opzionale"
             />
             <label className="form-label" htmlFor="booking-date">
-              Date
+              Data
             </label>
             <input
               id="booking-date"
@@ -341,7 +341,7 @@ export default function BookingPage() {
           </div>
 
           {loadingResults ? (
-            <LoadingState label="Loading results" />
+            <LoadingState label="Caricamento risultati" />
           ) : (
             <div className="result-list">
               {activeTab === "service" &&
@@ -354,7 +354,7 @@ export default function BookingPage() {
                   >
                     <span>
                       <strong>{service.name}</strong>
-                      <small>{service.specialty_name || service.category || "Medical service"}</small>
+                      <small>{service.specialty_name || service.category || "Prestazione medica"}</small>
                     </span>
                     <span>{service.duration_minutes} min</span>
                   </button>
@@ -369,15 +369,15 @@ export default function BookingPage() {
                   >
                     <span>
                       <strong>{doctor.display_name}</strong>
-                      <small>{doctor.specialty_name || "Doctor"}</small>
+                      <small>{doctor.specialty_name || "Medico"}</small>
                     </span>
                     <span>#{doctor.id}</span>
                   </button>
                 ))}
               {((activeTab === "service" && services.length === 0) || (activeTab === "doctor" && doctors.length === 0)) && (
                 <div className="empty-state">
-                  <h3>No results found</h3>
-                  <p>Try another search term.</p>
+                  <h3>Nessun risultato trovato</h3>
+                  <p>Prova con un altro termine di ricerca.</p>
                 </div>
               )}
             </div>
@@ -386,13 +386,13 @@ export default function BookingPage() {
 
         <section className="portal-panel">
           <div className="section-heading">
-            <h2>Available times</h2>
+            <h2>Orari disponibili</h2>
           </div>
 
           {activeTab === "doctor" && selectedDoctor && (
             <div className="mb-3">
               <label className="form-label" htmlFor="doctor-service">
-                Service
+                Prestazione
               </label>
               <select
                 id="doctor-service"
@@ -400,7 +400,7 @@ export default function BookingPage() {
                 value={doctorServiceId}
                 onChange={(event) => setDoctorServiceId(event.target.value)}
               >
-                <option value="">Choose service</option>
+                <option value="">Scegli prestazione</option>
                 {doctorServiceOptions.map((service) => (
                   <option key={service.id} value={service.id}>
                     {service.name}
@@ -412,24 +412,24 @@ export default function BookingPage() {
 
           {!selectedService && activeTab === "service" && (
             <div className="empty-state">
-              <h3>Select a service</h3>
-              <p>Available times will appear after a service is selected.</p>
+              <h3>Seleziona una prestazione</h3>
+              <p>Gli orari disponibili compariranno dopo la selezione.</p>
             </div>
           )}
           {!selectedDoctor && activeTab === "doctor" && (
             <div className="empty-state">
-              <h3>Select a doctor</h3>
-              <p>Available times will appear after a doctor is selected.</p>
+              <h3>Seleziona un medico</h3>
+              <p>Gli orari disponibili compariranno dopo la selezione.</p>
             </div>
           )}
           {selectedDoctor && activeTab === "doctor" && !doctorServiceId && (
             <div className="empty-state">
-              <h3>Select a service</h3>
-              <p>Choose a service before selecting a time with this doctor.</p>
+              <h3>Seleziona una prestazione</h3>
+              <p>Scegli una prestazione prima di selezionare un orario con questo medico.</p>
             </div>
           )}
 
-          {loadingSlots && <LoadingState label="Loading availability" />}
+          {loadingSlots && <LoadingState label="Caricamento disponibilità" />}
 
           {!loadingSlots && (selectedService || (selectedDoctor && doctorServiceId)) && (
             <div className="slot-list">
@@ -441,13 +441,13 @@ export default function BookingPage() {
                   onClick={() => setSelectedSlot(slot)}
                 >
                   <span>{formatTimeRange(slot)}</span>
-                  <small>{slot.doctor_name || "Doctor"} / {slot.clinic_name || `Clinic ${slot.clinic}`}</small>
+                  <small>{slot.doctor_name || "Medico"} / {slot.clinic_name || `Ambulatorio ${slot.clinic}`}</small>
                 </button>
               ))}
               {slots.length === 0 && (
                 <div className="empty-state">
-                  <h3>No slots available</h3>
-                  <p>Choose another date or clinic.</p>
+                  <h3>Nessuno slot disponibile</h3>
+                  <p>Scegli un'altra data o un altro ambulatorio.</p>
                 </div>
               )}
             </div>
@@ -456,29 +456,29 @@ export default function BookingPage() {
 
         <section className="portal-panel confirmation-panel">
           <div className="section-heading">
-            <h2>Confirmation</h2>
+            <h2>Conferma</h2>
           </div>
           <form onSubmit={confirmAppointment}>
             <dl className="summary-list">
               <div>
-                <dt>Service</dt>
-                <dd>{bookingService?.name || "Not selected"}</dd>
+                <dt>Prestazione</dt>
+                <dd>{bookingService?.name || "Non selezionata"}</dd>
               </div>
               <div>
-                <dt>Time</dt>
-                <dd>{selectedSlot ? formatDateTime(selectedSlot.start_at) : "Not selected"}</dd>
+                <dt>Orario</dt>
+                <dd>{selectedSlot ? formatDateTime(selectedSlot.start_at) : "Non selezionato"}</dd>
               </div>
               <div>
-                <dt>Doctor</dt>
-                <dd>{selectedSlot?.doctor_name || selectedDoctor?.display_name || "Not selected"}</dd>
+                <dt>Medico</dt>
+                <dd>{selectedSlot?.doctor_name || selectedDoctor?.display_name || "Non selezionato"}</dd>
               </div>
               <div>
-                <dt>Clinic</dt>
-                <dd>{selectedSlot?.clinic_name || "Not selected"}</dd>
+                <dt>Ambulatorio</dt>
+                <dd>{selectedSlot?.clinic_name || "Non selezionato"}</dd>
               </div>
             </dl>
             <label className="form-label" htmlFor="appointment-notes">
-              Notes
+              Note
             </label>
             <textarea
               id="appointment-notes"
@@ -488,7 +488,7 @@ export default function BookingPage() {
               onChange={(event) => setNotes(event.target.value)}
             />
             <button type="submit" className="btn btn-primary w-100 mt-3" disabled={!selectedSlot || !bookingService || submitting}>
-              {submitting ? "Confirming..." : "Confirm"}
+              {submitting ? "Conferma..." : "Conferma"}
             </button>
           </form>
         </section>

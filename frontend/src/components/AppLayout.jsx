@@ -4,18 +4,18 @@ import { routeForRole, useAuth } from "../auth/AuthContext";
 
 const NAV_ITEMS = {
   patient: [
-    { to: "/patient", label: "Dashboard", end: true },
-    { to: "/patient/book", label: "Book appointment" },
-    { to: "/patient/appointments", label: "My appointments" },
-    { to: "/patient/profile", label: "Profile" },
+    { to: "/patient", label: "Riepilogo", end: true },
+    { to: "/patient/book", label: "Prenota visita" },
+    { to: "/patient/appointments", label: "I miei appuntamenti" },
+    { to: "/patient/profile", label: "Profilo" },
   ],
   doctor: [
-    { to: "/doctor", label: "Today", end: true },
-    { to: "/doctor/schedule", label: "Schedule" },
+    { to: "/doctor", label: "Oggi", end: true },
+    { to: "/doctor/schedule", label: "Agenda" },
   ],
   staff: [
-    { to: "/staff", label: "Daily operations", end: true },
-    { to: "/staff/appointments", label: "Appointments" },
+    { to: "/staff", label: "Operatività", end: true },
+    { to: "/staff/appointments", label: "Appuntamenti" },
   ],
 };
 
@@ -37,13 +37,18 @@ function navItemsForRole(role) {
 
 function UserSummary({ user }) {
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ");
+  const roleLabels = {
+    patient: "Paziente",
+    doctor: "Medico",
+    staff: "Staff",
+  };
 
   return (
     <div className="app-user">
       <span className="app-user__avatar">{(displayName || user?.username || "U").slice(0, 1).toUpperCase()}</span>
       <span className="app-user__meta">
         <span className="app-user__name">{displayName || user?.username}</span>
-        <span className="app-user__role">{user?.role}</span>
+        <span className="app-user__role">{roleLabels[user?.role] ?? user?.role}</span>
       </span>
     </div>
   );
@@ -51,7 +56,7 @@ function UserSummary({ user }) {
 
 function Navigation({ items }) {
   return (
-    <nav className="app-nav" aria-label="Portal navigation">
+    <nav className="app-nav" aria-label="Navigazione del portale">
       {items.map((item) => (
         <NavLink
           key={item.to}
@@ -80,7 +85,7 @@ export default function AppLayout() {
       await logout();
       navigate("/login", { replace: true });
     } catch {
-      setLogoutError("We could not sign you out. Please try again.");
+      setLogoutError("Non è stato possibile uscire. Riprova.");
     }
   }
 
@@ -91,7 +96,7 @@ export default function AppLayout() {
           <span className="app-brand__mark">M</span>
           <span>
             <span className="app-brand__name">MedPortal</span>
-            <span className="app-brand__subline">Appointments</span>
+            <span className="app-brand__subline">Prenotazioni</span>
           </span>
         </Link>
         <Navigation items={navItems} />
@@ -103,7 +108,7 @@ export default function AppLayout() {
           )}
           <UserSummary user={user} />
           <button type="button" className="btn btn-outline-light w-100" onClick={handleLogout}>
-            Logout
+            Esci
           </button>
         </div>
       </aside>
@@ -115,7 +120,7 @@ export default function AppLayout() {
             <span className="app-brand__name">MedPortal</span>
           </Link>
           <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handleLogout}>
-            Logout
+            Esci
           </button>
         </header>
         {logoutError && (

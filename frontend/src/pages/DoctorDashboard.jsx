@@ -5,11 +5,11 @@ import StatusBadge from "../components/StatusBadge";
 
 const DOCTOR_STATUS_ACTIONS = {
   confirmed: [
-    { status: "checked_in", label: "Checked in", className: "btn-outline-primary" },
-    { status: "no_show", label: "No show", className: "btn-outline-danger" },
+    { status: "checked_in", label: "Accetta", className: "btn-outline-primary" },
+    { status: "no_show", label: "Assente", className: "btn-outline-danger" },
   ],
   checked_in: [
-    { status: "completed", label: "Completed", className: "btn-outline-success" },
+    { status: "completed", label: "Completa", className: "btn-outline-success" },
   ],
 };
 
@@ -43,15 +43,15 @@ function apiMessage(error, fallback) {
 }
 
 function patientLabel(appointment) {
-  return appointment.patient_name || `Patient #${appointment.patient}`;
+  return appointment.patient_name || `Paziente #${appointment.patient}`;
 }
 
 function formatTime(value) {
   if (!value) {
-    return "Time pending";
+    return "Orario in attesa";
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat("it-IT", {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
@@ -65,11 +65,11 @@ function StatusActions({ appointment, busyAction, onUpdate }) {
   const actions = DOCTOR_STATUS_ACTIONS[String(appointment.status).toLowerCase()] ?? [];
 
   if (actions.length === 0) {
-    return <span className="dashboard-readonly">No actions</span>;
+    return <span className="dashboard-readonly">Nessuna azione</span>;
   }
 
   return (
-    <div className="status-action-group" aria-label={`Update ${patientLabel(appointment)} status`}>
+    <div className="status-action-group" aria-label={`Aggiorna stato di ${patientLabel(appointment)}`}>
       {actions.map((action) => {
         const busy = busyAction === `${appointment.id}:${action.status}`;
 
@@ -81,7 +81,7 @@ function StatusActions({ appointment, busyAction, onUpdate }) {
             disabled={Boolean(busyAction)}
             onClick={() => onUpdate(appointment, action.status)}
           >
-            {busy ? "Saving..." : action.label}
+            {busy ? "Salvataggio..." : action.label}
           </button>
         );
       })}
@@ -107,7 +107,7 @@ export default function DoctorDashboard({ mode = "today" }) {
       });
       setAppointments(listFromResponse(response.data));
     } catch (scheduleError) {
-      setError(apiMessage(scheduleError, "Schedule could not be loaded. Please refresh and try again."));
+      setError(apiMessage(scheduleError, "Impossibile caricare l'agenda. Aggiorna la pagina e riprova."));
       setAppointments([]);
     } finally {
       setLoading(false);
@@ -143,10 +143,10 @@ export default function DoctorDashboard({ mode = "today" }) {
       await api.post(`/appointments/doctor/${appointment.id}/status/`, {
         status: nextStatus,
       });
-      setActionMessage("Appointment status updated.");
+      setActionMessage("Stato appuntamento aggiornato.");
       await loadSchedule(date);
     } catch (statusError) {
-      setError(apiMessage(statusError, "Appointment status could not be updated."));
+      setError(apiMessage(statusError, "Impossibile aggiornare lo stato dell'appuntamento."));
     } finally {
       setBusyAction("");
     }
@@ -156,17 +156,17 @@ export default function DoctorDashboard({ mode = "today" }) {
     <section className="portal-section operations-dashboard">
       <div className="portal-page-heading portal-heading-row">
         <div>
-          <span className="portal-eyebrow">Doctor portal</span>
-          <h1>{isScheduleMode ? "Schedule" : "Today"}</h1>
+          <span className="portal-eyebrow">Portale medico</span>
+          <h1>{isScheduleMode ? "Agenda" : "Oggi"}</h1>
           <p>
             {isScheduleMode
-              ? "Review appointments for a selected date and update visit status."
-              : "Track today's visit flow and focus on the next patients in care."}
+              ? "Consulta gli appuntamenti di una data e aggiorna lo stato delle visite."
+              : "Segui il flusso delle visite di oggi e concentrati sui prossimi pazienti."}
           </p>
         </div>
         {isScheduleMode && (
           <label className="dashboard-date-filter" htmlFor="doctor-schedule-date">
-            <span>Date</span>
+            <span>Data</span>
             <input
               id="doctor-schedule-date"
               className="form-control"
@@ -191,41 +191,41 @@ export default function DoctorDashboard({ mode = "today" }) {
 
       <div className="dashboard-stat-row dashboard-stat-row--three">
         <section className="dashboard-stat">
-          <span>Appointments</span>
+          <span>Appuntamenti</span>
           <strong>{sortedAppointments.length}</strong>
-          <small>{date === todayString() ? "today" : date}</small>
+          <small>{date === todayString() ? "oggi" : date}</small>
         </section>
         <section className="dashboard-stat">
-          <span>Waiting</span>
+          <span>In attesa</span>
           <strong>{confirmedCount}</strong>
-          <small>confirmed</small>
+          <small>confermati</small>
         </section>
         <section className="dashboard-stat">
-          <span>Done</span>
+          <span>Completati</span>
           <strong>{completedCount}</strong>
-          <small>{inProgressCount} in progress</small>
+          <small>{inProgressCount} in corso</small>
         </section>
       </div>
 
       <section className="portal-panel dashboard-table-panel">
         <div className="section-heading">
-          <h2>{isScheduleMode ? "Full schedule" : "Next appointments"}</h2>
-          <span>{isScheduleMode ? sortedAppointments.length : visibleAppointments.length} shown</span>
+          <h2>{isScheduleMode ? "Agenda completa" : "Prossimi appuntamenti"}</h2>
+          <span>{isScheduleMode ? sortedAppointments.length : visibleAppointments.length} mostrati</span>
         </div>
 
         {loading ? (
-          <LoadingState label="Loading doctor schedule" />
+          <LoadingState label="Caricamento agenda medico" />
         ) : visibleAppointments.length > 0 ? (
           <div className="table-responsive dashboard-table-wrap">
             <table className="table dashboard-table align-middle">
               <thead>
                 <tr>
-                  <th scope="col">Time</th>
-                  <th scope="col">Patient</th>
-                  <th scope="col">Service</th>
-                  <th scope="col">Clinic</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Actions</th>
+                  <th scope="col">Orario</th>
+                  <th scope="col">Paziente</th>
+                  <th scope="col">Prestazione</th>
+                  <th scope="col">Ambulatorio</th>
+                  <th scope="col">Stato</th>
+                  <th scope="col">Azioni</th>
                 </tr>
               </thead>
               <tbody>
@@ -233,8 +233,8 @@ export default function DoctorDashboard({ mode = "today" }) {
                   <tr key={appointment.id}>
                     <td className="dashboard-table__time">{formatTime(appointment.start_at)}</td>
                     <td>{patientLabel(appointment)}</td>
-                    <td>{appointment.service_name || "Appointment"}</td>
-                    <td>{appointment.clinic_name || `Clinic #${appointment.clinic}`}</td>
+                    <td>{appointment.service_name || "Appuntamento"}</td>
+                    <td>{appointment.clinic_name || `Ambulatorio #${appointment.clinic}`}</td>
                     <td>
                       <StatusBadge status={appointment.status} />
                     </td>
@@ -252,8 +252,8 @@ export default function DoctorDashboard({ mode = "today" }) {
           </div>
         ) : (
           <div className="empty-state">
-            <h3>No appointments</h3>
-            <p>No visits are scheduled for this date.</p>
+            <h3>Nessun appuntamento</h3>
+            <p>Nessuna visita programmata per questa data.</p>
           </div>
         )}
       </section>

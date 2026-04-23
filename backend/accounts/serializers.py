@@ -27,12 +27,12 @@ class RegisterSerializer(serializers.Serializer):
     def validate_username(self, value):
         User = get_user_model()
         if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("A user with that username already exists.")
+            raise serializers.ValidationError("Esiste già un utente con questo username.")
         return value
 
     def validate_password(self, value):
         if len(value) < 8:
-            raise serializers.ValidationError("Password must be at least 8 characters.")
+            raise serializers.ValidationError("La password deve contenere almeno 8 caratteri.")
         return value
 
     @transaction.atomic

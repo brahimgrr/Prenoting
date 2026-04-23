@@ -19,10 +19,10 @@ function canManageAppointment(appointment) {
 
 function formatDateTime(value) {
   if (!value) {
-    return "Time pending";
+    return "Orario in attesa";
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat("it-IT", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -31,13 +31,13 @@ function formatDateTime(value) {
 function formatTimeRange(slot) {
   const start = slot.start_at ? new Date(slot.start_at) : null;
   const end = slot.end_at ? new Date(slot.end_at) : null;
-  const formatter = new Intl.DateTimeFormat(undefined, {
+  const formatter = new Intl.DateTimeFormat("it-IT", {
     hour: "numeric",
     minute: "2-digit",
   });
 
   if (!start) {
-    return "Time pending";
+    return "Orario in attesa";
   }
 
   return end ? `${formatter.format(start)} - ${formatter.format(end)}` : formatter.format(start);
@@ -64,19 +64,19 @@ function AppointmentDetails({ appointment }) {
   return (
     <dl className="appointment-details">
       <div>
-        <dt>Service</dt>
-        <dd>{appointment.service_name || "Appointment"}</dd>
+        <dt>Prestazione</dt>
+        <dd>{appointment.service_name || "Appuntamento"}</dd>
       </div>
       <div>
-        <dt>Doctor</dt>
-        <dd>{appointment.doctor_name || "Doctor pending"}</dd>
+        <dt>Medico</dt>
+        <dd>{appointment.doctor_name || "Medico in attesa"}</dd>
       </div>
       <div>
-        <dt>Clinic</dt>
-        <dd>{appointment.clinic_name || "Clinic pending"}</dd>
+        <dt>Ambulatorio</dt>
+        <dd>{appointment.clinic_name || "Ambulatorio in attesa"}</dd>
       </div>
       <div>
-        <dt>Time</dt>
+        <dt>Orario</dt>
         <dd>{formatDateTime(appointment.start_at)}</dd>
       </div>
     </dl>
@@ -106,7 +106,7 @@ export default function MyAppointmentsPage() {
       const response = await api.get("/appointments/");
       setAppointments(listFromResponse(response.data));
     } catch {
-      setError("Appointments could not be loaded. Please refresh and try again.");
+      setError("Impossibile caricare gli appuntamenti. Aggiorna la pagina e riprova.");
     } finally {
       setLoading(false);
     }
@@ -140,7 +140,7 @@ export default function MyAppointmentsPage() {
         }
       } catch {
         if (active) {
-          setError("Reschedule availability could not be loaded.");
+          setError("Impossibile caricare le disponibilità per lo spostamento.");
           setRescheduleSlots([]);
         }
       } finally {
@@ -178,12 +178,12 @@ export default function MyAppointmentsPage() {
       await api.post(`/appointments/${cancelAppointment.id}/cancel/`, {
         cancellation_reason: cancelReason,
       });
-      setActionMessage("Appointment cancelled.");
+      setActionMessage("Appuntamento annullato.");
       setCancelAppointment(null);
       setCancelReason("");
       await loadAppointments();
     } catch (cancelError) {
-      setError(apiMessage(cancelError, "Appointment could not be cancelled."));
+      setError(apiMessage(cancelError, "Impossibile annullare l'appuntamento."));
     } finally {
       setCanceling(false);
     }
@@ -199,26 +199,26 @@ export default function MyAppointmentsPage() {
       await api.post(`/appointments/${rescheduleAppointment.id}/reschedule/`, {
         slot: selectedRescheduleSlot.id,
       });
-      setActionMessage("Appointment rescheduled.");
+      setActionMessage("Appuntamento spostato.");
       setRescheduleAppointment(null);
       setSelectedRescheduleSlot(null);
       await loadAppointments();
     } catch (rescheduleError) {
-      setError(apiMessage(rescheduleError, "Appointment could not be rescheduled."));
+      setError(apiMessage(rescheduleError, "Impossibile spostare l'appuntamento."));
     } finally {
       setRescheduling(false);
     }
   }
 
   if (loading) {
-    return <LoadingState label="Loading appointments" />;
+    return <LoadingState label="Caricamento appuntamenti" />;
   }
 
   return (
     <section className="portal-section">
       <div className="portal-page-heading">
-        <span className="portal-eyebrow">Appointments</span>
-        <h1>My appointments</h1>
+        <span className="portal-eyebrow">Appuntamenti</span>
+        <h1>I miei appuntamenti</h1>
       </div>
 
       {error && (
@@ -234,7 +234,7 @@ export default function MyAppointmentsPage() {
 
       <section className="appointment-group">
         <div className="section-heading">
-          <h2>Upcoming</h2>
+          <h2>Imminenti</h2>
           <span>{grouped.upcoming.length}</span>
         </div>
         {grouped.upcoming.length > 0 ? (
@@ -243,7 +243,7 @@ export default function MyAppointmentsPage() {
               <article className="appointment-card" key={appointment.id}>
                 <div className="appointment-card__header">
                   <div>
-                    <h3>{appointment.service_name || "Appointment"}</h3>
+                    <h3>{appointment.service_name || "Appuntamento"}</h3>
                     <p>{formatDateTime(appointment.start_at)}</p>
                   </div>
                   <StatusBadge status={appointment.status} />
@@ -256,19 +256,19 @@ export default function MyAppointmentsPage() {
                       className="btn btn-outline-secondary"
                       onClick={() => setRescheduleAppointment(appointment)}
                     >
-                      Reschedule
+                      Sposta
                     </button>
                     <button
                       type="button"
                       className="btn btn-outline-danger"
                       onClick={() => setCancelAppointment(appointment)}
                     >
-                      Cancel
+                      Annulla
                     </button>
                   </div>
                 ) : (
                   <div className="appointment-actions appointment-actions--readonly">
-                    <span className="text-secondary fw-medium">Details only</span>
+                    <span className="text-secondary fw-medium">Solo dettagli</span>
                   </div>
                 )}
               </article>
@@ -276,15 +276,15 @@ export default function MyAppointmentsPage() {
           </div>
         ) : (
           <div className="portal-panel empty-state">
-            <h3>No upcoming appointments</h3>
-            <p>Confirmed future visits will appear here.</p>
+            <h3>Nessun appuntamento imminente</h3>
+            <p>Le visite future confermate compariranno qui.</p>
           </div>
         )}
       </section>
 
       <section className="appointment-group">
         <div className="section-heading">
-          <h2>Past and cancelled</h2>
+          <h2>Passati e annullati</h2>
           <span>{grouped.past.length}</span>
         </div>
         {grouped.past.length > 0 ? (
@@ -293,7 +293,7 @@ export default function MyAppointmentsPage() {
               <article className="appointment-card appointment-card--muted" key={appointment.id}>
                 <div className="appointment-card__header">
                   <div>
-                    <h3>{appointment.service_name || "Appointment"}</h3>
+                    <h3>{appointment.service_name || "Appuntamento"}</h3>
                     <p>{formatDateTime(appointment.start_at)}</p>
                   </div>
                   <StatusBadge status={appointment.status} />
@@ -304,8 +304,8 @@ export default function MyAppointmentsPage() {
           </div>
         ) : (
           <div className="portal-panel empty-state">
-            <h3>No appointment history</h3>
-            <p>Past visits and cancelled appointments will appear here.</p>
+            <h3>Nessuno storico appuntamenti</h3>
+            <p>Le visite passate e gli appuntamenti annullati compariranno qui.</p>
           </div>
         )}
       </section>
@@ -316,14 +316,14 @@ export default function MyAppointmentsPage() {
             <form className="modal-content" onSubmit={submitCancel}>
               <div className="modal-header">
                 <h2 className="modal-title fs-5" id="cancel-title">
-                  Cancel appointment
+                  Annulla appuntamento
                 </h2>
-                <button type="button" className="btn-close" aria-label="Close" onClick={() => setCancelAppointment(null)} />
+                <button type="button" className="btn-close" aria-label="Chiudi" onClick={() => setCancelAppointment(null)} />
               </div>
               <div className="modal-body">
-                <p className="text-secondary mb-3">{cancelAppointment.service_name} at {formatDateTime(cancelAppointment.start_at)}</p>
+                <p className="text-secondary mb-3">{cancelAppointment.service_name} - {formatDateTime(cancelAppointment.start_at)}</p>
                 <label className="form-label" htmlFor="cancel-reason">
-                  Reason
+                  Motivo
                 </label>
                 <textarea
                   id="cancel-reason"
@@ -335,10 +335,10 @@ export default function MyAppointmentsPage() {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-outline-secondary" onClick={() => setCancelAppointment(null)}>
-                  Keep appointment
+                  Mantieni appuntamento
                 </button>
                 <button type="submit" className="btn btn-danger" disabled={canceling}>
-                  {canceling ? "Cancelling..." : "Cancel appointment"}
+                  {canceling ? "Annullamento..." : "Annulla appuntamento"}
                 </button>
               </div>
             </form>
@@ -349,14 +349,14 @@ export default function MyAppointmentsPage() {
       {rescheduleAppointment && (
         <div className="reschedule-panel portal-panel">
           <div className="section-heading">
-            <h2>Reschedule</h2>
+            <h2>Sposta appuntamento</h2>
             <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setRescheduleAppointment(null)}>
-              Close
+              Chiudi
             </button>
           </div>
           <form onSubmit={submitReschedule}>
             <label className="form-label" htmlFor="reschedule-date">
-              Date
+              Data
             </label>
             <input
               id="reschedule-date"
@@ -366,7 +366,7 @@ export default function MyAppointmentsPage() {
               onChange={(event) => setRescheduleDate(event.target.value)}
             />
             {loadingRescheduleSlots ? (
-              <LoadingState label="Loading new times" />
+              <LoadingState label="Caricamento nuovi orari" />
             ) : (
               <div className="slot-list mt-3">
                 {rescheduleSlots.map((slot) => (
@@ -377,19 +377,19 @@ export default function MyAppointmentsPage() {
                     onClick={() => setSelectedRescheduleSlot(slot)}
                   >
                     <span>{formatTimeRange(slot)}</span>
-                    <small>{slot.doctor_name || "Doctor"} / {slot.clinic_name || `Clinic ${slot.clinic}`}</small>
+                    <small>{slot.doctor_name || "Medico"} / {slot.clinic_name || `Ambulatorio ${slot.clinic}`}</small>
                   </button>
                 ))}
                 {rescheduleSlots.length === 0 && (
                   <div className="empty-state">
-                    <h3>No slots available</h3>
-                    <p>Choose another date.</p>
+                    <h3>Nessuno slot disponibile</h3>
+                    <p>Scegli un'altra data.</p>
                   </div>
                 )}
               </div>
             )}
             <button type="submit" className="btn btn-primary mt-3" disabled={!selectedRescheduleSlot || rescheduling}>
-              {rescheduling ? "Rescheduling..." : "Save new time"}
+              {rescheduling ? "Spostamento..." : "Salva nuovo orario"}
             </button>
           </form>
         </div>

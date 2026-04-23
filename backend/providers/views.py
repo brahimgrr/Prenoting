@@ -14,10 +14,10 @@ def _parse_id_param(query_params, field_name):
     try:
         parsed_value = int(value)
     except (TypeError, ValueError):
-        raise ValidationError({field_name: ["Use a valid integer id."]})
+        raise ValidationError({field_name: ["Usa un ID numerico valido."]})
 
     if parsed_value <= 0:
-        raise ValidationError({field_name: ["Use a valid integer id."]})
+        raise ValidationError({field_name: ["Usa un ID numerico valido."]})
 
     return parsed_value
 

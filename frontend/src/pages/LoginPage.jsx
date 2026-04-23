@@ -40,7 +40,7 @@ export default function LoginPage() {
       const fallbackRoute = routeForRole(currentUser);
       navigate(fallbackRoute ?? "/unsupported-role", { replace: true });
     } catch (error) {
-      setErrors(error.response?.data ?? { detail: "Unable to sign in. Try again." });
+      setErrors(error.response?.data ?? { detail: "Accesso non riuscito. Riprova." });
     } finally {
       setSubmitting(false);
     }
@@ -52,8 +52,8 @@ export default function LoginPage() {
         <div className="auth-panel__header">
           <span className="app-brand__mark">M</span>
           <div>
-            <h1>Sign in</h1>
-            <p>Access the medical appointment portal.</p>
+            <h1>Accedi</h1>
+            <p>Accedi al portale delle prenotazioni mediche.</p>
           </div>
         </div>
 
@@ -63,7 +63,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} noValidate>
           <div className="mb-3">
             <label className="form-label" htmlFor="username">
-              Username or email
+              Username o email
             </label>
             <input
               className={`form-control${errors.username ? " is-invalid" : ""}`}
@@ -95,12 +95,12 @@ export default function LoginPage() {
           </div>
 
           <button className="btn btn-primary w-100" type="submit" disabled={submitting}>
-            {submitting ? "Signing in..." : "Sign in"}
+            {submitting ? "Accesso in corso..." : "Accedi"}
           </button>
         </form>
 
         <p className="auth-panel__footer">
-          New patient? <Link to="/register">Create an account</Link>
+          Nuovo paziente? <Link to="/register">Crea un account</Link>
         </p>
       </section>
     </main>

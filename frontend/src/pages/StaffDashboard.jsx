@@ -4,25 +4,25 @@ import LoadingState from "../components/LoadingState";
 import StatusBadge from "../components/StatusBadge";
 
 const STATUS_OPTIONS = [
-  { value: "", label: "All statuses" },
-  { value: "confirmed", label: "Confirmed" },
-  { value: "checked_in", label: "Checked in" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "no_show", label: "No show" },
+  { value: "", label: "Tutti gli stati" },
+  { value: "confirmed", label: "Confermato" },
+  { value: "checked_in", label: "Accettato" },
+  { value: "completed", label: "Completato" },
+  { value: "cancelled", label: "Annullato" },
+  { value: "no_show", label: "Assente" },
 ];
 
 const STAFF_STATUS_ACTIONS = {
   confirmed: [
-    { status: "checked_in", label: "Checked in", className: "btn-outline-primary" },
-    { status: "completed", label: "Completed", className: "btn-outline-success" },
-    { status: "cancelled", label: "Cancelled", className: "btn-outline-secondary" },
-    { status: "no_show", label: "No show", className: "btn-outline-danger" },
+    { status: "checked_in", label: "Accetta", className: "btn-outline-primary" },
+    { status: "completed", label: "Completa", className: "btn-outline-success" },
+    { status: "cancelled", label: "Annulla", className: "btn-outline-secondary" },
+    { status: "no_show", label: "Assente", className: "btn-outline-danger" },
   ],
   checked_in: [
-    { status: "completed", label: "Completed", className: "btn-outline-success" },
-    { status: "cancelled", label: "Cancelled", className: "btn-outline-secondary" },
-    { status: "no_show", label: "No show", className: "btn-outline-danger" },
+    { status: "completed", label: "Completa", className: "btn-outline-success" },
+    { status: "cancelled", label: "Annulla", className: "btn-outline-secondary" },
+    { status: "no_show", label: "Assente", className: "btn-outline-danger" },
   ],
 };
 
@@ -62,15 +62,15 @@ function compactParams(filters) {
 }
 
 function patientLabel(appointment) {
-  return appointment.patient_name || `Patient #${appointment.patient}`;
+  return appointment.patient_name || `Paziente #${appointment.patient}`;
 }
 
 function formatDateTime(value) {
   if (!value) {
-    return "Time pending";
+    return "Orario in attesa";
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat("it-IT", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -88,11 +88,11 @@ function StatusActions({ appointment, busyAction, onUpdate }) {
   const actions = STAFF_STATUS_ACTIONS[String(appointment.status).toLowerCase()] ?? [];
 
   if (actions.length === 0) {
-    return <span className="dashboard-readonly">No actions</span>;
+    return <span className="dashboard-readonly">Nessuna azione</span>;
   }
 
   return (
-    <div className="status-action-group status-action-group--dense" aria-label={`Update ${patientLabel(appointment)} status`}>
+    <div className="status-action-group status-action-group--dense" aria-label={`Aggiorna stato di ${patientLabel(appointment)}`}>
       {actions.map((action) => {
         const busy = busyAction === `${appointment.id}:${action.status}`;
 
@@ -104,7 +104,7 @@ function StatusActions({ appointment, busyAction, onUpdate }) {
             disabled={Boolean(busyAction)}
             onClick={() => onUpdate(appointment, action.status)}
           >
-            {busy ? "Saving..." : action.label}
+            {busy ? "Salvataggio..." : action.label}
           </button>
         );
       })}
@@ -136,7 +136,7 @@ export default function StaffDashboard({ mode = "operations" }) {
       });
       setAppointments(listFromResponse(response.data));
     } catch (appointmentError) {
-      setError(apiMessage(appointmentError, "Appointments could not be loaded. Check filters and try again."));
+      setError(apiMessage(appointmentError, "Impossibile caricare gli appuntamenti. Controlla i filtri e riprova."));
       setAppointments([]);
     } finally {
       setLoading(false);
@@ -187,10 +187,10 @@ export default function StaffDashboard({ mode = "operations" }) {
       await api.post(`/appointments/staff/${appointment.id}/status/`, {
         status: nextStatus,
       });
-      setActionMessage("Appointment status updated.");
+      setActionMessage("Stato appuntamento aggiornato.");
       await loadAppointments(filters);
     } catch (statusError) {
-      setError(apiMessage(statusError, "Appointment status could not be updated."));
+      setError(apiMessage(statusError, "Impossibile aggiornare lo stato dell'appuntamento."));
     } finally {
       setBusyAction("");
     }
@@ -199,12 +199,12 @@ export default function StaffDashboard({ mode = "operations" }) {
   return (
     <section className="portal-section operations-dashboard operations-dashboard--wide">
       <div className="portal-page-heading">
-        <span className="portal-eyebrow">Staff portal</span>
-        <h1>{isAppointmentsMode ? "Appointments" : "Daily operations"}</h1>
+        <span className="portal-eyebrow">Portale staff</span>
+        <h1>{isAppointmentsMode ? "Appuntamenti" : "Operatività giornaliera"}</h1>
         <p>
           {isAppointmentsMode
-            ? "Search and manage appointment records across clinics, doctors, services, and statuses."
-            : "Monitor today's operational flow and spot queues that need staff attention."}
+            ? "Cerca e gestisci gli appuntamenti per ambulatori, medici, prestazioni e stati."
+            : "Monitora il flusso operativo di oggi e individua le code che richiedono attenzione."}
         </p>
       </div>
 
@@ -221,24 +221,24 @@ export default function StaffDashboard({ mode = "operations" }) {
 
       <div className="dashboard-stat-row dashboard-stat-row--three">
         <section className="dashboard-stat">
-          <span>Total</span>
+          <span>Totale</span>
           <strong>{counts.total}</strong>
-          <small>displayed</small>
+          <small>visualizzati</small>
         </section>
         <section className="dashboard-stat">
-          <span>Waiting</span>
+          <span>In attesa</span>
           <strong>{counts.confirmed}</strong>
-          <small>confirmed</small>
+          <small>confermati</small>
         </section>
         <section className="dashboard-stat">
-          <span>Checked in</span>
+          <span>Accettati</span>
           <strong>{counts.checkedIn}</strong>
-          <small>in progress</small>
+          <small>in corso</small>
         </section>
         <section className="dashboard-stat">
-          <span>Completed</span>
+          <span>Completati</span>
           <strong>{counts.completed}</strong>
-          <small>{counts.cancelled} cancelled</small>
+          <small>{counts.cancelled} annullati</small>
         </section>
       </div>
 
@@ -246,7 +246,7 @@ export default function StaffDashboard({ mode = "operations" }) {
         <section className="portal-panel dashboard-filter-panel">
           <div className="dashboard-filter-grid">
             <label className="form-label" htmlFor="staff-date">
-              Date
+              Data
               <input
                 id="staff-date"
                 className="form-control"
@@ -256,40 +256,40 @@ export default function StaffDashboard({ mode = "operations" }) {
               />
             </label>
             <label className="form-label" htmlFor="staff-clinic">
-              Clinic ID
+              ID ambulatorio
               <input
                 id="staff-clinic"
                 className="form-control"
                 inputMode="numeric"
                 value={filters.clinic}
                 onChange={(event) => updateFilter("clinic", event.target.value)}
-                placeholder="Any"
+                placeholder="Qualsiasi"
               />
             </label>
             <label className="form-label" htmlFor="staff-doctor">
-              Doctor ID
+              ID medico
               <input
                 id="staff-doctor"
                 className="form-control"
                 inputMode="numeric"
                 value={filters.doctor}
                 onChange={(event) => updateFilter("doctor", event.target.value)}
-                placeholder="Any"
+                placeholder="Qualsiasi"
               />
             </label>
             <label className="form-label" htmlFor="staff-service">
-              Service ID
+              ID prestazione
               <input
                 id="staff-service"
                 className="form-control"
                 inputMode="numeric"
                 value={filters.service}
                 onChange={(event) => updateFilter("service", event.target.value)}
-                placeholder="Any"
+                placeholder="Qualsiasi"
               />
             </label>
             <label className="form-label" htmlFor="staff-status">
-              Status
+              Stato
               <select
                 id="staff-status"
                 className="form-control"
@@ -305,7 +305,7 @@ export default function StaffDashboard({ mode = "operations" }) {
             </label>
             <div className="dashboard-filter-actions">
               <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>
-                Reset
+                Reimposta
               </button>
             </div>
           </div>
@@ -313,24 +313,24 @@ export default function StaffDashboard({ mode = "operations" }) {
       ) : (
         <section className="portal-panel">
           <div className="section-heading">
-            <h2>Operational snapshot</h2>
+            <h2>Riepilogo operativo</h2>
             <span>{filters.date}</span>
           </div>
           {loading ? (
-            <LoadingState label="Loading daily operations" />
+            <LoadingState label="Caricamento operatività giornaliera" />
           ) : (
             <div className="operations-summary-grid">
               <div>
                 <strong>{counts.confirmed}</strong>
-                <span>patients expected</span>
+                <span>pazienti attesi</span>
               </div>
               <div>
                 <strong>{counts.checkedIn}</strong>
-                <span>currently checked in</span>
+                <span>attualmente accettati</span>
               </div>
               <div>
                 <strong>{counts.completed}</strong>
-                <span>visits completed</span>
+                <span>visite completate</span>
               </div>
             </div>
           )}
@@ -340,24 +340,24 @@ export default function StaffDashboard({ mode = "operations" }) {
       {isAppointmentsMode && (
       <section className="portal-panel dashboard-table-panel">
         <div className="section-heading">
-          <h2>Appointments</h2>
-          <span>{sortedAppointments.length} total</span>
+          <h2>Appuntamenti</h2>
+          <span>{sortedAppointments.length} totali</span>
         </div>
 
         {loading ? (
-          <LoadingState label="Loading appointments" />
+          <LoadingState label="Caricamento appuntamenti" />
         ) : sortedAppointments.length > 0 ? (
           <div className="table-responsive dashboard-table-wrap">
             <table className="table dashboard-table dashboard-table--dense align-middle">
               <thead>
                 <tr>
-                  <th scope="col">Time</th>
-                  <th scope="col">Patient</th>
-                  <th scope="col">Doctor</th>
-                  <th scope="col">Service</th>
-                  <th scope="col">Clinic</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Controls</th>
+                  <th scope="col">Orario</th>
+                  <th scope="col">Paziente</th>
+                  <th scope="col">Medico</th>
+                  <th scope="col">Prestazione</th>
+                  <th scope="col">Ambulatorio</th>
+                  <th scope="col">Stato</th>
+                  <th scope="col">Controlli</th>
                 </tr>
               </thead>
               <tbody>
@@ -365,9 +365,9 @@ export default function StaffDashboard({ mode = "operations" }) {
                   <tr key={appointment.id}>
                     <td className="dashboard-table__time">{formatDateTime(appointment.start_at)}</td>
                     <td>{patientLabel(appointment)}</td>
-                    <td>{appointment.doctor_name || `Doctor #${appointment.doctor}`}</td>
-                    <td>{appointment.service_name || `Service #${appointment.service}`}</td>
-                    <td>{appointment.clinic_name || `Clinic #${appointment.clinic}`}</td>
+                    <td>{appointment.doctor_name || `Medico #${appointment.doctor}`}</td>
+                    <td>{appointment.service_name || `Prestazione #${appointment.service}`}</td>
+                    <td>{appointment.clinic_name || `Ambulatorio #${appointment.clinic}`}</td>
                     <td>
                       <StatusBadge status={appointment.status} />
                     </td>
@@ -385,8 +385,8 @@ export default function StaffDashboard({ mode = "operations" }) {
           </div>
         ) : (
           <div className="empty-state">
-            <h3>No appointments found</h3>
-            <p>Adjust filters to view another work queue.</p>
+            <h3>Nessun appuntamento trovato</h3>
+            <p>Modifica i filtri per visualizzare un'altra coda di lavoro.</p>
           </div>
         )}
       </section>

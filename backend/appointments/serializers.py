@@ -8,7 +8,7 @@ from scheduling.models import AvailabilitySlot
 from services.models import DoctorService, MedicalService
 
 
-SLOT_UNAVAILABLE_ERROR = {"slot": ["This slot is no longer available."]}
+SLOT_UNAVAILABLE_ERROR = {"slot": ["Questo orario non è più disponibile."]}
 ACTIVE_SLOT_STATUSES = {
     Appointment.Status.CONFIRMED,
     Appointment.Status.CHECKED_IN,
@@ -18,17 +18,17 @@ ACTIVE_SLOT_STATUSES = {
 def validate_slot_for_service(slot, service):
     errors = {}
     if not service.is_active:
-        errors["service"] = ["This service is not active."]
+        errors["service"] = ["Questa prestazione non è attiva."]
     if not slot.doctor.is_active:
-        errors["slot"] = ["This doctor is not active."]
+        errors["slot"] = ["Questo medico non è attivo."]
     if not slot.clinic.is_active:
-        errors["slot"] = ["This clinic is not active."]
+        errors["slot"] = ["Questo ambulatorio non è attivo."]
     if slot.is_blocked or slot.is_booked:
         errors["slot"] = SLOT_UNAVAILABLE_ERROR["slot"]
     if slot.start_at <= timezone.now():
-        errors["slot"] = ["This slot is no longer available."]
+        errors["slot"] = ["Questo orario non è più disponibile."]
     if not DoctorService.objects.filter(doctor=slot.doctor, service=service).exists():
-        errors["service"] = ["Selected doctor does not offer this service."]
+        errors["service"] = ["Il medico selezionato non offre questa prestazione."]
 
     if errors:
         raise serializers.ValidationError(errors)
@@ -87,7 +87,7 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
             patient = request.user.patient_profile
         except PatientProfile.DoesNotExist as exc:
             raise serializers.ValidationError(
-                {"patient": ["Authenticated user does not have a patient profile."]},
+                {"patient": ["L'utente autenticato non ha un profilo paziente."]},
             ) from exc
 
         slot_id = validated_data["slot"].id
@@ -136,5 +136,5 @@ class AppointmentRescheduleSerializer(serializers.Serializer):
         appointment = self.context["appointment"]
         validate_slot_for_service(slot, appointment.service)
         if slot.id == appointment.slot_id:
-            raise serializers.ValidationError("Select a different slot.")
+            raise serializers.ValidationError("Seleziona un orario diverso.")
         return slot
