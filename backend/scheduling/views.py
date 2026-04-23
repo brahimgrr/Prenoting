@@ -1,10 +1,43 @@
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework.generics import ListAPIView
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 
 from scheduling.models import AvailabilitySlot
 from scheduling.serializers import AvailabilitySerializer
+
+
+def _parse_id_param(query_params, field_name):
+    value = query_params.get(field_name)
+    if value is None:
+        return None
+
+    try:
+        parsed_value = int(value)
+    except (TypeError, ValueError):
+        raise ValidationError({field_name: ["Use a valid integer id."]})
+
+    if parsed_value <= 0:
+        raise ValidationError({field_name: ["Use a valid integer id."]})
+
+    return parsed_value
+
+
+def _parse_date_param(query_params, field_name):
+    value = query_params.get(field_name)
+    if value is None:
+        return None
+
+    try:
+        parsed_value = parse_date(value)
+    except ValueError:
+        parsed_value = None
+
+    if parsed_value is None:
+        raise ValidationError({field_name: ["Use YYYY-MM-DD format."]})
+
+    return parsed_value
 
 
 class AvailabilityListView(ListAPIView):
@@ -14,6 +47,8 @@ class AvailabilityListView(ListAPIView):
     def get_queryset(self):
         queryset = (
             AvailabilitySlot.objects.filter(
+                doctor__is_active=True,
+                clinic__is_active=True,
                 is_blocked=False,
                 is_booked=False,
                 start_at__gte=timezone.now(),
@@ -21,23 +56,24 @@ class AvailabilityListView(ListAPIView):
             .select_related("doctor", "clinic", "doctor__specialty")
             .order_by("start_at")
         )
-        doctor = self.request.query_params.get("doctor")
-        clinic = self.request.query_params.get("clinic")
-        service = self.request.query_params.get("service")
-        specialty = self.request.query_params.get("specialty")
-        date = self.request.query_params.get("date")
+        doctor = _parse_id_param(self.request.query_params, "doctor")
+        clinic = _parse_id_param(self.request.query_params, "clinic")
+        service = _parse_id_param(self.request.query_params, "service")
+        specialty = _parse_id_param(self.request.query_params, "specialty")
+        date = _parse_date_param(self.request.query_params, "date")
 
-        if doctor:
+        if doctor is not None:
             queryset = queryset.filter(doctor_id=doctor)
-        if clinic:
+        if clinic is not None:
             queryset = queryset.filter(clinic_id=clinic)
-        if service:
-            queryset = queryset.filter(doctor__doctor_services__service_id=service)
-        if specialty:
+        if service is not None:
+            queryset = queryset.filter(
+                doctor__doctor_services__service_id=service,
+                doctor__doctor_services__service__is_active=True,
+            )
+        if specialty is not None:
             queryset = queryset.filter(doctor__specialty_id=specialty)
-        if date:
-            parsed_date = parse_date(date)
-            if parsed_date:
-                queryset = queryset.filter(start_at__date=parsed_date)
+        if date is not None:
+            queryset = queryset.filter(start_at__date=date)
 
         return queryset.distinct()

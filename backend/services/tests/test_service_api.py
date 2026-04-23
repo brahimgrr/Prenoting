@@ -47,3 +47,11 @@ def test_services_endpoint_filters_by_name_search():
 
     assert response.status_code == 200
     assert [service["id"] for service in response.data] == [matched.id]
+
+
+@pytest.mark.django_db
+def test_services_endpoint_rejects_malformed_specialty_filter():
+    response = APIClient().get("/api/services/", {"specialty": "abc"})
+
+    assert response.status_code == 400
+    assert "specialty" in response.data

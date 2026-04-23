@@ -11,12 +11,13 @@ from scheduling.models import AvailabilitySlot
 from services.models import DoctorService, MedicalService
 
 
-def create_doctor(username, display_name, specialty):
+def create_doctor(username, display_name, specialty, is_active=True):
     user = get_user_model().objects.create_user(username=username, password="password")
     return DoctorProfile.objects.create(
         user=user,
         display_name=display_name,
         specialty=specialty,
+        is_active=is_active,
     )
 
 
@@ -101,3 +102,85 @@ def test_availability_endpoint_filters_by_doctor():
 
     assert response.status_code == 200
     assert [slot["id"] for slot in response.data] == [matched_slot.id]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("field", ["doctor", "clinic", "service", "specialty"])
+def test_availability_endpoint_rejects_malformed_id_filters(field):
+    response = APIClient().get("/api/availability/", {field: "abc"})
+
+    assert response.status_code == 400
+    assert field in response.data
+
+
+@pytest.mark.django_db
+def test_availability_endpoint_rejects_invalid_date_filter():
+    response = APIClient().get("/api/availability/", {"date": "bad"})
+
+    assert response.status_code == 400
+    assert "date" in response.data
+
+
+@pytest.mark.django_db
+def test_availability_endpoint_excludes_inactive_public_entities():
+    specialty = Specialty.objects.create(name="Cardiology")
+    active_service = MedicalService.objects.create(
+        name="Cardiology consultation",
+        specialty=specialty,
+    )
+    inactive_service = MedicalService.objects.create(
+        name="Inactive cardiology consultation",
+        specialty=specialty,
+        is_active=False,
+    )
+    active_doctor = create_doctor("active-doctor", "Dr. Active", specialty)
+    inactive_doctor = create_doctor(
+        "inactive-doctor",
+        "Dr. Inactive",
+        specialty,
+        is_active=False,
+    )
+    DoctorService.objects.create(doctor=active_doctor, service=active_service)
+    DoctorService.objects.create(doctor=active_doctor, service=inactive_service)
+    DoctorService.objects.create(doctor=inactive_doctor, service=active_service)
+    active_clinic = ClinicLocation.objects.create(name="Active Clinic", address="1 Main St")
+    inactive_clinic = ClinicLocation.objects.create(
+        name="Inactive Clinic",
+        address="2 Main St",
+        is_active=False,
+    )
+    start_at = timezone.now() + timedelta(days=1)
+    visible_slot = AvailabilitySlot.objects.create(
+        doctor=active_doctor,
+        clinic=active_clinic,
+        start_at=start_at,
+        end_at=start_at + timedelta(minutes=30),
+    )
+    inactive_doctor_start = start_at + timedelta(hours=1)
+    AvailabilitySlot.objects.create(
+        doctor=inactive_doctor,
+        clinic=active_clinic,
+        start_at=inactive_doctor_start,
+        end_at=inactive_doctor_start + timedelta(minutes=30),
+    )
+    inactive_clinic_start = start_at + timedelta(hours=2)
+    AvailabilitySlot.objects.create(
+        doctor=active_doctor,
+        clinic=inactive_clinic,
+        start_at=inactive_clinic_start,
+        end_at=inactive_clinic_start + timedelta(minutes=30),
+    )
+
+    active_response = APIClient().get(
+        "/api/availability/",
+        {"service": active_service.id},
+    )
+    inactive_response = APIClient().get(
+        "/api/availability/",
+        {"service": inactive_service.id},
+    )
+
+    assert active_response.status_code == 200
+    assert [slot["id"] for slot in active_response.data] == [visible_slot.id]
+    assert inactive_response.status_code == 200
+    assert inactive_response.data == []

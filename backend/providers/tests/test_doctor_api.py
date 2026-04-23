@@ -48,3 +48,11 @@ def test_doctors_endpoint_filters_by_specialty():
 
     assert response.status_code == 200
     assert [doctor["id"] for doctor in response.data] == [matched.id]
+
+
+@pytest.mark.django_db
+def test_doctors_endpoint_rejects_malformed_specialty_filter():
+    response = APIClient().get("/api/doctors/", {"specialty": "abc"})
+
+    assert response.status_code == 400
+    assert "specialty" in response.data
