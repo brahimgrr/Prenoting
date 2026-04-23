@@ -1,10 +1,11 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
 
 from appointments.models import Appointment, AppointmentStatusHistory
 from appointments.serializers import (
@@ -16,6 +17,20 @@ from appointments.serializers import (
     validate_slot_for_service,
 )
 from scheduling.models import AvailabilitySlot
+
+
+APPOINTMENT_RESCHEDULED_AUDIT_STATUS = "rescheduled"
+
+
+def validate_confirmed_future_appointment(appointment, action):
+    if appointment.status != Appointment.Status.CONFIRMED:
+        raise ValidationError(
+            {"status": [f"Only confirmed appointments can be {action}."]},
+        )
+    if appointment.start_at <= timezone.now():
+        raise ValidationError(
+            {"start_at": [f"Past appointments cannot be {action}."]},
+        )
 
 
 class IsPatientUser(BasePermission):
@@ -74,6 +89,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 pk=pk,
                 patient=request.user.patient_profile,
             )
+            validate_confirmed_future_appointment(appointment, "cancelled")
             slot = AvailabilitySlot.objects.select_for_update().get(pk=appointment.slot_id)
             previous_status = appointment.status
 
@@ -100,6 +116,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def reschedule(self, request, pk=None):
         appointment = self.get_object()
+        validate_confirmed_future_appointment(appointment, "rescheduled")
         serializer = self.get_serializer(
             data=request.data,
             context={**self.get_serializer_context(), "appointment": appointment},
@@ -113,6 +130,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 pk=pk,
                 patient=request.user.patient_profile,
             )
+            validate_confirmed_future_appointment(locked_appointment, "rescheduled")
             if new_slot_id == locked_appointment.slot_id:
                 raise ValidationError({"slot": ["Select a different slot."]})
 
@@ -159,7 +177,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             AppointmentStatusHistory.objects.create(
                 appointment=locked_appointment,
                 previous_status=previous_status,
-                new_status=locked_appointment.status,
+                new_status=APPOINTMENT_RESCHEDULED_AUDIT_STATUS,
                 changed_by=request.user,
             )
 

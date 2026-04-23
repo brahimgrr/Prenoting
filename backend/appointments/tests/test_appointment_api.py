@@ -59,6 +59,21 @@ def create_booking_context():
     return specialty, doctor, service, clinic, slot
 
 
+def create_appointment(patient, doctor, service, clinic, slot, status=Appointment.Status.CONFIRMED):
+    slot.is_booked = True
+    slot.save(update_fields=["is_booked"])
+    return Appointment.objects.create(
+        patient=patient,
+        doctor=doctor,
+        service=service,
+        clinic=clinic,
+        slot=slot,
+        start_at=slot.start_at,
+        end_at=slot.end_at,
+        status=status,
+    )
+
+
 def authenticated_client(user):
     client = APIClient()
     client.force_authenticate(user=user)
@@ -212,6 +227,63 @@ def test_patient_can_cancel_their_own_appointment_and_history_is_created():
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "blocked_status",
+    [
+        Appointment.Status.CANCELLED,
+        Appointment.Status.CHECKED_IN,
+        Appointment.Status.COMPLETED,
+        Appointment.Status.NO_SHOW,
+    ],
+)
+def test_patient_cannot_cancel_non_confirmed_appointment(blocked_status):
+    patient_user, patient = create_patient("patient")
+    _, doctor, service, clinic, slot = create_booking_context()
+    appointment = create_appointment(patient, doctor, service, clinic, slot, blocked_status)
+
+    response = authenticated_client(patient_user).post(
+        f"/api/appointments/{appointment.id}/cancel/",
+        {"cancellation_reason": "Cannot attend"},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "status" in response.data
+    appointment.refresh_from_db()
+    slot.refresh_from_db()
+    assert appointment.status == blocked_status
+    assert appointment.cancellation_reason == ""
+    assert slot.is_booked is True
+    assert AppointmentStatusHistory.objects.filter(appointment=appointment).count() == 0
+
+
+@pytest.mark.django_db
+def test_patient_cannot_cancel_past_appointment():
+    patient_user, patient = create_patient("patient")
+    _, doctor, service, clinic, slot = create_booking_context()
+    past_start = timezone.now() - timedelta(hours=1)
+    slot.start_at = past_start
+    slot.end_at = past_start + timedelta(minutes=30)
+    slot.save(update_fields=["start_at", "end_at"])
+    appointment = create_appointment(patient, doctor, service, clinic, slot)
+
+    response = authenticated_client(patient_user).post(
+        f"/api/appointments/{appointment.id}/cancel/",
+        {"cancellation_reason": "Cannot attend"},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "start_at" in response.data
+    appointment.refresh_from_db()
+    slot.refresh_from_db()
+    assert appointment.status == Appointment.Status.CONFIRMED
+    assert appointment.cancellation_reason == ""
+    assert slot.is_booked is True
+    assert AppointmentStatusHistory.objects.filter(appointment=appointment).count() == 0
+
+
+@pytest.mark.django_db
 def test_patient_can_reschedule_to_different_available_slot_and_history_is_created():
     patient_user, patient = create_patient("patient")
     _, doctor, service, clinic, old_slot = create_booking_context()
@@ -246,5 +318,68 @@ def test_patient_can_reschedule_to_different_available_slot_and_history_is_creat
     assert new_slot.is_booked is True
     history = AppointmentStatusHistory.objects.get(appointment=appointment)
     assert history.previous_status == Appointment.Status.CONFIRMED
-    assert history.new_status == Appointment.Status.CONFIRMED
+    assert history.new_status == "rescheduled"
     assert history.changed_by == patient_user
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "blocked_status",
+    [
+        Appointment.Status.CANCELLED,
+        Appointment.Status.CHECKED_IN,
+        Appointment.Status.COMPLETED,
+        Appointment.Status.NO_SHOW,
+    ],
+)
+def test_patient_cannot_reschedule_non_confirmed_appointment(blocked_status):
+    patient_user, patient = create_patient("patient")
+    _, doctor, service, clinic, old_slot = create_booking_context()
+    new_slot = create_slot(doctor, clinic, offset_hours=26)
+    appointment = create_appointment(patient, doctor, service, clinic, old_slot, blocked_status)
+
+    response = authenticated_client(patient_user).post(
+        f"/api/appointments/{appointment.id}/reschedule/",
+        {"slot": new_slot.id},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "status" in response.data
+    appointment.refresh_from_db()
+    old_slot.refresh_from_db()
+    new_slot.refresh_from_db()
+    assert appointment.status == blocked_status
+    assert appointment.slot == old_slot
+    assert old_slot.is_booked is True
+    assert new_slot.is_booked is False
+    assert AppointmentStatusHistory.objects.filter(appointment=appointment).count() == 0
+
+
+@pytest.mark.django_db
+def test_patient_cannot_reschedule_past_appointment():
+    patient_user, patient = create_patient("patient")
+    _, doctor, service, clinic, old_slot = create_booking_context()
+    new_slot = create_slot(doctor, clinic, offset_hours=26)
+    past_start = timezone.now() - timedelta(hours=1)
+    old_slot.start_at = past_start
+    old_slot.end_at = past_start + timedelta(minutes=30)
+    old_slot.save(update_fields=["start_at", "end_at"])
+    appointment = create_appointment(patient, doctor, service, clinic, old_slot)
+
+    response = authenticated_client(patient_user).post(
+        f"/api/appointments/{appointment.id}/reschedule/",
+        {"slot": new_slot.id},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "start_at" in response.data
+    appointment.refresh_from_db()
+    old_slot.refresh_from_db()
+    new_slot.refresh_from_db()
+    assert appointment.status == Appointment.Status.CONFIRMED
+    assert appointment.slot == old_slot
+    assert old_slot.is_booked is True
+    assert new_slot.is_booked is False
+    assert AppointmentStatusHistory.objects.filter(appointment=appointment).count() == 0
