@@ -13,6 +13,10 @@ function isUpcoming(appointment) {
   return UPCOMING_STATUSES.has(String(appointment.status).toLowerCase()) && new Date(appointment.start_at) > new Date();
 }
 
+function canManageAppointment(appointment) {
+  return String(appointment.status).toLowerCase() === "confirmed" && new Date(appointment.start_at) > new Date();
+}
+
 function formatDateTime(value) {
   if (!value) {
     return "Time pending";
@@ -245,22 +249,28 @@ export default function MyAppointmentsPage() {
                   <StatusBadge status={appointment.status} />
                 </div>
                 <AppointmentDetails appointment={appointment} />
-                <div className="appointment-actions">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() => setRescheduleAppointment(appointment)}
-                  >
-                    Reschedule
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline-danger"
-                    onClick={() => setCancelAppointment(appointment)}
-                  >
-                    Cancel
-                  </button>
-                </div>
+                {canManageAppointment(appointment) ? (
+                  <div className="appointment-actions">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setRescheduleAppointment(appointment)}
+                    >
+                      Reschedule
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger"
+                      onClick={() => setCancelAppointment(appointment)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="appointment-actions appointment-actions--readonly">
+                    <span className="text-secondary fw-medium">Details only</span>
+                  </div>
+                )}
               </article>
             ))}
           </div>

@@ -150,7 +150,7 @@ export default function BookingPage() {
 
   useEffect(() => {
     const selectedEntity = activeTab === "service" ? selectedService : selectedDoctor;
-    if (!selectedEntity || !selectedDate) {
+    if (!selectedEntity || !selectedDate || (activeTab === "doctor" && !doctorServiceId)) {
       setSlots([]);
       setSelectedSlot(null);
       return;
@@ -166,7 +166,9 @@ export default function BookingPage() {
       const params = {
         date: selectedDate,
         ...(clinicId ? { clinic: clinicId } : {}),
-        ...(activeTab === "service" ? { service: selectedService.id } : { doctor: selectedDoctor.id }),
+        ...(activeTab === "service"
+          ? { service: selectedService.id }
+          : { doctor: selectedDoctor.id, service: doctorServiceId }),
       };
 
       try {
@@ -191,7 +193,7 @@ export default function BookingPage() {
     return () => {
       active = false;
     };
-  }, [activeTab, clinicId, selectedDate, selectedDoctor, selectedService]);
+  }, [activeTab, clinicId, doctorServiceId, selectedDate, selectedDoctor, selectedService]);
 
   const doctorServiceOptions = useMemo(() => {
     if (!selectedDoctor) {
@@ -219,8 +221,13 @@ export default function BookingPage() {
     setSuccess("");
   }
 
+  function removeSlot(slotId) {
+    setSlots((currentSlots) => currentSlots.filter((slot) => slot.id !== slotId));
+  }
+
   async function confirmAppointment(event) {
     event.preventDefault();
+    const bookedSlotId = selectedSlot.id;
     setSubmitting(true);
     setError("");
     setSuccess("");
@@ -232,10 +239,15 @@ export default function BookingPage() {
         notes,
       });
       setSuccess("Appointment confirmed.");
+      removeSlot(bookedSlotId);
       setSelectedSlot(null);
       setNotes("");
     } catch (appointmentError) {
       setError(apiMessage(appointmentError, "Appointment could not be booked. Please try again."));
+      if (appointmentError?.response?.data?.slot) {
+        removeSlot(bookedSlotId);
+        setSelectedSlot(null);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -399,10 +411,16 @@ export default function BookingPage() {
               <p>Available times will appear after a doctor is selected.</p>
             </div>
           )}
+          {selectedDoctor && activeTab === "doctor" && !doctorServiceId && (
+            <div className="empty-state">
+              <h3>Select a service</h3>
+              <p>Choose a service before selecting a time with this doctor.</p>
+            </div>
+          )}
 
           {loadingSlots && <LoadingState label="Loading availability" />}
 
-          {!loadingSlots && (selectedService || selectedDoctor) && (
+          {!loadingSlots && (selectedService || (selectedDoctor && doctorServiceId)) && (
             <div className="slot-list">
               {slots.map((slot) => (
                 <button
