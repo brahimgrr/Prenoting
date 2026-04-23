@@ -345,6 +345,318 @@ a {
   margin: 0;
 }
 
+.portal-panel .loading-state {
+  min-height: 12rem;
+}
+
+.portal-heading-row,
+.section-heading,
+.appointment-card__header {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.section-heading {
+  margin-bottom: 1rem;
+}
+
+.section-heading h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.section-heading a {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.dashboard-grid,
+.booking-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.dashboard-grid {
+  grid-template-columns: minmax(180px, 0.45fr) minmax(0, 1fr);
+  margin-bottom: 1rem;
+}
+
+.metric-panel {
+  background: var(--color-teal);
+  border-radius: 8px;
+  box-shadow: var(--shadow-panel);
+  color: #ffffff;
+  display: grid;
+  min-height: 13rem;
+  padding: 1.5rem;
+}
+
+.metric-panel__label,
+.metric-panel__caption {
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 700;
+}
+
+.metric-panel strong {
+  align-self: center;
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.next-appointment {
+  align-items: flex-start;
+  display: grid;
+  gap: 1rem;
+}
+
+.next-appointment h3,
+.appointment-row h3,
+.appointment-card h3,
+.empty-state h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.next-appointment p,
+.appointment-row p,
+.appointment-card p,
+.empty-state p {
+  color: var(--color-muted);
+  margin: 0.25rem 0 0;
+}
+
+.next-appointment dl,
+.summary-list,
+.appointment-details {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.next-appointment dl,
+.appointment-details {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.next-appointment dt,
+.summary-list dt,
+.appointment-details dt {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.next-appointment dd,
+.summary-list dd,
+.appointment-details dd {
+  margin: 0.15rem 0 0;
+}
+
+.quick-actions {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 1rem;
+}
+
+.quick-action {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-ink);
+  display: grid;
+  gap: 0.35rem;
+  min-height: 6.8rem;
+  padding: 1.25rem;
+  text-decoration: none;
+}
+
+.quick-action:hover {
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+}
+
+.quick-action span {
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.appointment-list,
+.result-list,
+.slot-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.appointment-list.compact {
+  gap: 0.5rem;
+}
+
+.appointment-row,
+.appointment-card,
+.result-item,
+.slot-chip {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.appointment-row {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  min-height: 4.8rem;
+  padding: 0.85rem 1rem;
+}
+
+.appointment-row__meta {
+  align-items: flex-end;
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
+.appointment-row__meta span:first-child {
+  color: var(--color-muted);
+}
+
+.appointment-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.appointment-card--muted {
+  background: #f8fafc;
+}
+
+.appointment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.appointment-actions .btn {
+  min-width: 8rem;
+}
+
+.appointment-group + .appointment-group {
+  margin-top: 1.5rem;
+}
+
+.booking-layout {
+  align-items: start;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(280px, 1fr) minmax(260px, 0.8fr);
+}
+
+.booking-search-panel {
+  padding-top: 1rem;
+}
+
+.portal-tabs {
+  margin-bottom: 1rem;
+}
+
+.booking-filters {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.result-item {
+  align-items: center;
+  color: var(--color-ink);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  min-height: 5rem;
+  padding: 0.85rem;
+  text-align: left;
+}
+
+.result-item span:first-child {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.result-item small,
+.slot-chip small {
+  color: var(--color-muted);
+}
+
+.result-item:hover,
+.result-item.is-selected,
+.slot-chip:hover,
+.slot-chip.is-selected {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.slot-chip {
+  color: var(--color-ink);
+  display: grid;
+  gap: 0.25rem;
+  min-height: 4.7rem;
+  padding: 0.85rem;
+  text-align: left;
+}
+
+.slot-chip span {
+  font-weight: 800;
+}
+
+.confirmation-panel {
+  position: sticky;
+  top: 1rem;
+}
+
+.summary-list {
+  margin-bottom: 1rem;
+}
+
+.empty-state {
+  padding: 1rem;
+  text-align: left;
+}
+
+.modal-backdrop-custom {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.48);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 1050;
+}
+
+.modal-backdrop-custom .modal-dialog {
+  margin: 0;
+  max-width: 540px;
+  width: 100%;
+}
+
+.reschedule-panel {
+  bottom: 1rem;
+  left: 50%;
+  max-height: calc(100vh - 2rem);
+  max-width: 760px;
+  overflow: auto;
+  position: fixed;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  z-index: 1040;
+}
+
+.reschedule-date {
+  max-width: 16rem;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     display: block;
@@ -366,6 +678,16 @@ a {
   .app-content {
     min-height: calc(100vh - 8.4rem);
     padding: 1.25rem;
+  }
+
+  .dashboard-grid,
+  .booking-layout,
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .confirmation-panel {
+    position: static;
   }
 }
 
@@ -396,5 +718,27 @@ a {
 
   .portal-page-heading h1 {
     font-size: 2rem;
+  }
+
+  .portal-heading-row,
+  .section-heading,
+  .appointment-card__header,
+  .appointment-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .next-appointment dl,
+  .appointment-details {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-row__meta {
+    align-items: start;
+    justify-items: start;
+  }
+
+  .appointment-actions .btn {
+    width: 100%;
   }
 }

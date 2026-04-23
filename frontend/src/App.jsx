@@ -3,7 +3,10 @@ import { AuthProvider, routeForRole, useAuth } from "./auth/AuthContext";
 import AppLayout from "./components/AppLayout";
 import LoadingState from "./components/LoadingState";
 import StatusBadge from "./components/StatusBadge";
+import BookingPage from "./pages/BookingPage";
 import LoginPage from "./pages/LoginPage";
+import MyAppointmentsPage from "./pages/MyAppointmentsPage";
+import PatientDashboard from "./pages/PatientDashboard";
 import RegisterPage from "./pages/RegisterPage";
 
 function ProtectedRoute({ allowedRoles, children }) {
@@ -120,11 +123,7 @@ export default function App() {
               path="/patient"
               element={
                 <ProtectedRoute allowedRoles={["patient"]}>
-                  <PlaceholderPage
-                    eyebrow="Patient portal"
-                    title="Patient dashboard"
-                    description="Review upcoming appointments, recent activity, and booking shortcuts."
-                  />
+                  <PatientDashboard />
                 </ProtectedRoute>
               }
             />
@@ -132,11 +131,7 @@ export default function App() {
               path="/patient/book"
               element={
                 <ProtectedRoute allowedRoles={["patient"]}>
-                  <PlaceholderPage
-                    eyebrow="Booking"
-                    title="Book appointment"
-                    description="Search care services, doctors, and available visit times."
-                  />
+                  <BookingPage />
                 </ProtectedRoute>
               }
             />
@@ -144,11 +139,7 @@ export default function App() {
               path="/patient/appointments"
               element={
                 <ProtectedRoute allowedRoles={["patient"]}>
-                  <PlaceholderPage
-                    eyebrow="Appointments"
-                    title="My appointments"
-                    description="Track upcoming visits and manage confirmed appointments."
-                  />
+                  <MyAppointmentsPage />
                 </ProtectedRoute>
               }
             />
