@@ -20,8 +20,13 @@ def authenticated_client(user):
     return client
 
 
-def create_patient(username):
-    user = get_user_model().objects.create_user(username=username, password="password")
+def create_patient(username, first_name="", last_name=""):
+    user = get_user_model().objects.create_user(
+        username=username,
+        password="password",
+        first_name=first_name,
+        last_name=last_name,
+    )
     patient = PatientProfile.objects.create(user=user, phone="555-0100")
     return user, patient
 
@@ -86,7 +91,7 @@ def dashboard_context():
         "Dr. Blake Skin",
         other_specialty,
     )
-    patient_user, patient = create_patient("patient")
+    patient_user, patient = create_patient("patient", "Pat", "Rivera")
     _, other_patient = create_patient("other-patient")
     service = create_service("Cardiology consultation", specialty)
     other_service = create_service("Dermatology visit", other_specialty)
@@ -130,6 +135,7 @@ def test_doctor_schedule_returns_only_logged_in_doctor_appointments(dashboard_co
 
     assert response.status_code == 200
     assert appointment_ids(response) == [own_appointment.id]
+    assert response.data[0]["patient_name"] == "Pat Rivera"
 
 
 @pytest.mark.django_db
@@ -226,6 +232,13 @@ def test_staff_endpoint_returns_appointments_across_all_doctors(dashboard_contex
 
     assert response.status_code == 200
     assert set(appointment_ids(response)) == {first_appointment.id, second_appointment.id}
+    patient_names_by_id = {
+        appointment["id"]: appointment["patient_name"] for appointment in response.data
+    }
+    assert patient_names_by_id == {
+        first_appointment.id: "Pat Rivera",
+        second_appointment.id: "other-patient",
+    }
 
 
 @pytest.mark.django_db

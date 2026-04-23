@@ -31,15 +31,21 @@ def validate_slot_for_service(slot, service):
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
+    patient_name = serializers.SerializerMethodField()
     doctor_name = serializers.CharField(source="doctor.display_name", read_only=True)
     service_name = serializers.CharField(source="service.name", read_only=True)
     clinic_name = serializers.CharField(source="clinic.name", read_only=True)
+
+    def get_patient_name(self, appointment):
+        user = appointment.patient.user
+        return user.get_full_name() or user.username
 
     class Meta:
         model = Appointment
         fields = [
             "id",
             "patient",
+            "patient_name",
             "doctor",
             "doctor_name",
             "service",

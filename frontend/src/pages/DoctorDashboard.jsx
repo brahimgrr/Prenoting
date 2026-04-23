@@ -43,7 +43,7 @@ function apiMessage(error, fallback) {
 }
 
 function patientLabel(appointment) {
-  return appointment.patient_name || appointment.patient_display_name || `Patient #${appointment.patient}`;
+  return appointment.patient_name || `Patient #${appointment.patient}`;
 }
 
 function formatTime(value) {
