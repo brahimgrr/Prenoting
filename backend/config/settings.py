@@ -1,51 +1,30 @@
-from __future__ import annotations
-
 import os
 from pathlib import Path
-from urllib.parse import urlparse
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def _database_config() -> dict:
-    database_url = os.getenv("DATABASE_URL")
-    postgres_name = os.getenv("POSTGRES_DB")
-    postgres_user = os.getenv("POSTGRES_USER")
-    postgres_password = os.getenv("POSTGRES_PASSWORD")
-    postgres_host = os.getenv("POSTGRES_HOST")
-    postgres_port = os.getenv("POSTGRES_PORT")
-
-    if database_url:
-        parsed = urlparse(database_url)
-        if parsed.scheme.startswith("postgres"):
-            return {
-                "ENGINE": "django.db.backends.postgresql",
-                "NAME": parsed.path.lstrip("/"),
-                "USER": parsed.username or "",
-                "PASSWORD": parsed.password or "",
-                "HOST": parsed.hostname or "",
-                "PORT": parsed.port or "",
-            }
-
-    if any([postgres_name, postgres_user, postgres_password, postgres_host, postgres_port]):
+    engine = os.getenv("DB_ENGINE", "django.db.backends.sqlite3")
+    if engine == "django.db.backends.sqlite3":
         return {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": postgres_name or "",
-            "USER": postgres_user or "",
-            "PASSWORD": postgres_password or "",
-            "HOST": postgres_host or "",
-            "PORT": postgres_port or "",
+            "ENGINE": engine,
+            "NAME": os.getenv("DB_NAME", str(BASE_DIR / "db.sqlite3")),
         }
 
     return {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": engine,
+        "NAME": os.getenv("DB_NAME", ""),
+        "USER": os.getenv("DB_USER", ""),
+        "PASSWORD": os.getenv("DB_PASSWORD", ""),
+        "HOST": os.getenv("DB_HOST", ""),
+        "PORT": os.getenv("DB_PORT", ""),
     }
 
 
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-medical-appointment-mvp")
-DEBUG = os.getenv("DEBUG", "1") == "1"
+DJANGO_SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-medical-appointment-mvp")
+DJANGO_DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
 
 INSTALLED_APPS = [
@@ -101,15 +80,10 @@ DATABASES = {
     "default": _database_config(),
 }
 
-AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
-]
+AUTH_PASSWORD_VALIDATORS = []
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = os.getenv("TIME_ZONE", "UTC")
+TIME_ZONE = "Europe/Rome"
 USE_I18N = True
 USE_TZ = True
 
@@ -134,3 +108,6 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
+
+SECRET_KEY = DJANGO_SECRET_KEY
+DEBUG = DJANGO_DEBUG
