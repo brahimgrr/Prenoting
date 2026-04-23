@@ -60,6 +60,41 @@ npm run build
 
 The frontend API client expects the backend API at `http://127.0.0.1:8000/api`.
 
+## Docker Setup
+
+Copy the example environment file if you want to customize credentials:
+
+```sh
+cp .env.example .env
+```
+
+Start the full development stack:
+
+```sh
+docker compose up --build
+```
+
+This starts:
+
+- PostgreSQL on `127.0.0.1:5433`
+- Django API on `http://127.0.0.1:8001/api`
+- Django admin on `http://127.0.0.1:8001/admin`
+- React frontend on `http://127.0.0.1:5174`
+
+The backend container waits for PostgreSQL, runs migrations, seeds demo data, and then starts Django. The database is stored in the `postgres_data` Docker volume.
+
+Useful Docker commands:
+
+```sh
+docker compose logs -f backend
+docker compose exec backend python manage.py seed_demo
+docker compose exec backend pytest -v
+docker compose down
+docker compose down -v
+```
+
+Use `docker compose down -v` only when you want to delete the local PostgreSQL data volume.
+
 ## Demo Seed Data
 
 Run the demo seed after migrations:

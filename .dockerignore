@@ -1,0 +1,13 @@
+.git
+.worktrees
+.superpowers
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.vite
+**/node_modules
+**/dist
+**/.venv
+**/venv
+backend/db.sqlite3
+.env
