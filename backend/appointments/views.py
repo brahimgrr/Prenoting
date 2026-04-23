@@ -29,6 +29,26 @@ DOCTOR_STATUS_CHOICES = {
     Appointment.Status.NO_SHOW,
 }
 APPOINTMENT_STATUS_CHOICES = {choice.value for choice in Appointment.Status}
+DOCTOR_STATUS_TRANSITIONS = {
+    Appointment.Status.CONFIRMED: {
+        Appointment.Status.CHECKED_IN,
+        Appointment.Status.NO_SHOW,
+    },
+    Appointment.Status.CHECKED_IN: {Appointment.Status.COMPLETED},
+}
+STAFF_STATUS_TRANSITIONS = {
+    Appointment.Status.CONFIRMED: {
+        Appointment.Status.CHECKED_IN,
+        Appointment.Status.COMPLETED,
+        Appointment.Status.CANCELLED,
+        Appointment.Status.NO_SHOW,
+    },
+    Appointment.Status.CHECKED_IN: {
+        Appointment.Status.COMPLETED,
+        Appointment.Status.CANCELLED,
+        Appointment.Status.NO_SHOW,
+    },
+}
 
 
 def validate_confirmed_future_appointment(appointment, action):
@@ -59,11 +79,35 @@ def validate_status_choice(next_status, allowed_statuses):
         raise ValidationError({"status": ["Select a valid status."]})
 
 
-def update_appointment_status(appointment, next_status, changed_by):
+def validate_status_transition(appointment, next_status, transitions):
+    if appointment.status == next_status:
+        return
+
+    if next_status not in transitions.get(appointment.status, set()):
+        raise ValidationError({"status": ["This status transition is not allowed."]})
+
+
+def free_slot_if_future_cancelled(appointment, next_status):
+    if (
+        next_status != Appointment.Status.CANCELLED
+        or appointment.start_at <= timezone.now()
+    ):
+        return
+
+    slot = AvailabilitySlot.objects.select_for_update().get(pk=appointment.slot_id)
+    if slot.is_booked:
+        slot.is_booked = False
+        slot.save(update_fields=["is_booked"])
+
+
+def update_appointment_status(appointment, next_status, changed_by, transitions):
+    validate_status_transition(appointment, next_status, transitions)
+
     previous_status = appointment.status
     if previous_status == next_status:
         return appointment
 
+    free_slot_if_future_cancelled(appointment, next_status)
     appointment.status = next_status
     appointment.save(update_fields=["status", "updated_at"])
     AppointmentStatusHistory.objects.create(
@@ -308,7 +352,12 @@ class DoctorAppointmentStatusAPIView(APIView):
                 pk=pk,
                 doctor__user=request.user,
             )
-            update_appointment_status(appointment, next_status, request.user)
+            update_appointment_status(
+                appointment,
+                next_status,
+                request.user,
+                DOCTOR_STATUS_TRANSITIONS,
+            )
 
         serializer = AppointmentSerializer(appointment, context={"request": request})
         return Response(serializer.data)
@@ -342,7 +391,12 @@ class StaffAppointmentStatusAPIView(APIView):
                 appointment_queryset().select_for_update(),
                 pk=pk,
             )
-            update_appointment_status(appointment, next_status, request.user)
+            update_appointment_status(
+                appointment,
+                next_status,
+                request.user,
+                STAFF_STATUS_TRANSITIONS,
+            )
 
         serializer = AppointmentSerializer(appointment, context={"request": request})
         return Response(serializer.data)

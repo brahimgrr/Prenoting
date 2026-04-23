@@ -134,20 +134,25 @@ def test_doctor_schedule_returns_only_logged_in_doctor_appointments(dashboard_co
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "next_status",
+    ("current_status", "next_status"),
     [
-        Appointment.Status.CHECKED_IN,
-        Appointment.Status.COMPLETED,
-        Appointment.Status.NO_SHOW,
+        (Appointment.Status.CONFIRMED, Appointment.Status.CHECKED_IN),
+        (Appointment.Status.CONFIRMED, Appointment.Status.NO_SHOW),
+        (Appointment.Status.CHECKED_IN, Appointment.Status.COMPLETED),
     ],
 )
-def test_doctor_can_update_own_appointment_status(dashboard_context, next_status):
+def test_doctor_can_update_own_appointment_status(
+    dashboard_context,
+    current_status,
+    next_status,
+):
     appointment = create_appointment(
         dashboard_context["patient"],
         dashboard_context["doctor"],
         dashboard_context["service"],
         dashboard_context["clinic"],
         offset_hours=24,
+        status=current_status,
     )
 
     response = authenticated_client(dashboard_context["doctor_user"]).post(
@@ -160,9 +165,43 @@ def test_doctor_can_update_own_appointment_status(dashboard_context, next_status
     appointment.refresh_from_db()
     assert appointment.status == next_status
     history = AppointmentStatusHistory.objects.get(appointment=appointment)
-    assert history.previous_status == Appointment.Status.CONFIRMED
+    assert history.previous_status == current_status
     assert history.new_status == next_status
     assert history.changed_by == dashboard_context["doctor_user"]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "current_status",
+    [
+        Appointment.Status.CANCELLED,
+        Appointment.Status.COMPLETED,
+        Appointment.Status.NO_SHOW,
+    ],
+)
+def test_doctor_cannot_update_terminal_appointment_status(
+    dashboard_context,
+    current_status,
+):
+    appointment = create_appointment(
+        dashboard_context["patient"],
+        dashboard_context["doctor"],
+        dashboard_context["service"],
+        dashboard_context["clinic"],
+        offset_hours=24,
+        status=current_status,
+    )
+
+    response = authenticated_client(dashboard_context["doctor_user"]).post(
+        f"/api/appointments/doctor/{appointment.id}/status/",
+        {"status": Appointment.Status.CHECKED_IN},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    appointment.refresh_from_db()
+    assert appointment.status == current_status
+    assert AppointmentStatusHistory.objects.filter(appointment=appointment).count() == 0
 
 
 @pytest.mark.django_db
@@ -250,6 +289,69 @@ def test_staff_can_update_any_appointment_status(dashboard_context):
     assert history.previous_status == Appointment.Status.CONFIRMED
     assert history.new_status == Appointment.Status.CANCELLED
     assert history.changed_by == staff_user
+
+
+@pytest.mark.django_db
+def test_staff_cancelling_confirmed_appointment_frees_slot(dashboard_context):
+    staff_user = create_staff()
+    appointment = create_appointment(
+        dashboard_context["patient"],
+        dashboard_context["doctor"],
+        dashboard_context["service"],
+        dashboard_context["clinic"],
+        offset_hours=24,
+    )
+
+    response = authenticated_client(staff_user).post(
+        f"/api/appointments/staff/{appointment.id}/status/",
+        {"status": Appointment.Status.CANCELLED},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    appointment.refresh_from_db()
+    appointment.slot.refresh_from_db()
+    assert appointment.status == Appointment.Status.CANCELLED
+    assert appointment.slot.is_booked is False
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("current_status", "next_status"),
+    [
+        (Appointment.Status.CANCELLED, Appointment.Status.CONFIRMED),
+        (Appointment.Status.CANCELLED, Appointment.Status.CHECKED_IN),
+        (Appointment.Status.COMPLETED, Appointment.Status.CONFIRMED),
+        (Appointment.Status.COMPLETED, Appointment.Status.CHECKED_IN),
+        (Appointment.Status.NO_SHOW, Appointment.Status.CONFIRMED),
+        (Appointment.Status.NO_SHOW, Appointment.Status.CHECKED_IN),
+    ],
+)
+def test_staff_cannot_resurrect_terminal_appointment_status(
+    dashboard_context,
+    current_status,
+    next_status,
+):
+    staff_user = create_staff()
+    appointment = create_appointment(
+        dashboard_context["patient"],
+        dashboard_context["doctor"],
+        dashboard_context["service"],
+        dashboard_context["clinic"],
+        offset_hours=24,
+        status=current_status,
+    )
+
+    response = authenticated_client(staff_user).post(
+        f"/api/appointments/staff/{appointment.id}/status/",
+        {"status": next_status},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    appointment.refresh_from_db()
+    assert appointment.status == current_status
+    assert AppointmentStatusHistory.objects.filter(appointment=appointment).count() == 0
 
 
 @pytest.mark.django_db
