@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { routeForRole, useAuth } from "../auth/AuthContext";
 
 function FieldError({ errors }) {
@@ -19,7 +19,6 @@ function errorText(errors) {
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [form, setForm] = useState({ username: "", password: "" });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -39,7 +38,7 @@ export default function LoginPage() {
     try {
       const currentUser = await login(form.username, form.password);
       const fallbackRoute = routeForRole(currentUser);
-      navigate(fallbackRoute ? location.state?.from?.pathname || fallbackRoute : "/unsupported-role", { replace: true });
+      navigate(fallbackRoute ?? "/unsupported-role", { replace: true });
     } catch (error) {
       setErrors(error.response?.data ?? { detail: "Unable to sign in. Try again." });
     } finally {
