@@ -657,6 +657,154 @@ a {
   max-width: 16rem;
 }
 
+.operations-dashboard {
+  max-width: 1180px;
+}
+
+.operations-dashboard--wide {
+  max-width: 1360px;
+}
+
+.dashboard-date-filter {
+  color: var(--color-muted);
+  display: grid;
+  flex: 0 0 12rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  gap: 0.35rem;
+  text-transform: uppercase;
+}
+
+.dashboard-date-filter .form-control {
+  text-transform: none;
+}
+
+.dashboard-stat-row {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(180px, 260px);
+  margin-bottom: 1rem;
+}
+
+.dashboard-stat-row--three {
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+}
+
+.dashboard-stat {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-panel);
+  display: grid;
+  gap: 0.25rem;
+  min-height: 8rem;
+  padding: 1.15rem;
+}
+
+.dashboard-stat span,
+.dashboard-stat small,
+.dashboard-readonly {
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.dashboard-stat strong {
+  color: var(--color-navy);
+  font-size: 2.75rem;
+  line-height: 1;
+}
+
+.dashboard-filter-panel,
+.dashboard-table-panel {
+  margin-bottom: 1rem;
+}
+
+.dashboard-filter-grid {
+  align-items: end;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.dashboard-filter-grid .form-label {
+  color: var(--color-muted);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 800;
+  gap: 0.35rem;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.dashboard-filter-actions {
+  display: flex;
+}
+
+.dashboard-filter-actions .btn {
+  min-height: 2.75rem;
+  width: 100%;
+}
+
+.dashboard-table-wrap {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.dashboard-table {
+  margin: 0;
+  min-width: 860px;
+}
+
+.dashboard-table--dense {
+  font-size: 0.92rem;
+  min-width: 1120px;
+}
+
+.dashboard-table thead th {
+  background: #f8fafc;
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dashboard-table th,
+.dashboard-table td {
+  border-color: var(--color-border);
+  padding: 0.75rem;
+  vertical-align: middle;
+}
+
+.dashboard-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.dashboard-table__time {
+  color: var(--color-navy);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-width: 15rem;
+}
+
+.status-action-group .btn {
+  min-width: 6.8rem;
+  white-space: nowrap;
+}
+
+.status-action-group--dense {
+  min-width: 18rem;
+}
+
+.status-action-group--dense .btn {
+  min-width: 6.4rem;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     display: block;
@@ -682,8 +830,14 @@ a {
 
   .dashboard-grid,
   .booking-layout,
-  .quick-actions {
+  .quick-actions,
+  .dashboard-stat-row,
+  .dashboard-stat-row--three {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .confirmation-panel {
@@ -740,5 +894,17 @@ a {
 
   .appointment-actions .btn {
     width: 100%;
+  }
+
+  .dashboard-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .status-action-group {
+    min-width: 0;
+  }
+
+  .status-action-group .btn {
+    flex: 1 1 7rem;
   }
 }

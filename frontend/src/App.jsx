@@ -4,10 +4,12 @@ import AppLayout from "./components/AppLayout";
 import LoadingState from "./components/LoadingState";
 import StatusBadge from "./components/StatusBadge";
 import BookingPage from "./pages/BookingPage";
+import DoctorDashboard from "./pages/DoctorDashboard";
 import LoginPage from "./pages/LoginPage";
 import MyAppointmentsPage from "./pages/MyAppointmentsPage";
 import PatientDashboard from "./pages/PatientDashboard";
 import RegisterPage from "./pages/RegisterPage";
+import StaffDashboard from "./pages/StaffDashboard";
 
 function ProtectedRoute({ allowedRoles, children }) {
   const { user, loading } = useAuth();
@@ -159,11 +161,7 @@ export default function App() {
               path="/doctor"
               element={
                 <ProtectedRoute allowedRoles={["doctor"]}>
-                  <PlaceholderPage
-                    eyebrow="Doctor portal"
-                    title="Today"
-                    description="Review today's appointments and patient visit context."
-                  />
+                  <DoctorDashboard />
                 </ProtectedRoute>
               }
             />
@@ -171,11 +169,7 @@ export default function App() {
               path="/doctor/schedule"
               element={
                 <ProtectedRoute allowedRoles={["doctor"]}>
-                  <PlaceholderPage
-                    eyebrow="Schedule"
-                    title="Schedule"
-                    description="Manage upcoming visits and appointment status updates."
-                  />
+                  <DoctorDashboard />
                 </ProtectedRoute>
               }
             />
@@ -183,11 +177,7 @@ export default function App() {
               path="/staff"
               element={
                 <ProtectedRoute allowedRoles={["staff", "admin"]}>
-                  <PlaceholderPage
-                    eyebrow="Staff portal"
-                    title="Daily operations"
-                    description="Coordinate clinic schedules, appointment flow, and daily work queues."
-                  />
+                  <StaffDashboard />
                 </ProtectedRoute>
               }
             />
@@ -195,11 +185,7 @@ export default function App() {
               path="/staff/appointments"
               element={
                 <ProtectedRoute allowedRoles={["staff", "admin"]}>
-                  <PlaceholderPage
-                    eyebrow="Appointments"
-                    title="Appointments"
-                    description="Monitor appointment status across doctors, clinics, and services."
-                  />
+                  <StaffDashboard />
                 </ProtectedRoute>
               }
             />
