@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from accounts.permissions import IsDoctor, IsStaffUser
 from appointments.models import Appointment, AppointmentStatusHistory
 from appointments.serializers import (
+    ACTIVE_SLOT_STATUSES,
     AppointmentCancelSerializer,
     AppointmentCreateSerializer,
     AppointmentRescheduleSerializer,
@@ -266,7 +267,11 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             if new_slot.is_booked or new_slot.is_blocked:
                 raise ValidationError(SLOT_UNAVAILABLE_ERROR)
             validate_slot_for_service(new_slot, locked_appointment.service)
-            if Appointment.objects.filter(slot=new_slot).exclude(pk=locked_appointment.pk).exists():
+            if (
+                Appointment.objects.filter(slot=new_slot, status__in=ACTIVE_SLOT_STATUSES)
+                .exclude(pk=locked_appointment.pk)
+                .exists()
+            ):
                 raise ValidationError(SLOT_UNAVAILABLE_ERROR)
 
             previous_status = locked_appointment.status

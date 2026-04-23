@@ -63,6 +63,18 @@ function matchesSpecialty(service, doctor) {
   return String(service.specialty) === String(doctor.specialty) || service.specialty_name === doctor.specialty_name;
 }
 
+function doctorOffersService(doctor, service) {
+  if (!doctor || !service) {
+    return false;
+  }
+
+  if (Array.isArray(doctor.service_ids)) {
+    return doctor.service_ids.map(String).includes(String(service.id));
+  }
+
+  return matchesSpecialty(service, doctor);
+}
+
 export default function BookingPage() {
   const [searchParams] = useSearchParams();
   const initialMode = searchParams.get("mode") === "doctor" ? "doctor" : "service";
@@ -200,8 +212,7 @@ export default function BookingPage() {
       return services;
     }
 
-    const matching = services.filter((service) => matchesSpecialty(service, selectedDoctor));
-    return matching.length > 0 ? matching : services;
+    return services.filter((service) => doctorOffersService(selectedDoctor, service));
   }, [selectedDoctor, services]);
 
   const bookingService = activeTab === "service" ? selectedService : services.find((service) => String(service.id) === String(doctorServiceId));

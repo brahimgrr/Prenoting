@@ -76,9 +76,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "slot",
-                    models.OneToOneField(
+                    models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
-                        related_name="appointment",
+                        related_name="appointments",
                         to="scheduling.availabilityslot",
                     ),
                 ),

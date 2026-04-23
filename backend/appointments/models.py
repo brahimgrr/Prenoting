@@ -36,10 +36,10 @@ class Appointment(models.Model):
         on_delete=models.PROTECT,
         related_name="appointments",
     )
-    slot = models.OneToOneField(
+    slot = models.ForeignKey(
         AvailabilitySlot,
         on_delete=models.PROTECT,
-        related_name="appointment",
+        related_name="appointments",
     )
     start_at = models.DateTimeField()
     end_at = models.DateTimeField()

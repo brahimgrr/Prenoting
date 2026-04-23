@@ -158,6 +158,39 @@ def test_second_booking_attempt_for_same_slot_returns_slot_error():
 
 
 @pytest.mark.django_db
+def test_cancelled_slot_can_be_booked_again():
+    first_user, first_patient = create_patient("first-patient")
+    second_user, second_patient = create_patient("second-patient")
+    _, doctor, service, clinic, slot = create_booking_context()
+    cancelled_appointment = Appointment.objects.create(
+        patient=first_patient,
+        doctor=doctor,
+        service=service,
+        clinic=clinic,
+        slot=slot,
+        start_at=slot.start_at,
+        end_at=slot.end_at,
+        status=Appointment.Status.CANCELLED,
+        cancellation_reason="Cannot attend",
+    )
+    slot.is_booked = False
+    slot.save(update_fields=["is_booked"])
+
+    response = authenticated_client(second_user).post(
+        "/api/appointments/",
+        {"slot": slot.id, "service": service.id},
+        format="json",
+    )
+
+    assert response.status_code == 201
+    assert response.data["slot"] == slot.id
+    assert response.data["patient"] == second_patient.id
+    assert Appointment.objects.filter(slot=slot).count() == 2
+    cancelled_appointment.refresh_from_db()
+    assert cancelled_appointment.status == Appointment.Status.CANCELLED
+
+
+@pytest.mark.django_db
 def test_patient_can_list_only_their_own_appointments():
     patient_user, patient = create_patient("patient")
     other_user, other_patient = create_patient("other-patient")

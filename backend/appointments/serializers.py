@@ -9,6 +9,10 @@ from services.models import DoctorService, MedicalService
 
 
 SLOT_UNAVAILABLE_ERROR = {"slot": ["This slot is no longer available."]}
+ACTIVE_SLOT_STATUSES = {
+    Appointment.Status.CONFIRMED,
+    Appointment.Status.CHECKED_IN,
+}
 
 
 def validate_slot_for_service(slot, service):
@@ -98,7 +102,7 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
             )
             if locked_slot.is_booked or locked_slot.is_blocked:
                 raise serializers.ValidationError(SLOT_UNAVAILABLE_ERROR)
-            if Appointment.objects.filter(slot=locked_slot).exists():
+            if Appointment.objects.filter(slot=locked_slot, status__in=ACTIVE_SLOT_STATUSES).exists():
                 raise serializers.ValidationError(SLOT_UNAVAILABLE_ERROR)
             validate_slot_for_service(locked_slot, service)
 

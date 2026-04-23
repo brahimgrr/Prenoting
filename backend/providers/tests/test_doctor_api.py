@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
 from providers.models import DoctorProfile, Specialty
+from services.models import DoctorService, MedicalService
 
 
 def create_doctor(username, display_name, specialty, is_active=True):
@@ -35,6 +36,29 @@ def test_doctors_endpoint_returns_active_doctors():
     assert doctor_ids == {active_doctor.id}
     assert inactive_doctor.id not in doctor_ids
     assert response.data[0]["specialty_name"] == "Cardiology"
+
+
+@pytest.mark.django_db
+def test_doctors_endpoint_returns_active_service_ids():
+    cardiology = Specialty.objects.create(name="Cardiology")
+    doctor = create_doctor("active-doctor", "Dr. Ada Heart", cardiology)
+    active_service = MedicalService.objects.create(
+        name="Cardiology consultation",
+        specialty=cardiology,
+        is_active=True,
+    )
+    inactive_service = MedicalService.objects.create(
+        name="Inactive consultation",
+        specialty=cardiology,
+        is_active=False,
+    )
+    DoctorService.objects.create(doctor=doctor, service=active_service)
+    DoctorService.objects.create(doctor=doctor, service=inactive_service)
+
+    response = APIClient().get("/api/doctors/")
+
+    assert response.status_code == 200
+    assert response.data[0]["service_ids"] == [active_service.id]
 
 
 @pytest.mark.django_db
