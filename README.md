@@ -114,12 +114,12 @@ Open `http://127.0.0.1:5173` and verify:
 - Patient can book a slot.
 - Patient sees appointment in dashboard.
 - Patient can cancel appointment.
-- Doctor can log in and see assigned appointment.
+- Doctor can log in and see the schedule/assigned appointment.
 - Staff can log in and see daily operations dashboard.
 
-## Verification Commands
+## Verification Results
 
-Backend checks and tests:
+Attempted backend checks and tests:
 
 ```sh
 cd backend
@@ -128,9 +128,21 @@ python manage.py check
 pytest -v
 ```
 
+Result: blocked in this environment. The current `.venv` uses Python 3.9.6, Django is not installed, and Django 5 requires Python 3.10+.
+
+Backend compile check:
+
+```sh
+PYTHONPYCACHEPREFIX=/tmp/medical-appointment-mvp-pycache python3 -m compileall -q backend
+```
+
+Result: passed.
+
 Frontend build:
 
 ```sh
 cd frontend
 npm run build
 ```
+
+Result: passed.
