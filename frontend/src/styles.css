@@ -690,6 +690,10 @@ a {
   grid-template-columns: repeat(3, minmax(160px, 1fr));
 }
 
+.operations-dashboard--wide .dashboard-stat-row--three {
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+}
+
 .dashboard-stat {
   background: #ffffff;
   border: 1px solid var(--color-border);
@@ -743,6 +747,33 @@ a {
 .dashboard-filter-actions .btn {
   min-height: 2.75rem;
   width: 100%;
+}
+
+.operations-summary-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.operations-summary-grid div {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.35rem;
+  min-height: 7rem;
+  padding: 1rem;
+}
+
+.operations-summary-grid strong {
+  color: var(--color-navy);
+  font-size: 2.35rem;
+  line-height: 1;
+}
+
+.operations-summary-grid span {
+  color: var(--color-muted);
+  font-weight: 700;
 }
 
 .dashboard-table-wrap {
@@ -832,7 +863,8 @@ a {
   .booking-layout,
   .quick-actions,
   .dashboard-stat-row,
-  .dashboard-stat-row--three {
+  .dashboard-stat-row--three,
+  .operations-summary-grid {
     grid-template-columns: 1fr;
   }
 

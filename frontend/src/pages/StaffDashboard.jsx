@@ -112,7 +112,7 @@ function StatusActions({ appointment, busyAction, onUpdate }) {
   );
 }
 
-export default function StaffDashboard() {
+export default function StaffDashboard({ mode = "operations" }) {
   const [filters, setFilters] = useState({
     date: todayString(),
     clinic: "",
@@ -155,11 +155,14 @@ export default function StaffDashboard() {
   const counts = useMemo(
     () => ({
       total: sortedAppointments.length,
+      confirmed: countStatus(sortedAppointments, "confirmed"),
       checkedIn: countStatus(sortedAppointments, "checked_in"),
+      completed: countStatus(sortedAppointments, "completed"),
       cancelled: countStatus(sortedAppointments, "cancelled"),
     }),
     [sortedAppointments],
   );
+  const isAppointmentsMode = mode === "appointments";
 
   function updateFilter(name, value) {
     setFilters((current) => ({ ...current, [name]: value }));
@@ -197,8 +200,12 @@ export default function StaffDashboard() {
     <section className="portal-section operations-dashboard operations-dashboard--wide">
       <div className="portal-page-heading">
         <span className="portal-eyebrow">Staff portal</span>
-        <h1>Daily operations</h1>
-        <p>Monitor appointment flow across clinics, doctors, services, and statuses.</p>
+        <h1>{isAppointmentsMode ? "Appointments" : "Daily operations"}</h1>
+        <p>
+          {isAppointmentsMode
+            ? "Search and manage appointment records across clinics, doctors, services, and statuses."
+            : "Monitor today's operational flow and spot queues that need staff attention."}
+        </p>
       </div>
 
       {error && (
@@ -219,85 +226,118 @@ export default function StaffDashboard() {
           <small>displayed</small>
         </section>
         <section className="dashboard-stat">
+          <span>Waiting</span>
+          <strong>{counts.confirmed}</strong>
+          <small>confirmed</small>
+        </section>
+        <section className="dashboard-stat">
           <span>Checked in</span>
           <strong>{counts.checkedIn}</strong>
           <small>in progress</small>
         </section>
         <section className="dashboard-stat">
-          <span>Cancelled</span>
-          <strong>{counts.cancelled}</strong>
-          <small>removed from flow</small>
+          <span>Completed</span>
+          <strong>{counts.completed}</strong>
+          <small>{counts.cancelled} cancelled</small>
         </section>
       </div>
 
-      <section className="portal-panel dashboard-filter-panel">
-        <div className="dashboard-filter-grid">
-          <label className="form-label" htmlFor="staff-date">
-            Date
-            <input
-              id="staff-date"
-              className="form-control"
-              type="date"
-              value={filters.date}
-              onChange={(event) => updateFilter("date", event.target.value)}
-            />
-          </label>
-          <label className="form-label" htmlFor="staff-clinic">
-            Clinic ID
-            <input
-              id="staff-clinic"
-              className="form-control"
-              inputMode="numeric"
-              value={filters.clinic}
-              onChange={(event) => updateFilter("clinic", event.target.value)}
-              placeholder="Any"
-            />
-          </label>
-          <label className="form-label" htmlFor="staff-doctor">
-            Doctor ID
-            <input
-              id="staff-doctor"
-              className="form-control"
-              inputMode="numeric"
-              value={filters.doctor}
-              onChange={(event) => updateFilter("doctor", event.target.value)}
-              placeholder="Any"
-            />
-          </label>
-          <label className="form-label" htmlFor="staff-service">
-            Service ID
-            <input
-              id="staff-service"
-              className="form-control"
-              inputMode="numeric"
-              value={filters.service}
-              onChange={(event) => updateFilter("service", event.target.value)}
-              placeholder="Any"
-            />
-          </label>
-          <label className="form-label" htmlFor="staff-status">
-            Status
-            <select
-              id="staff-status"
-              className="form-control"
-              value={filters.status}
-              onChange={(event) => updateFilter("status", event.target.value)}
-            >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value || "all"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="dashboard-filter-actions">
-            <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>
-              Reset
-            </button>
+      {isAppointmentsMode ? (
+        <section className="portal-panel dashboard-filter-panel">
+          <div className="dashboard-filter-grid">
+            <label className="form-label" htmlFor="staff-date">
+              Date
+              <input
+                id="staff-date"
+                className="form-control"
+                type="date"
+                value={filters.date}
+                onChange={(event) => updateFilter("date", event.target.value)}
+              />
+            </label>
+            <label className="form-label" htmlFor="staff-clinic">
+              Clinic ID
+              <input
+                id="staff-clinic"
+                className="form-control"
+                inputMode="numeric"
+                value={filters.clinic}
+                onChange={(event) => updateFilter("clinic", event.target.value)}
+                placeholder="Any"
+              />
+            </label>
+            <label className="form-label" htmlFor="staff-doctor">
+              Doctor ID
+              <input
+                id="staff-doctor"
+                className="form-control"
+                inputMode="numeric"
+                value={filters.doctor}
+                onChange={(event) => updateFilter("doctor", event.target.value)}
+                placeholder="Any"
+              />
+            </label>
+            <label className="form-label" htmlFor="staff-service">
+              Service ID
+              <input
+                id="staff-service"
+                className="form-control"
+                inputMode="numeric"
+                value={filters.service}
+                onChange={(event) => updateFilter("service", event.target.value)}
+                placeholder="Any"
+              />
+            </label>
+            <label className="form-label" htmlFor="staff-status">
+              Status
+              <select
+                id="staff-status"
+                className="form-control"
+                value={filters.status}
+                onChange={(event) => updateFilter("status", event.target.value)}
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value || "all"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="dashboard-filter-actions">
+              <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>
+                Reset
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : (
+        <section className="portal-panel">
+          <div className="section-heading">
+            <h2>Operational snapshot</h2>
+            <span>{filters.date}</span>
+          </div>
+          {loading ? (
+            <LoadingState label="Loading daily operations" />
+          ) : (
+            <div className="operations-summary-grid">
+              <div>
+                <strong>{counts.confirmed}</strong>
+                <span>patients expected</span>
+              </div>
+              <div>
+                <strong>{counts.checkedIn}</strong>
+                <span>currently checked in</span>
+              </div>
+              <div>
+                <strong>{counts.completed}</strong>
+                <span>visits completed</span>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
+      {isAppointmentsMode && (
       <section className="portal-panel dashboard-table-panel">
         <div className="section-heading">
           <h2>Appointments</h2>
@@ -350,6 +390,7 @@ export default function StaffDashboard() {
           </div>
         )}
       </section>
+      )}
     </section>
   );
 }

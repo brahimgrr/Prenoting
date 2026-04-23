@@ -161,7 +161,7 @@ export default function App() {
               path="/doctor"
               element={
                 <ProtectedRoute allowedRoles={["doctor"]}>
-                  <DoctorDashboard />
+                  <DoctorDashboard mode="today" />
                 </ProtectedRoute>
               }
             />
@@ -169,23 +169,23 @@ export default function App() {
               path="/doctor/schedule"
               element={
                 <ProtectedRoute allowedRoles={["doctor"]}>
-                  <DoctorDashboard />
+                  <DoctorDashboard mode="schedule" />
                 </ProtectedRoute>
               }
             />
             <Route
               path="/staff"
               element={
-                <ProtectedRoute allowedRoles={["staff", "admin"]}>
-                  <StaffDashboard />
+                <ProtectedRoute allowedRoles={["staff"]}>
+                  <StaffDashboard mode="operations" />
                 </ProtectedRoute>
               }
             />
             <Route
               path="/staff/appointments"
               element={
-                <ProtectedRoute allowedRoles={["staff", "admin"]}>
-                  <StaffDashboard />
+                <ProtectedRoute allowedRoles={["staff"]}>
+                  <StaffDashboard mode="appointments" />
                 </ProtectedRoute>
               }
             />

@@ -14,7 +14,7 @@ export function routeForRole(userOrRole) {
     return "/doctor";
   }
 
-  if (role === "staff" || role === "admin") {
+  if (role === "staff") {
     return "/staff";
   }
 

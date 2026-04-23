@@ -89,7 +89,7 @@ function StatusActions({ appointment, busyAction, onUpdate }) {
   );
 }
 
-export default function DoctorDashboard() {
+export default function DoctorDashboard({ mode = "today" }) {
   const [date, setDate] = useState(todayString);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,6 +122,17 @@ export default function DoctorDashboard() {
     () => [...appointments].sort(sortByStartTime),
     [appointments],
   );
+  const confirmedCount = sortedAppointments.filter(
+    (appointment) => appointment.status === "confirmed",
+  ).length;
+  const inProgressCount = sortedAppointments.filter(
+    (appointment) => appointment.status === "checked_in",
+  ).length;
+  const completedCount = sortedAppointments.filter(
+    (appointment) => appointment.status === "completed",
+  ).length;
+  const visibleAppointments = mode === "today" ? sortedAppointments.slice(0, 4) : sortedAppointments;
+  const isScheduleMode = mode === "schedule";
 
   async function updateStatus(appointment, nextStatus) {
     setBusyAction(`${appointment.id}:${nextStatus}`);
@@ -146,19 +157,25 @@ export default function DoctorDashboard() {
       <div className="portal-page-heading portal-heading-row">
         <div>
           <span className="portal-eyebrow">Doctor portal</span>
-          <h1>Today</h1>
-          <p>Review the day by start time and update visit flow as patients move through care.</p>
+          <h1>{isScheduleMode ? "Schedule" : "Today"}</h1>
+          <p>
+            {isScheduleMode
+              ? "Review appointments for a selected date and update visit status."
+              : "Track today's visit flow and focus on the next patients in care."}
+          </p>
         </div>
-        <label className="dashboard-date-filter" htmlFor="doctor-schedule-date">
-          <span>Date</span>
-          <input
-            id="doctor-schedule-date"
-            className="form-control"
-            type="date"
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-          />
-        </label>
+        {isScheduleMode && (
+          <label className="dashboard-date-filter" htmlFor="doctor-schedule-date">
+            <span>Date</span>
+            <input
+              id="doctor-schedule-date"
+              className="form-control"
+              type="date"
+              value={date}
+              onChange={(event) => setDate(event.target.value)}
+            />
+          </label>
+        )}
       </div>
 
       {error && (
@@ -172,23 +189,33 @@ export default function DoctorDashboard() {
         </div>
       )}
 
-      <div className="dashboard-stat-row">
+      <div className="dashboard-stat-row dashboard-stat-row--three">
         <section className="dashboard-stat">
           <span>Appointments</span>
           <strong>{sortedAppointments.length}</strong>
           <small>{date === todayString() ? "today" : date}</small>
         </section>
+        <section className="dashboard-stat">
+          <span>Waiting</span>
+          <strong>{confirmedCount}</strong>
+          <small>confirmed</small>
+        </section>
+        <section className="dashboard-stat">
+          <span>Done</span>
+          <strong>{completedCount}</strong>
+          <small>{inProgressCount} in progress</small>
+        </section>
       </div>
 
       <section className="portal-panel dashboard-table-panel">
         <div className="section-heading">
-          <h2>Schedule</h2>
-          <span>{sortedAppointments.length} total</span>
+          <h2>{isScheduleMode ? "Full schedule" : "Next appointments"}</h2>
+          <span>{isScheduleMode ? sortedAppointments.length : visibleAppointments.length} shown</span>
         </div>
 
         {loading ? (
           <LoadingState label="Loading doctor schedule" />
-        ) : sortedAppointments.length > 0 ? (
+        ) : visibleAppointments.length > 0 ? (
           <div className="table-responsive dashboard-table-wrap">
             <table className="table dashboard-table align-middle">
               <thead>
@@ -202,7 +229,7 @@ export default function DoctorDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {sortedAppointments.map((appointment) => (
+                {visibleAppointments.map((appointment) => (
                   <tr key={appointment.id}>
                     <td className="dashboard-table__time">{formatTime(appointment.start_at)}</td>
                     <td>{patientLabel(appointment)}</td>

@@ -48,6 +48,14 @@ def create_staff(username="staff"):
     return user
 
 
+def create_superuser(username="admin"):
+    return get_user_model().objects.create_superuser(
+        username=username,
+        password="password",
+        email=f"{username}@example.com",
+    )
+
+
 def create_service(name, specialty):
     return MedicalService.objects.create(name=name, specialty=specialty)
 
@@ -394,3 +402,27 @@ def test_patient_cannot_access_doctor_or_staff_dashboard_endpoints(dashboard_con
     ]
 
     assert [response.status_code for response in responses] == [403, 403, 403, 403]
+
+
+@pytest.mark.django_db
+def test_superuser_cannot_access_staff_portal_endpoints(dashboard_context):
+    superuser = create_superuser()
+    appointment = create_appointment(
+        dashboard_context["patient"],
+        dashboard_context["doctor"],
+        dashboard_context["service"],
+        dashboard_context["clinic"],
+        offset_hours=24,
+    )
+    client = authenticated_client(superuser)
+
+    responses = [
+        client.get("/api/appointments/staff/"),
+        client.post(
+            f"/api/appointments/staff/{appointment.id}/status/",
+            {"status": Appointment.Status.CHECKED_IN},
+            format="json",
+        ),
+    ]
+
+    assert [response.status_code for response in responses] == [403, 403]

@@ -28,7 +28,7 @@ function navItemsForRole(role) {
     return NAV_ITEMS.doctor;
   }
 
-  if (role === "staff" || role === "admin") {
+  if (role === "staff") {
     return NAV_ITEMS.staff;
   }
 

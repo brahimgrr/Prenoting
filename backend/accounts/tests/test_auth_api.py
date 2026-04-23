@@ -68,6 +68,23 @@ def test_login_returns_current_user_for_valid_credentials():
 
 
 @pytest.mark.django_db
+def test_superuser_is_not_reported_as_portal_admin_role():
+    User = get_user_model()
+    User.objects.create_superuser(
+        username="admin",
+        password="strong-pass-123",
+        email="admin@example.com",
+    )
+    client = APIClient()
+    client.login(username="admin", password="strong-pass-123")
+
+    response = client.get("/api/auth/me/")
+
+    assert response.status_code == 200
+    assert response.data["role"] == "user"
+
+
+@pytest.mark.django_db
 def test_login_rejects_invalid_credentials():
     User = get_user_model()
     User.objects.create_user(username="sara@example.com", password="strong-pass-123")

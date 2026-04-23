@@ -5,7 +5,7 @@ def user_role(user):
     if not user or not user.is_authenticated:
         return "anonymous"
     if user.is_superuser:
-        return "admin"
+        return "user"
     if user.groups.filter(name="Staff").exists():
         return "staff"
     if hasattr(user, "doctor_profile"):
@@ -27,4 +27,4 @@ class IsDoctor(BasePermission):
 
 class IsStaffUser(BasePermission):
     def has_permission(self, request, view):
-        return user_role(request.user) in {"staff", "admin"}
+        return user_role(request.user) == "staff"
