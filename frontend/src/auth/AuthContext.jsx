@@ -6,6 +6,10 @@ const AuthContext = createContext(null);
 export function routeForRole(userOrRole) {
   const role = typeof userOrRole === "string" ? userOrRole : userOrRole?.role;
 
+  if (role === "patient") {
+    return "/patient";
+  }
+
   if (role === "doctor") {
     return "/doctor";
   }
@@ -14,7 +18,7 @@ export function routeForRole(userOrRole) {
     return "/staff";
   }
 
-  return "/patient";
+  return null;
 }
 
 export function AuthProvider({ children }) {
@@ -79,6 +83,10 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (payload) => {
     await ensureCsrfToken();
     await api.post("/auth/register/", payload);
+    await api.post("/auth/login/", {
+      username: payload.username,
+      password: payload.password,
+    });
     return refreshUser();
   }, [refreshUser]);
 

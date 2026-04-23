@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { routeForRole, useAuth } from "../auth/AuthContext";
 
@@ -19,6 +20,10 @@ const NAV_ITEMS = {
 };
 
 function navItemsForRole(role) {
+  if (role === "patient") {
+    return NAV_ITEMS.patient;
+  }
+
   if (role === "doctor") {
     return NAV_ITEMS.doctor;
   }
@@ -27,7 +32,7 @@ function navItemsForRole(role) {
     return NAV_ITEMS.staff;
   }
 
-  return NAV_ITEMS.patient;
+  return [];
 }
 
 function UserSummary({ user }) {
@@ -64,17 +69,25 @@ function Navigation({ items }) {
 export default function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [logoutError, setLogoutError] = useState("");
   const navItems = navItemsForRole(user?.role);
+  const homeRoute = routeForRole(user) ?? "/unsupported-role";
 
   async function handleLogout() {
-    await logout();
-    navigate("/login", { replace: true });
+    setLogoutError("");
+
+    try {
+      await logout();
+      navigate("/login", { replace: true });
+    } catch {
+      setLogoutError("We could not sign you out. Please try again.");
+    }
   }
 
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
-        <Link to={routeForRole(user)} className="app-brand">
+        <Link to={homeRoute} className="app-brand">
           <span className="app-brand__mark">M</span>
           <span>
             <span className="app-brand__name">MedPortal</span>
@@ -83,6 +96,11 @@ export default function AppLayout() {
         </Link>
         <Navigation items={navItems} />
         <div className="app-sidebar__footer">
+          {logoutError && (
+            <div className="alert alert-warning app-alert" role="alert">
+              {logoutError}
+            </div>
+          )}
           <UserSummary user={user} />
           <button type="button" className="btn btn-outline-light w-100" onClick={handleLogout}>
             Logout
@@ -92,7 +110,7 @@ export default function AppLayout() {
 
       <div className="app-main">
         <header className="app-topbar">
-          <Link to={routeForRole(user)} className="app-brand app-brand--mobile">
+          <Link to={homeRoute} className="app-brand app-brand--mobile">
             <span className="app-brand__mark">M</span>
             <span className="app-brand__name">MedPortal</span>
           </Link>
@@ -100,6 +118,11 @@ export default function AppLayout() {
             Logout
           </button>
         </header>
+        {logoutError && (
+          <div className="alert alert-warning app-top-alert" role="alert">
+            {logoutError}
+          </div>
+        )}
 
         <div className="app-mobile-nav">
           <Navigation items={navItems} />

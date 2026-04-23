@@ -19,7 +19,7 @@ function ProtectedRoute({ allowedRoles, children }) {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to={routeForRole(user)} replace />;
+    return <Navigate to={routeForRole(user) ?? "/unsupported-role"} replace />;
   }
 
   return children;
@@ -33,10 +33,30 @@ function PublicOnlyRoute({ children }) {
   }
 
   if (user) {
-    return <Navigate to={routeForRole(user)} replace />;
+    return <Navigate to={routeForRole(user) ?? "/unsupported-role"} replace />;
   }
 
   return children;
+}
+
+function UnsupportedRolePage() {
+  const { user } = useAuth();
+
+  return (
+    <section className="portal-section">
+      <div className="portal-page-heading">
+        <span className="portal-eyebrow">Access unavailable</span>
+        <h1>Unsupported role</h1>
+        <p>
+          This account is authenticated, but its role cannot access the appointment portal.
+          Contact clinic staff if this account needs patient, doctor, or staff access.
+        </p>
+      </div>
+      <div className="alert alert-warning" role="alert">
+        Current role: <strong>{user?.role || "missing"}</strong>
+      </div>
+    </section>
+  );
 }
 
 function PlaceholderPage({ title, eyebrow, description, status = "Preview" }) {
@@ -92,6 +112,10 @@ export default function App() {
               </ProtectedRoute>
             }
           >
+            <Route
+              path="/unsupported-role"
+              element={<UnsupportedRolePage />}
+            />
             <Route
               path="/patient"
               element={

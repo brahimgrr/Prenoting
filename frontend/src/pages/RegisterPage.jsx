@@ -45,7 +45,7 @@ export default function RegisterPage() {
 
     try {
       const currentUser = await register(form);
-      navigate(routeForRole(currentUser), { replace: true });
+      navigate(routeForRole(currentUser) ?? "/unsupported-role", { replace: true });
     } catch (error) {
       setErrors(error.response?.data ?? { detail: "Unable to create the account. Try again." });
     } finally {

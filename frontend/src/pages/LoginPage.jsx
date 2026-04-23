@@ -39,7 +39,7 @@ export default function LoginPage() {
     try {
       const currentUser = await login(form.username, form.password);
       const fallbackRoute = routeForRole(currentUser);
-      navigate(location.state?.from?.pathname || fallbackRoute, { replace: true });
+      navigate(fallbackRoute ? location.state?.from?.pathname || fallbackRoute : "/unsupported-role", { replace: true });
     } catch (error) {
       setErrors(error.response?.data ?? { detail: "Unable to sign in. Try again." });
     } finally {
