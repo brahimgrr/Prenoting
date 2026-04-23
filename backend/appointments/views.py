@@ -1,12 +1,15 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
+from accounts.permissions import IsDoctor, IsStaffUser
 from appointments.models import Appointment, AppointmentStatusHistory
 from appointments.serializers import (
     AppointmentCancelSerializer,
@@ -20,6 +23,12 @@ from scheduling.models import AvailabilitySlot
 
 
 APPOINTMENT_RESCHEDULED_AUDIT_STATUS = "rescheduled"
+DOCTOR_STATUS_CHOICES = {
+    Appointment.Status.CHECKED_IN,
+    Appointment.Status.COMPLETED,
+    Appointment.Status.NO_SHOW,
+}
+APPOINTMENT_STATUS_CHOICES = {choice.value for choice in Appointment.Status}
 
 
 def validate_confirmed_future_appointment(appointment, action):
@@ -31,6 +40,74 @@ def validate_confirmed_future_appointment(appointment, action):
         raise ValidationError(
             {"start_at": [f"Past appointments cannot be {action}."]},
         )
+
+
+def appointment_queryset():
+    return Appointment.objects.select_related(
+        "patient",
+        "patient__user",
+        "doctor",
+        "doctor__user",
+        "service",
+        "clinic",
+        "slot",
+    )
+
+
+def validate_status_choice(next_status, allowed_statuses):
+    if next_status not in allowed_statuses:
+        raise ValidationError({"status": ["Select a valid status."]})
+
+
+def update_appointment_status(appointment, next_status, changed_by):
+    previous_status = appointment.status
+    if previous_status == next_status:
+        return appointment
+
+    appointment.status = next_status
+    appointment.save(update_fields=["status", "updated_at"])
+    AppointmentStatusHistory.objects.create(
+        appointment=appointment,
+        previous_status=previous_status,
+        new_status=next_status,
+        changed_by=changed_by,
+    )
+    return appointment
+
+
+def parse_integer_filter(value, field_name):
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValidationError({field_name: ["A valid integer is required."]}) from exc
+
+
+def apply_staff_filters(queryset, params):
+    filter_map = {
+        "clinic": "clinic_id",
+        "doctor": "doctor_id",
+        "service": "service_id",
+    }
+    for param_name, field_name in filter_map.items():
+        value = params.get(param_name)
+        if value:
+            queryset = queryset.filter(
+                **{field_name: parse_integer_filter(value, param_name)},
+            )
+
+    date_value = params.get("date")
+    if date_value:
+        parsed_date = parse_date(date_value)
+        if parsed_date is None:
+            raise ValidationError({"date": ["Use YYYY-MM-DD format."]})
+        queryset = queryset.filter(start_at__date=parsed_date)
+
+    status_value = params.get("status")
+    if status_value:
+        validate_status_choice(status_value, APPOINTMENT_STATUS_CHOICES)
+        queryset = queryset.filter(status=status_value)
+
+    return queryset
 
 
 class IsPatientUser(BasePermission):
@@ -186,3 +263,86 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             context=self.get_serializer_context(),
         )
         return Response(output.data)
+
+
+class DoctorScheduleAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsDoctor]
+
+    def get(self, request):
+        queryset = (
+            appointment_queryset()
+            .filter(doctor__user=request.user)
+            .order_by("start_at")
+        )
+
+        date_value = request.query_params.get("date")
+        if date_value:
+            parsed_date = parse_date(date_value)
+            if parsed_date is None:
+                raise ValidationError({"date": ["Use YYYY-MM-DD format."]})
+            queryset = queryset.filter(start_at__date=parsed_date)
+
+        status_value = request.query_params.get("status")
+        if status_value:
+            validate_status_choice(status_value, APPOINTMENT_STATUS_CHOICES)
+            queryset = queryset.filter(status=status_value)
+
+        serializer = AppointmentSerializer(
+            queryset,
+            many=True,
+            context={"request": request},
+        )
+        return Response(serializer.data)
+
+
+class DoctorAppointmentStatusAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsDoctor]
+
+    def post(self, request, pk):
+        next_status = request.data.get("status")
+        validate_status_choice(next_status, DOCTOR_STATUS_CHOICES)
+
+        with transaction.atomic():
+            appointment = get_object_or_404(
+                appointment_queryset().select_for_update(),
+                pk=pk,
+                doctor__user=request.user,
+            )
+            update_appointment_status(appointment, next_status, request.user)
+
+        serializer = AppointmentSerializer(appointment, context={"request": request})
+        return Response(serializer.data)
+
+
+class StaffAppointmentListAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsStaffUser]
+
+    def get(self, request):
+        queryset = apply_staff_filters(
+            appointment_queryset().order_by("start_at"),
+            request.query_params,
+        )
+        serializer = AppointmentSerializer(
+            queryset,
+            many=True,
+            context={"request": request},
+        )
+        return Response(serializer.data)
+
+
+class StaffAppointmentStatusAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsStaffUser]
+
+    def post(self, request, pk):
+        next_status = request.data.get("status")
+        validate_status_choice(next_status, APPOINTMENT_STATUS_CHOICES)
+
+        with transaction.atomic():
+            appointment = get_object_or_404(
+                appointment_queryset().select_for_update(),
+                pk=pk,
+            )
+            update_appointment_status(appointment, next_status, request.user)
+
+        serializer = AppointmentSerializer(appointment, context={"request": request})
+        return Response(serializer.data)
