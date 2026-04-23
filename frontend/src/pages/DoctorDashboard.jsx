@@ -21,6 +21,13 @@ function todayString() {
   return `${today.getFullYear()}-${month}-${day}`;
 }
 
+const initialAvailabilityForm = {
+  date: todayString(),
+  startTime: "09:00",
+  endTime: "09:30",
+  clinic: "",
+};
+
 function listFromResponse(data) {
   return Array.isArray(data) ? data : data?.results ?? [];
 }
@@ -96,6 +103,8 @@ export default function DoctorDashboard({ mode = "today" }) {
   const [error, setError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [busyAction, setBusyAction] = useState("");
+  const [availabilityForm, setAvailabilityForm] = useState(initialAvailabilityForm);
+  const [savingAvailability, setSavingAvailability] = useState(false);
 
   async function loadSchedule(selectedDate = date) {
     setLoading(true);
@@ -149,6 +158,35 @@ export default function DoctorDashboard({ mode = "today" }) {
       setError(apiMessage(statusError, "Impossibile aggiornare lo stato dell'appuntamento."));
     } finally {
       setBusyAction("");
+    }
+  }
+
+  function updateAvailabilityField(name, value) {
+    setAvailabilityForm((current) => ({ ...current, [name]: value }));
+  }
+
+  async function createAvailability(event) {
+    event.preventDefault();
+    setSavingAvailability(true);
+    setError("");
+    setActionMessage("");
+
+    try {
+      await api.post("/availability/doctor/", {
+        clinic: availabilityForm.clinic,
+        start_at: `${availabilityForm.date}T${availabilityForm.startTime}:00`,
+        end_at: `${availabilityForm.date}T${availabilityForm.endTime}:00`,
+      });
+      setActionMessage("Disponibilità aggiunta.");
+      setAvailabilityForm((current) => ({
+        ...initialAvailabilityForm,
+        date: current.date,
+        clinic: current.clinic,
+      }));
+    } catch (availabilityError) {
+      setError(apiMessage(availabilityError, "Impossibile aggiungere la disponibilità."));
+    } finally {
+      setSavingAvailability(false);
     }
   }
 
@@ -206,6 +244,67 @@ export default function DoctorDashboard({ mode = "today" }) {
           <small>{inProgressCount} in corso</small>
         </section>
       </div>
+
+      {isScheduleMode && (
+        <section className="portal-panel dashboard-filter-panel">
+          <div className="section-heading">
+            <h2>Nuova disponibilità</h2>
+            <span>Uno slot alla volta</span>
+          </div>
+          <form className="dashboard-filter-grid" onSubmit={createAvailability}>
+            <label className="form-label" htmlFor="availability-date">
+              Data
+              <input
+                id="availability-date"
+                className="form-control"
+                type="date"
+                value={availabilityForm.date}
+                onChange={(event) => updateAvailabilityField("date", event.target.value)}
+                required
+              />
+            </label>
+            <label className="form-label" htmlFor="availability-start">
+              Ora inizio
+              <input
+                id="availability-start"
+                className="form-control"
+                type="time"
+                value={availabilityForm.startTime}
+                onChange={(event) => updateAvailabilityField("startTime", event.target.value)}
+                required
+              />
+            </label>
+            <label className="form-label" htmlFor="availability-end">
+              Ora fine
+              <input
+                id="availability-end"
+                className="form-control"
+                type="time"
+                value={availabilityForm.endTime}
+                onChange={(event) => updateAvailabilityField("endTime", event.target.value)}
+                required
+              />
+            </label>
+            <label className="form-label" htmlFor="availability-clinic">
+              ID ambulatorio
+              <input
+                id="availability-clinic"
+                className="form-control"
+                inputMode="numeric"
+                value={availabilityForm.clinic}
+                onChange={(event) => updateAvailabilityField("clinic", event.target.value.replace(/\D/g, ""))}
+                placeholder="Es. 1"
+                required
+              />
+            </label>
+            <div className="dashboard-filter-actions">
+              <button type="submit" className="btn btn-primary" disabled={savingAvailability}>
+                {savingAvailability ? "Salvataggio..." : "Aggiungi"}
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
 
       <section className="portal-panel dashboard-table-panel">
         <div className="section-heading">

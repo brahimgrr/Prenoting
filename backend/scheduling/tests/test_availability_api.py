@@ -21,6 +21,16 @@ def create_doctor(username, display_name, specialty, is_active=True):
     )
 
 
+def authenticated_client(user):
+    client = APIClient()
+    client.force_authenticate(user=user)
+    return client
+
+
+def create_patient(username="patient"):
+    return get_user_model().objects.create_user(username=username, password="password")
+
+
 @pytest.mark.django_db
 def test_availability_endpoint_filters_available_slots_by_service():
     cardiology = Specialty.objects.create(name="Cardiology")
@@ -184,3 +194,117 @@ def test_availability_endpoint_excludes_inactive_public_entities():
     assert [slot["id"] for slot in active_response.data] == [visible_slot.id]
     assert inactive_response.status_code == 200
     assert inactive_response.data == []
+
+
+@pytest.mark.django_db
+def test_doctor_can_create_own_availability_slot():
+    specialty = Specialty.objects.create(name="Cardiologia")
+    doctor = create_doctor("doctor", "Dott. Verde", specialty)
+    clinic = ClinicLocation.objects.create(name="Ambulatorio Centro", address="Via Roma 1")
+    start_at = timezone.now() + timedelta(days=2)
+    end_at = start_at + timedelta(minutes=30)
+
+    response = authenticated_client(doctor.user).post(
+        "/api/availability/doctor/",
+        {
+            "clinic": clinic.id,
+            "start_at": start_at.isoformat(),
+            "end_at": end_at.isoformat(),
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201
+    slot = AvailabilitySlot.objects.get(id=response.data["id"])
+    assert slot.doctor == doctor
+    assert slot.clinic == clinic
+    assert slot.is_booked is False
+    assert slot.is_blocked is False
+
+
+@pytest.mark.django_db
+def test_patient_cannot_create_doctor_availability_slot():
+    clinic = ClinicLocation.objects.create(name="Ambulatorio Centro", address="Via Roma 1")
+    start_at = timezone.now() + timedelta(days=2)
+
+    response = authenticated_client(create_patient()).post(
+        "/api/availability/doctor/",
+        {
+            "clinic": clinic.id,
+            "start_at": start_at.isoformat(),
+            "end_at": (start_at + timedelta(minutes=30)).isoformat(),
+        },
+        format="json",
+    )
+
+    assert response.status_code == 403
+    assert AvailabilitySlot.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_doctor_availability_rejects_past_start():
+    specialty = Specialty.objects.create(name="Cardiologia")
+    doctor = create_doctor("doctor", "Dott. Verde", specialty)
+    clinic = ClinicLocation.objects.create(name="Ambulatorio Centro", address="Via Roma 1")
+    start_at = timezone.now() - timedelta(minutes=10)
+
+    response = authenticated_client(doctor.user).post(
+        "/api/availability/doctor/",
+        {
+            "clinic": clinic.id,
+            "start_at": start_at.isoformat(),
+            "end_at": (start_at + timedelta(minutes=30)).isoformat(),
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "start_at" in response.data
+
+
+@pytest.mark.django_db
+def test_doctor_availability_rejects_end_before_start():
+    specialty = Specialty.objects.create(name="Cardiologia")
+    doctor = create_doctor("doctor", "Dott. Verde", specialty)
+    clinic = ClinicLocation.objects.create(name="Ambulatorio Centro", address="Via Roma 1")
+    start_at = timezone.now() + timedelta(days=2)
+
+    response = authenticated_client(doctor.user).post(
+        "/api/availability/doctor/",
+        {
+            "clinic": clinic.id,
+            "start_at": start_at.isoformat(),
+            "end_at": (start_at - timedelta(minutes=30)).isoformat(),
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "end_at" in response.data
+
+
+@pytest.mark.django_db
+def test_doctor_availability_rejects_overlapping_slot():
+    specialty = Specialty.objects.create(name="Cardiologia")
+    doctor = create_doctor("doctor", "Dott. Verde", specialty)
+    clinic = ClinicLocation.objects.create(name="Ambulatorio Centro", address="Via Roma 1")
+    start_at = timezone.now() + timedelta(days=2)
+    AvailabilitySlot.objects.create(
+        doctor=doctor,
+        clinic=clinic,
+        start_at=start_at,
+        end_at=start_at + timedelta(minutes=60),
+    )
+
+    response = authenticated_client(doctor.user).post(
+        "/api/availability/doctor/",
+        {
+            "clinic": clinic.id,
+            "start_at": (start_at + timedelta(minutes=15)).isoformat(),
+            "end_at": (start_at + timedelta(minutes=45)).isoformat(),
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "start_at" in response.data

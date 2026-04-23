@@ -3,9 +3,12 @@ from django.utils.dateparse import parse_date
 from rest_framework.generics import ListAPIView
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
+from accounts.permissions import IsDoctor
 from scheduling.models import AvailabilitySlot
-from scheduling.serializers import AvailabilitySerializer
+from scheduling.serializers import AvailabilitySerializer, DoctorAvailabilityCreateSerializer
 
 
 def _parse_id_param(query_params, field_name):
@@ -77,3 +80,17 @@ class AvailabilityListView(ListAPIView):
             queryset = queryset.filter(start_at__date=date)
 
         return queryset.distinct()
+
+
+class DoctorAvailabilityCreateView(APIView):
+    permission_classes = [IsDoctor]
+
+    def post(self, request):
+        serializer = DoctorAvailabilityCreateSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        slot = serializer.save()
+        output = AvailabilitySerializer(slot)
+        return Response(output.data, status=201)
