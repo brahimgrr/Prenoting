@@ -12,13 +12,15 @@ Local development uses a Django 5 backend and a Vite 7 React frontend.
 
 ```sh
 cd backend
-python3.10 -m venv .venv
+python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_demo
 python manage.py runserver 127.0.0.1:8000
 ```
+
+Make sure `python3 --version` reports Python 3.10 or newer before creating the virtual environment.
 
 By default, the backend uses sqlite at `backend/db.sqlite3`. No database environment variables are required for the default dev setup.
 
