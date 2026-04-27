@@ -499,6 +499,197 @@ a {
   grid-template-columns: minmax(260px, 0.9fr) minmax(280px, 1fr) minmax(260px, 0.8fr);
 }
 
+.booking-wizard,
+.profile-stack,
+.availability-day-list,
+.availability-slot-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.booking-step {
+  display: grid;
+  gap: 1rem;
+}
+
+.service-card-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.service-choice-card {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-ink);
+  display: grid;
+  gap: 0.35rem;
+  min-height: 8.5rem;
+  padding: 1rem;
+  text-decoration: none;
+}
+
+.service-choice-card:hover {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  color: var(--color-ink);
+}
+
+.service-choice-card--disabled {
+  opacity: 0.55;
+}
+
+.service-choice-card__name,
+.service-choice-card__price {
+  font-weight: 800;
+}
+
+.service-choice-card__meta,
+.week-day__name,
+.availability-slot-row span,
+.profile-lock-note {
+  color: var(--color-muted);
+}
+
+.week-nav,
+.slot-period-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.week-strip {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.week-day {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-ink);
+  display: grid;
+  gap: 0.25rem;
+  justify-items: center;
+  min-height: 6.5rem;
+  padding: 0.75rem;
+  text-decoration: none;
+}
+
+.week-day:hover,
+.week-day--selected {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  color: var(--color-ink);
+}
+
+.week-day--disabled {
+  background: #f8fafc;
+  opacity: 0.5;
+}
+
+.availability-dot {
+  border-radius: 999px;
+  display: inline-flex;
+  height: 0.65rem;
+  width: 0.65rem;
+}
+
+.availability-dot--open {
+  background: #16a34a;
+}
+
+.availability-dot--closed {
+  background: #dc2626;
+}
+
+.slot-time-button {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-ink);
+  display: grid;
+  gap: 0.2rem;
+  min-height: 4.75rem;
+  padding: 0.7rem;
+  text-align: left;
+  width: 100%;
+}
+
+.slot-time-button:hover {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.slot-time-button span {
+  font-weight: 800;
+}
+
+.slot-time-button small {
+  color: var(--color-muted);
+}
+
+.profile-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-readonly-panel {
+  background: #f8fafc;
+}
+
+.profile-lock-note {
+  font-weight: 700;
+  margin: 0;
+}
+
+.availability-day {
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.availability-day h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.availability-slot-row {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.85rem;
+}
+
+.availability-slot-row > div:first-child {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.availability-slot-row__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
 .portal-tabs,
 .booking-filters {
   margin-bottom: 1rem;
@@ -707,10 +898,12 @@ a {
 
   .dashboard-grid,
   .booking-layout,
+  .service-card-grid,
   .quick-actions,
   .dashboard-stat-row,
   .operations-dashboard--wide .dashboard-stat-row,
-  .operations-summary-grid {
+  .operations-summary-grid,
+  .profile-grid {
     grid-template-columns: 1fr;
   }
 
@@ -744,8 +937,18 @@ a {
 
   .next-appointment dl,
   .appointment-details,
-  .dashboard-filter-grid {
+  .dashboard-filter-grid,
+  .week-strip {
     grid-template-columns: 1fr;
+  }
+
+  .availability-slot-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .availability-slot-row__actions {
+    justify-content: flex-start;
   }
 
   .appointment-row__meta {

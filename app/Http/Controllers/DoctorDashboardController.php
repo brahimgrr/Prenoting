@@ -86,6 +86,36 @@ class DoctorDashboardController extends Controller
     return redirect('/doctor/schedule')->with('status', 'Disponibilita aggiunta.');
   }
 
+  public function blockAvailability(Request $request, AvailabilitySlot $slot): RedirectResponse
+  {
+    $this->authorizeDoctorSlot($request, $slot);
+
+    if ($slot->start_at->isPast()) {
+      throw ValidationException::withMessages([
+        'slot' => 'Le disponibilita passate non possono essere bloccate.',
+      ]);
+    }
+
+    $slot->forceFill(['is_blocked' => true])->save();
+
+    return redirect('/doctor/schedule')->with('status', 'Disponibilita bloccata.');
+  }
+
+  public function unblockAvailability(Request $request, AvailabilitySlot $slot): RedirectResponse
+  {
+    $this->authorizeDoctorSlot($request, $slot);
+
+    if ($slot->start_at->isPast()) {
+      throw ValidationException::withMessages([
+        'slot' => 'Le disponibilita passate non possono essere riaperte.',
+      ]);
+    }
+
+    $slot->forceFill(['is_blocked' => false])->save();
+
+    return redirect('/doctor/schedule')->with('status', 'Disponibilita riaperta.');
+  }
+
   private function viewSchedule(Request $request, string $mode): View
   {
     $date = $request->query('date');
@@ -102,6 +132,17 @@ class DoctorDashboardController extends Controller
       'date' => $date ?? now()->toDateString(),
       'appointments' => $appointments,
       'visibleAppointments' => $mode === 'today' ? $appointments->take(4) : $appointments,
+      'availabilitySlots' => AvailabilitySlot::with('clinic')
+        ->where('doctor_id', $request->user()->doctorProfile->id)
+        ->where('start_at', '>=', now())
+        ->orderBy('start_at')
+        ->get()
+        ->groupBy(fn (AvailabilitySlot $slot) => $slot->start_at->toDateString()),
     ]);
+  }
+
+  private function authorizeDoctorSlot(Request $request, AvailabilitySlot $slot): void
+  {
+    abort_unless($slot->doctor_id === $request->user()->doctorProfile->id, 404);
   }
 }

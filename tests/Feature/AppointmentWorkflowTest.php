@@ -40,6 +40,22 @@ class AppointmentWorkflowTest extends TestCase
     $this->assertTrue($slot->fresh()->is_booked);
   }
 
+  public function test_booking_page_renders_service_week_days_and_available_slots(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    $weekStart = $slot->start_at->copy()->startOfWeek()->toDateString();
+
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$slot->start_at->toDateString()}");
+
+    $response->assertOk();
+    $response->assertSee('Scegli la prestazione');
+    $response->assertSee('Scegli il giorno');
+    $response->assertSee("Scegli l'orario");
+    $response->assertSee($service->name);
+    $response->assertSee($slot->start_at->format('H:i'));
+    $response->assertSee('slot liberi');
+  }
+
   public function test_second_booking_attempt_for_same_slot_fails(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
@@ -99,6 +115,44 @@ class AppointmentWorkflowTest extends TestCase
       'appointment_id' => $appointment->id,
       'new_status' => 'rescheduled',
     ]);
+  }
+
+  public function test_patient_appointments_page_renders_cancel_confirmation_modal(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    $appointment = $this->appointment($patient, $doctor, $service, $clinic, $slot);
+
+    $response = $this->actingAs($patientUser)->get('/patient/appointments');
+
+    $response->assertOk();
+    $response->assertSee("cancelAppointmentModal{$appointment->id}", false);
+    $response->assertSee('Si, annulla');
+    $response->assertSee("/appointments/{$appointment->id}/cancel", false);
+  }
+
+  public function test_patient_can_open_reschedule_wizard_and_choose_new_slot(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $oldSlot] = $this->bookingContext();
+    $newSlot = $this->slot($doctor, $clinic, 48);
+    $appointment = $this->appointment($patient, $doctor, $service, $clinic, $oldSlot);
+    $weekStart = $newSlot->start_at->copy()->startOfWeek()->toDateString();
+
+    $response = $this->actingAs($patientUser)->get("/appointments/{$appointment->id}/edit?week_start={$weekStart}&date={$newSlot->start_at->toDateString()}");
+
+    $response->assertOk();
+    $response->assertSee('Stai riprogrammando');
+    $response->assertSee($service->name);
+    $response->assertSee($newSlot->start_at->format('H:i'));
+    $response->assertSee("/appointments/{$appointment->id}/reschedule", false);
+  }
+
+  public function test_patient_cannot_open_another_patients_reschedule_wizard(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    $otherUser = $this->patient('other-patient')[0];
+    $appointment = $this->appointment($patient, $doctor, $service, $clinic, $slot);
+
+    $this->actingAs($otherUser)->get("/appointments/{$appointment->id}/edit")->assertNotFound();
   }
 
   public function test_patient_cannot_cancel_non_confirmed_or_past_appointment(): void

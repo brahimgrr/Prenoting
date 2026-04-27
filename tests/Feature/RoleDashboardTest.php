@@ -42,6 +42,49 @@ class RoleDashboardTest extends TestCase
     ]);
   }
 
+  public function test_doctor_can_block_and_unblock_own_future_availability_slot(): void
+  {
+    [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
+    $slot = AvailabilitySlot::create([
+      'doctor_id' => $doctor->id,
+      'clinic_id' => $appointment->clinic_id,
+      'start_at' => CarbonImmutable::now()->addDays(3)->setTime(10, 0),
+      'end_at' => CarbonImmutable::now()->addDays(3)->setTime(10, 30),
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/schedule')
+      ->post("/doctor/availability/{$slot->id}/block")
+      ->assertRedirect('/doctor/schedule');
+
+    $this->assertTrue($slot->fresh()->is_blocked);
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/schedule')
+      ->post("/doctor/availability/{$slot->id}/unblock")
+      ->assertRedirect('/doctor/schedule');
+
+    $this->assertFalse($slot->fresh()->is_blocked);
+  }
+
+  public function test_doctor_cannot_block_another_doctors_availability_slot(): void
+  {
+    [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
+    $otherDoctor = DoctorProfile::whereKeyNot($doctor->id)->firstOrFail();
+    $slot = AvailabilitySlot::create([
+      'doctor_id' => $otherDoctor->id,
+      'clinic_id' => $appointment->clinic_id,
+      'start_at' => CarbonImmutable::now()->addDays(3)->setTime(11, 0),
+      'end_at' => CarbonImmutable::now()->addDays(3)->setTime(11, 30),
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->post("/doctor/availability/{$slot->id}/block")
+      ->assertNotFound();
+
+    $this->assertFalse($slot->fresh()->is_blocked);
+  }
+
   public function test_staff_can_filter_and_cancel_future_appointment_freeing_slot(): void
   {
     [$doctorUser, $doctor, $appointment] = $this->dashboardContext();

@@ -38,15 +38,20 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/patient/book', [BookingController::class, 'show']);
     Route::post('/appointments', [BookingController::class, 'store']);
     Route::get('/patient/appointments', [PatientAppointmentController::class, 'index']);
+    Route::get('/appointments/{appointment}/edit', [PatientAppointmentController::class, 'edit']);
     Route::post('/appointments/{appointment}/cancel', [PatientAppointmentController::class, 'cancel']);
     Route::post('/appointments/{appointment}/reschedule', [PatientAppointmentController::class, 'reschedule']);
-    Route::view('/patient/profile', 'patient.profile');
+    Route::get('/patient/profile', [PatientDashboardController::class, 'profile']);
+    Route::patch('/patient/profile', [PatientDashboardController::class, 'updateProfile']);
+    Route::put('/patient/password', [PatientDashboardController::class, 'updatePassword']);
   });
 
   Route::middleware('role:'.User::ROLE_DOCTOR)->group(function (): void {
     Route::get('/doctor', [DoctorDashboardController::class, 'today']);
     Route::get('/doctor/schedule', [DoctorDashboardController::class, 'schedule']);
     Route::post('/doctor/availability', [DoctorDashboardController::class, 'storeAvailability']);
+    Route::post('/doctor/availability/{slot}/block', [DoctorDashboardController::class, 'blockAvailability']);
+    Route::post('/doctor/availability/{slot}/unblock', [DoctorDashboardController::class, 'unblockAvailability']);
     Route::post('/doctor/appointments/{appointment}/status', [DoctorDashboardController::class, 'updateStatus']);
   });
 

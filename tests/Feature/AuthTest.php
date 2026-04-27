@@ -93,4 +93,54 @@ class AuthTest extends TestCase
     $this->actingAs($user)->post('/logout')->assertRedirect('/login');
     $this->assertGuest();
   }
+
+  public function test_patient_can_update_profile_contact_fields(): void
+  {
+    $user = User::create([
+      'username' => 'patient@example.com',
+      'email' => 'patient@example.com',
+      'first_name' => 'Mario',
+      'last_name' => 'Rossi',
+      'password' => Hash::make('patient123'),
+      'role' => User::ROLE_PATIENT,
+    ]);
+    $profile = PatientProfile::create([
+      'user_id' => $user->id,
+      'phone' => '555-0100',
+      'address' => 'Via Roma 1',
+      'identity_code' => 'RSSMRA80A01H501U',
+    ]);
+
+    $this->actingAs($user)
+      ->patch('/patient/profile', [
+        'email' => 'mario.rossi@example.com',
+        'phone' => '555-0200',
+        'address' => 'Via Milano 2',
+      ])
+      ->assertRedirect('/patient/profile');
+
+    $this->assertSame('mario.rossi@example.com', $user->fresh()->email);
+    $this->assertSame('555-0200', $profile->fresh()->phone);
+    $this->assertSame('Via Milano 2', $profile->fresh()->address);
+  }
+
+  public function test_patient_can_change_password_from_profile(): void
+  {
+    $user = User::create([
+      'username' => 'patient',
+      'password' => Hash::make('old-password'),
+      'role' => User::ROLE_PATIENT,
+    ]);
+    PatientProfile::create(['user_id' => $user->id, 'phone' => '555-0100']);
+
+    $this->actingAs($user)
+      ->put('/patient/password', [
+        'current_password' => 'old-password',
+        'password' => 'new-password',
+        'password_confirmation' => 'new-password',
+      ])
+      ->assertRedirect('/patient/profile');
+
+    $this->assertTrue(Hash::check('new-password', $user->fresh()->password));
+  }
 }
