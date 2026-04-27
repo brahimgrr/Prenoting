@@ -1,52 +1,55 @@
 services:
-  mysql:
-    image: mysql:8.4
+  db:
+    image: postgres:16-alpine
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-prenoting}
-      MYSQL_USER: ${DB_USERNAME:-prenoting}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-prenoting_password}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
+      POSTGRES_DB: ${POSTGRES_DB:-medical_appointment_mvp}
+      POSTGRES_USER: ${POSTGRES_USER:-medical_appointment_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medical_appointment_password}
     ports:
-      - "${MYSQL_HOST_PORT:-3307}:3306"
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u${DB_USERNAME:-prenoting}", "-p${DB_PASSWORD:-prenoting_password}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-medical_appointment_user} -d ${POSTGRES_DB:-medical_appointment_mvp}"]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 10
 
-  app:
+  backend:
     build:
-      context: .
+      context: ./backend
     environment:
-      APP_NAME: MedPortal
-      APP_ENV: local
-      APP_KEY: ${APP_KEY:-base64:Ue5VazY5hl2xwRlG/2xb89ihyWhH/NBcwH8Q4VlQx2I=}
-      APP_DEBUG: "true"
-      APP_URL: http://127.0.0.1:${APP_HOST_PORT:-8080}
-      APP_TIMEZONE: Europe/Rome
-      APP_LOCALE: it
-      DB_CONNECTION: mysql
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_DATABASE: ${DB_DATABASE:-prenoting}
-      DB_USERNAME: ${DB_USERNAME:-prenoting}
-      DB_PASSWORD: ${DB_PASSWORD:-prenoting_password}
-      SESSION_DRIVER: database
-      CACHE_STORE: database
-      QUEUE_CONNECTION: sync
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-docker-dev-secret-key}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-1}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: ${POSTGRES_DB:-medical_appointment_mvp}
+      DB_USER: ${POSTGRES_USER:-medical_appointment_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-medical_appointment_password}
+      DB_HOST: db
+      DB_PORT: 5432
     ports:
-      - "${APP_HOST_PORT:-8080}:80"
+      - "${BACKEND_HOST_PORT:-8001}:8000"
     depends_on:
-      mysql:
+      db:
         condition: service_healthy
     volumes:
-      - .:/var/www/html
-      - laravel_vendor:/var/www/html/vendor
-      - laravel_node_modules:/var/www/html/node_modules
+      - ./backend:/app
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://127.0.0.1:8001/api}
+    ports:
+      - "${FRONTEND_HOST_PORT:-5174}:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    command: npm run dev -- --host 0.0.0.0
 
 volumes:
-  mysql_data:
-  laravel_vendor:
-  laravel_node_modules:
+  postgres_data:
+  frontend_node_modules:
