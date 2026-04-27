@@ -77,7 +77,11 @@ npm run build
 Laravel tests:
 
 ```sh
-php artisan test
+composer test
 ```
 
-In environments without host PHP/Composer, use the Docker setup instead.
+With Docker:
+
+```sh
+docker compose exec app ./vendor/bin/phpunit
+```
