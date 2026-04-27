@@ -8,6 +8,7 @@ node_modules/
 venv/
 dist/
 build/
+public/build/
 
 .pytest_cache/
 .vite/

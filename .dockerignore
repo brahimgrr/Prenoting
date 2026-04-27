@@ -7,6 +7,8 @@
 **/.vite
 **/node_modules
 **/dist
+public/build
+vendor
 **/.venv
 **/venv
 backend/db.sqlite3
