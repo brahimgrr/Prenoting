@@ -1,6 +1,6 @@
 # MedPortal Laravel Appointment MVP
 
-This repository now contains a Laravel + MySQL + Blade migration of the medical appointment MVP. The previous Django and React source folders are still present as legacy reference material, but the active app is the Laravel application at the repository root.
+This branch contains only the Laravel + MySQL + Blade migration of the medical appointment MVP. The legacy Django backend and React frontend live on `main`, not on this branch.
 
 ## Stack
 
@@ -80,4 +80,4 @@ Laravel tests:
 php artisan test
 ```
 
-In this current environment, `npm run build` passes, but `php artisan test` is blocked because PHP and Composer are not installed on the host and the Docker daemon is not running.
+In environments without host PHP/Composer, use the Docker setup instead.

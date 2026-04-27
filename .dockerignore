@@ -11,5 +11,4 @@ public/build
 vendor
 **/.venv
 **/venv
-backend/db.sqlite3
 .env
