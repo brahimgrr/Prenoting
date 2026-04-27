@@ -41,12 +41,6 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    volumes:
-      - .:/var/www/html
-      - laravel_vendor:/var/www/html/vendor
-      - laravel_node_modules:/var/www/html/node_modules
 
 volumes:
   mysql_data:
-  laravel_vendor:
-  laravel_node_modules:
