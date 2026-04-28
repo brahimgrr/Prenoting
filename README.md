@@ -41,8 +41,9 @@ This starts:
 
 - Laravel app on `http://127.0.0.1:8080`
 - MySQL on `127.0.0.1:3307`
+- Vite dev server on `http://127.0.0.1:5173`
 
-The app container runs migrations and seeds demo data on startup.
+The Docker setup bind-mounts the project into the PHP and Vite containers, so Blade, PHP, CSS, and JavaScript edits are reflected without rebuilding the image. The app container runs migrations and seeds demo data on startup.
 
 ## Demo Accounts
 

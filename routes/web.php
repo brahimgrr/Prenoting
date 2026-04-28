@@ -5,6 +5,7 @@ use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\DoctorDashboardController;
+use App\Http\Controllers\DoctorTreatmentController;
 use App\Http\Controllers\PatientAppointmentController;
 use App\Http\Controllers\PatientDashboardController;
 use App\Http\Controllers\StaffDashboardController;
@@ -49,9 +50,16 @@ Route::middleware('auth')->group(function (): void {
   Route::middleware('role:'.User::ROLE_DOCTOR)->group(function (): void {
     Route::get('/doctor', [DoctorDashboardController::class, 'today']);
     Route::get('/doctor/schedule', [DoctorDashboardController::class, 'schedule']);
+    Route::get('/doctor/availability/preview', [DoctorDashboardController::class, 'previewAvailability']);
     Route::post('/doctor/availability', [DoctorDashboardController::class, 'storeAvailability']);
+    Route::post('/doctor/availability/batch', [DoctorDashboardController::class, 'storeAvailabilityBatch']);
     Route::post('/doctor/availability/{slot}/block', [DoctorDashboardController::class, 'blockAvailability']);
     Route::post('/doctor/availability/{slot}/unblock', [DoctorDashboardController::class, 'unblockAvailability']);
+    Route::get('/doctor/treatments', [DoctorTreatmentController::class, 'index']);
+    Route::post('/doctor/treatments', [DoctorTreatmentController::class, 'store']);
+    Route::get('/doctor/treatments/{offering}/edit', [DoctorTreatmentController::class, 'edit']);
+    Route::patch('/doctor/treatments/{offering}', [DoctorTreatmentController::class, 'update']);
+    Route::patch('/doctor/treatments/{offering}/status', [DoctorTreatmentController::class, 'updateStatus']);
     Route::post('/doctor/appointments/{appointment}/status', [DoctorDashboardController::class, 'updateStatus']);
   });
 

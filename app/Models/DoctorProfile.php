@@ -46,6 +46,11 @@ class DoctorProfile extends Model
     return $this->hasMany(AvailabilitySlot::class, 'doctor_id');
   }
 
+  public function treatmentOfferings(): HasMany
+  {
+    return $this->hasMany(DoctorTreatmentOffering::class, 'doctor_id');
+  }
+
   public function appointments(): HasMany
   {
     return $this->hasMany(Appointment::class, 'doctor_id');

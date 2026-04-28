@@ -37,18 +37,23 @@ class PatientAppointmentController extends Controller
     $this->authorizePatientAppointment($request, $appointment);
     $appointment->loadMissing(['service.specialty', 'doctor', 'clinic']);
     $service = $appointment->service;
-    $weekStart = $this->resolveWeekStart($request);
-    $selectedDate = $request->query('date');
+    $selectedSlot = $service ? $this->selectedSlotFor($service, $request->integer('slot_id'), $appointment) : null;
+    $weekStart = $this->resolveWeekStart($request, $service, $selectedSlot, $appointment);
+    $selectedDate = $request->query('date') ?: $selectedSlot?->start_at->toDateString();
     $slots = $service && $selectedDate
       ? $this->availableSlotsFor($service, $selectedDate, $appointment)
       : collect();
+    $visibleMonth = $this->resolveVisibleMonth($request, $weekStart, $selectedSlot);
 
     return view('patient.appointment-edit', [
       'appointment' => $appointment,
       'services' => MedicalService::with('specialty')->where('is_active', true)->orderBy('name')->get(),
       'selectedService' => $service,
       'selectedDate' => $selectedDate,
+      'selectedSlot' => $selectedSlot,
       'weekStart' => $weekStart,
+      'visibleMonth' => $visibleMonth,
+      'availableMonths' => $service ? $this->availableMonthsFor($service, $appointment) : collect(),
       'weekDays' => $this->weekDaysFor($weekStart, $service, $appointment),
       'slots' => $slots,
       'formAction' => "/appointments/{$appointment->id}/reschedule",
@@ -86,10 +91,20 @@ class PatientAppointmentController extends Controller
     abort_unless($appointment->patient_id === $request->user()->patientProfile->id, 404);
   }
 
-  private function resolveWeekStart(Request $request): CarbonImmutable
+  private function resolveWeekStart(Request $request, ?MedicalService $service, ?AvailabilitySlot $selectedSlot, Appointment $appointment): CarbonImmutable
   {
     if ($request->filled('week_start')) {
       return CarbonImmutable::parse((string) $request->string('week_start'))->startOfWeek();
+    }
+
+    if ($selectedSlot) {
+      return CarbonImmutable::parse($selectedSlot->start_at)->startOfWeek();
+    }
+
+    if ($request->filled('month')) {
+      $month = CarbonImmutable::createFromFormat('Y-m-d', $request->query('month').'-01')->startOfMonth();
+
+      return $service ? $this->firstWeekWithAvailabilityInMonth($service, $month, $appointment) : $this->firstWorkingWeekOfMonth($month);
     }
 
     $today = CarbonImmutable::now();
@@ -97,6 +112,19 @@ class PatientAppointmentController extends Controller
     return $today->isWeekend()
       ? $today->next(CarbonImmutable::MONDAY)->startOfDay()
       : $today->startOfWeek();
+  }
+
+  private function resolveVisibleMonth(Request $request, CarbonImmutable $weekStart, ?AvailabilitySlot $selectedSlot): CarbonImmutable
+  {
+    if ($request->filled('month')) {
+      return CarbonImmutable::createFromFormat('Y-m-d', $request->query('month').'-01')->startOfMonth();
+    }
+
+    if ($selectedSlot) {
+      return CarbonImmutable::parse($selectedSlot->start_at)->startOfMonth();
+    }
+
+    return $weekStart->startOfMonth();
   }
 
   private function weekDaysFor(CarbonImmutable $weekStart, ?MedicalService $service, Appointment $appointment): Collection
@@ -113,15 +141,61 @@ class PatientAppointmentController extends Controller
 
   private function availableSlotsFor(MedicalService $service, string $date, Appointment $appointment): Collection
   {
+    return $this->availableSlotQuery($service, $appointment)
+      ->whereDate('start_at', $date)
+      ->orderBy('start_at')
+      ->get();
+  }
+
+  private function selectedSlotFor(MedicalService $service, int $slotId, Appointment $appointment): ?AvailabilitySlot
+  {
+    if (! $slotId) {
+      return null;
+    }
+
+    return $this->availableSlotQuery($service, $appointment)
+      ->whereKey($slotId)
+      ->first();
+  }
+
+  private function availableMonthsFor(MedicalService $service, Appointment $appointment): Collection
+  {
+    return $this->availableSlotQuery($service, $appointment)
+      ->orderBy('start_at')
+      ->get(['start_at'])
+      ->map(fn (AvailabilitySlot $slot) => CarbonImmutable::parse($slot->start_at)->startOfMonth())
+      ->unique(fn (CarbonImmutable $month) => $month->format('Y-m'))
+      ->values();
+  }
+
+  private function firstWeekWithAvailabilityInMonth(MedicalService $service, CarbonImmutable $month, Appointment $appointment): CarbonImmutable
+  {
+    $slot = $this->availableSlotQuery($service, $appointment)
+      ->whereBetween('start_at', [$month->startOfMonth(), $month->endOfMonth()])
+      ->orderBy('start_at')
+      ->first();
+
+    return $slot
+      ? CarbonImmutable::parse($slot->start_at)->startOfWeek()
+      : $this->firstWorkingWeekOfMonth($month);
+  }
+
+  private function firstWorkingWeekOfMonth(CarbonImmutable $month): CarbonImmutable
+  {
+    $firstDay = $month->startOfMonth();
+    $firstWorkingDay = $firstDay->isWeekend() ? $firstDay->next(CarbonImmutable::MONDAY) : $firstDay;
+
+    return $firstWorkingDay->startOfWeek();
+  }
+
+  private function availableSlotQuery(MedicalService $service, Appointment $appointment)
+  {
     return AvailabilitySlot::query()
       ->with(['doctor', 'clinic'])
       ->publicAvailable()
       ->whereKeyNot($appointment->slot_id)
-      ->whereDate('start_at', $date)
       ->whereHas('doctor.services', fn ($services) => $services
         ->where('medical_services.id', $service->id)
-        ->where('is_active', true))
-      ->orderBy('start_at')
-      ->get();
+        ->where('is_active', true));
   }
 }

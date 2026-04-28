@@ -50,10 +50,33 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertOk();
     $response->assertSee('Scegli la prestazione');
     $response->assertSee('Scegli il giorno');
-    $response->assertSee("Scegli l'orario");
+    $response->assertSee("Scegli l'orario", false);
+    $response->assertSee('Mese visualizzato');
+    $response->assertDontSee('Mese precedente');
+    $response->assertDontSee('Mese successivo');
     $response->assertSee($service->name);
     $response->assertSee($slot->start_at->format('H:i'));
     $response->assertSee('slot liberi');
+  }
+
+  public function test_booking_page_can_jump_to_a_far_month_with_availability(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    $farStart = CarbonImmutable::now()->addMonths(3)->startOfMonth()->next(CarbonImmutable::MONDAY)->setTime(9, 0);
+    $farSlot = AvailabilitySlot::create([
+      'doctor_id' => $doctor->id,
+      'clinic_id' => $clinic->id,
+      'start_at' => $farStart,
+      'end_at' => $farStart->addMinutes(30),
+    ]);
+    $month = $farSlot->start_at->format('Y-m');
+
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&month={$month}");
+
+    $response->assertOk();
+    $response->assertSee(ucfirst($farSlot->start_at->locale('it')->isoFormat('MMMM YYYY')));
+    $response->assertSee($farSlot->start_at->format('d'));
+    $response->assertSee('month='.$month, false);
   }
 
   public function test_second_booking_attempt_for_same_slot_fails(): void
@@ -117,6 +140,24 @@ class AppointmentWorkflowTest extends TestCase
     ]);
   }
 
+  public function test_selected_booking_slot_renders_confirmation_before_posting(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    $weekStart = $slot->start_at->copy()->startOfWeek()->toDateString();
+
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$slot->start_at->toDateString()}&slot_id={$slot->id}");
+
+    $response->assertOk();
+    $response->assertSee('Conferma prenotazione');
+    $response->assertSee($doctor->display_name);
+    $response->assertSee($clinic->name);
+    $response->assertSee('name="slot_id" value="'.$slot->id.'"', false);
+    $response->assertSee('action="/appointments"', false);
+    $response->assertSee('Annulla prenotazione');
+    $response->assertSee('#booking-step-service', false);
+    $response->assertDontSee('<button type="submit" class="slot-time-button"', false);
+  }
+
   public function test_patient_appointments_page_renders_cancel_confirmation_modal(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
@@ -130,19 +171,20 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee("/appointments/{$appointment->id}/cancel", false);
   }
 
-  public function test_patient_can_open_reschedule_wizard_and_choose_new_slot(): void
+  public function test_patient_can_open_reschedule_wizard_and_confirm_new_slot(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $oldSlot] = $this->bookingContext();
     $newSlot = $this->slot($doctor, $clinic, 48);
     $appointment = $this->appointment($patient, $doctor, $service, $clinic, $oldSlot);
     $weekStart = $newSlot->start_at->copy()->startOfWeek()->toDateString();
 
-    $response = $this->actingAs($patientUser)->get("/appointments/{$appointment->id}/edit?week_start={$weekStart}&date={$newSlot->start_at->toDateString()}");
+    $response = $this->actingAs($patientUser)->get("/appointments/{$appointment->id}/edit?week_start={$weekStart}&date={$newSlot->start_at->toDateString()}&slot_id={$newSlot->id}");
 
     $response->assertOk();
     $response->assertSee('Stai riprogrammando');
     $response->assertSee($service->name);
     $response->assertSee($newSlot->start_at->format('H:i'));
+    $response->assertSee('Conferma spostamento');
     $response->assertSee("/appointments/{$appointment->id}/reschedule", false);
   }
 

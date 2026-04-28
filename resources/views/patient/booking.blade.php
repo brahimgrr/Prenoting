@@ -5,7 +5,7 @@
     <div class="portal-page-heading">
       <span class="portal-eyebrow">Prenotazione</span>
       <h1>Prenota visita</h1>
-      <p>Scegli prestazione, giorno e orario: la conferma parte direttamente dallo slot selezionato.</p>
+      <p>Scegli prestazione, giorno e orario: prima dell'invio vedrai un riepilogo da confermare.</p>
     </div>
 
     @include('patient.partials.booking-wizard', ['isReschedule' => false])

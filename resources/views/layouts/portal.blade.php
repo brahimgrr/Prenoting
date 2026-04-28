@@ -4,14 +4,15 @@
   $homeRoute = $user?->portalRoute() ?? '/unsupported-role';
   $navItems = [
     'patient' => [
-      ['to' => '/patient', 'label' => 'Riepilogo'],
-      ['to' => '/patient/book', 'label' => 'Prenota visita'],
-      ['to' => '/patient/appointments', 'label' => 'I miei appuntamenti'],
-      ['to' => '/patient/profile', 'label' => 'Profilo'],
+      ['to' => '/patient', 'label' => 'Riepilogo', 'active' => ['patient']],
+      ['to' => '/patient/book', 'label' => 'Prenota visita', 'active' => ['patient/book']],
+      ['to' => '/patient/appointments', 'label' => 'I miei appuntamenti', 'active' => ['patient/appointments', 'appointments/*/edit']],
+      ['to' => '/patient/profile', 'label' => 'Profilo', 'active' => ['patient/profile']],
     ],
     'doctor' => [
-      ['to' => '/doctor', 'label' => 'Oggi'],
-      ['to' => '/doctor/schedule', 'label' => 'Agenda'],
+      ['to' => '/doctor', 'label' => 'Oggi', 'active' => ['doctor']],
+      ['to' => '/doctor/schedule', 'label' => 'Agenda', 'active' => ['doctor/schedule', 'doctor/availability/*']],
+      ['to' => '/doctor/treatments', 'label' => 'Trattamenti', 'active' => ['doctor/treatments', 'doctor/treatments/*']],
     ],
     'staff' => [
       ['to' => '/staff', 'label' => 'Operativita'],
@@ -41,7 +42,8 @@
         </a>
         <nav class="app-nav" aria-label="Navigazione del portale">
           @foreach ($navItems as $item)
-            <a href="{{ $item['to'] }}" class="app-nav__link{{ request()->is(ltrim($item['to'], '/')) ? ' is-active' : '' }}">
+            @php($activePatterns = $item['active'] ?? [ltrim($item['to'], '/')])
+            <a href="{{ $item['to'] }}" class="app-nav__link{{ request()->is(...$activePatterns) ? ' is-active' : '' }}">
               {{ $item['label'] }}
             </a>
           @endforeach
@@ -76,7 +78,8 @@
         <div class="app-mobile-nav">
           <nav class="app-nav" aria-label="Navigazione mobile del portale">
             @foreach ($navItems as $item)
-              <a href="{{ $item['to'] }}" class="app-nav__link{{ request()->is(ltrim($item['to'], '/')) ? ' is-active' : '' }}">
+              @php($activePatterns = $item['active'] ?? [ltrim($item['to'], '/')])
+              <a href="{{ $item['to'] }}" class="app-nav__link{{ request()->is(...$activePatterns) ? ' is-active' : '' }}">
                 {{ $item['label'] }}
               </a>
             @endforeach

@@ -7,6 +7,7 @@ use App\Models\AppointmentStatusHistory;
 use App\Models\AvailabilitySlot;
 use App\Models\ClinicLocation;
 use App\Models\DoctorProfile;
+use App\Models\DoctorTreatmentOffering;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
 use App\Models\Specialty;
@@ -67,6 +68,94 @@ class RoleDashboardTest extends TestCase
     $this->assertFalse($slot->fresh()->is_blocked);
   }
 
+  public function test_doctor_can_preview_batch_availability_with_creatable_and_skipped_counts(): void
+  {
+    [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
+    $startDate = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    AvailabilitySlot::create([
+      'doctor_id' => $doctor->id,
+      'clinic_id' => $appointment->clinic_id,
+      'start_at' => $startDate->setTime(9, 0),
+      'end_at' => $startDate->setTime(9, 30),
+    ]);
+
+    $response = $this->actingAs($doctorUser)->get('/doctor/availability/preview?'.http_build_query([
+      'start_date' => $startDate->toDateString(),
+      'end_date' => $startDate->toDateString(),
+      'weekdays' => [$startDate->dayOfWeekIso],
+      'start_time' => '09:00',
+      'end_time' => '10:00',
+      'slot_duration' => 30,
+      'clinic_id' => $appointment->clinic_id,
+    ]));
+
+    $response->assertOk();
+    $response->assertSee('Anteprima disponibilita');
+    $response->assertSee('1 slot creabile');
+    $response->assertSee('1 saltato');
+    $response->assertSee('Ambulatorio Centro');
+    $response->assertSee('09:30');
+  }
+
+  public function test_doctor_can_create_batch_availability_without_duplicates(): void
+  {
+    [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
+    $startDate = CarbonImmutable::now()->next(CarbonImmutable::TUESDAY);
+    AvailabilitySlot::create([
+      'doctor_id' => $doctor->id,
+      'clinic_id' => $appointment->clinic_id,
+      'start_at' => $startDate->setTime(14, 0),
+      'end_at' => $startDate->setTime(14, 30),
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->post('/doctor/availability/batch', [
+        'start_date' => $startDate->toDateString(),
+        'end_date' => $startDate->toDateString(),
+        'weekdays' => [$startDate->dayOfWeekIso],
+        'start_time' => '14:00',
+        'end_time' => '15:00',
+        'slot_duration' => 30,
+        'clinic_id' => $appointment->clinic_id,
+      ])
+      ->assertRedirect('/doctor/schedule');
+
+    $this->assertDatabaseHas('availability_slots', [
+      'doctor_id' => $doctor->id,
+      'clinic_id' => $appointment->clinic_id,
+      'start_at' => $startDate->setTime(14, 30)->toDateTimeString(),
+    ]);
+    $this->assertSame(
+      2,
+      AvailabilitySlot::where('doctor_id', $doctor->id)
+        ->whereDate('start_at', $startDate->toDateString())
+        ->whereTime('start_at', '>=', '14:00')
+        ->whereTime('start_at', '<', '15:00')
+        ->count(),
+    );
+  }
+
+  public function test_doctor_cannot_create_batch_availability_in_the_past(): void
+  {
+    [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
+    $pastDate = CarbonImmutable::now()->subWeeks(2)->startOfWeek();
+
+    $response = $this->actingAs($doctorUser)
+      ->from('/doctor/schedule')
+      ->post('/doctor/availability/batch', [
+        'start_date' => $pastDate->toDateString(),
+        'end_date' => $pastDate->toDateString(),
+        'weekdays' => [$pastDate->dayOfWeekIso],
+        'start_time' => '09:00',
+        'end_time' => '10:00',
+        'slot_duration' => 30,
+        'clinic_id' => $appointment->clinic_id,
+      ]);
+
+    $response->assertRedirect('/doctor/schedule');
+    $response->assertSessionHasErrors('availability');
+  }
+
   public function test_doctor_cannot_block_another_doctors_availability_slot(): void
   {
     [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
@@ -83,6 +172,90 @@ class RoleDashboardTest extends TestCase
       ->assertNotFound();
 
     $this->assertFalse($slot->fresh()->is_blocked);
+  }
+
+  public function test_doctor_can_manage_own_treatment_offerings(): void
+  {
+    [$doctorUser, $doctor] = $this->dashboardContext();
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/treatments')
+      ->assertOk()
+      ->assertSee('Trattamenti');
+
+    $this->actingAs($doctorUser)
+      ->post('/doctor/treatments', [
+        'name' => 'Holter cardiaco',
+        'category' => MedicalService::CATEGORY_EXAM,
+        'specialty_id' => $doctor->specialty_id,
+        'duration_minutes' => 45,
+        'price' => '95.50',
+        'is_active' => '1',
+      ])
+      ->assertRedirect('/doctor/treatments');
+
+    $offering = DoctorTreatmentOffering::where('doctor_id', $doctor->id)
+      ->where('name', 'Holter cardiaco')
+      ->firstOrFail();
+
+    $this->actingAs($doctorUser)
+      ->get("/doctor/treatments/{$offering->id}/edit")
+      ->assertOk()
+      ->assertSee('Modifica trattamento');
+
+    $this->actingAs($doctorUser)
+      ->patch("/doctor/treatments/{$offering->id}", [
+        'name' => 'Holter pressorio',
+        'category' => MedicalService::CATEGORY_EXAM,
+        'specialty_id' => $doctor->specialty_id,
+        'duration_minutes' => 60,
+        'price' => '110.00',
+        'is_active' => '1',
+      ])
+      ->assertRedirect('/doctor/treatments');
+
+    $this->assertDatabaseHas('doctor_treatment_offerings', [
+      'id' => $offering->id,
+      'doctor_id' => $doctor->id,
+      'name' => 'Holter pressorio',
+      'duration_minutes' => 60,
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->patch("/doctor/treatments/{$offering->id}/status", ['is_active' => '0'])
+      ->assertRedirect('/doctor/treatments');
+
+    $this->assertFalse($offering->fresh()->is_active);
+  }
+
+  public function test_doctor_cannot_edit_another_doctors_treatment_offering(): void
+  {
+    [$doctorUser, $doctor] = $this->dashboardContext();
+    $otherDoctor = DoctorProfile::whereKeyNot($doctor->id)->firstOrFail();
+    $offering = DoctorTreatmentOffering::create([
+      'doctor_id' => $otherDoctor->id,
+      'name' => 'Trattamento privato',
+      'category' => MedicalService::CATEGORY_VISIT,
+      'specialty_id' => $otherDoctor->specialty_id,
+      'duration_minutes' => 30,
+      'price' => '80.00',
+      'is_active' => true,
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->get("/doctor/treatments/{$offering->id}/edit")
+      ->assertNotFound();
+
+    $this->actingAs($doctorUser)
+      ->patch("/doctor/treatments/{$offering->id}", [
+        'name' => 'Tentativo',
+        'category' => MedicalService::CATEGORY_VISIT,
+        'specialty_id' => $doctor->specialty_id,
+        'duration_minutes' => 30,
+        'price' => '80.00',
+        'is_active' => '1',
+      ])
+      ->assertNotFound();
   }
 
   public function test_staff_can_filter_and_cancel_future_appointment_freeing_slot(): void

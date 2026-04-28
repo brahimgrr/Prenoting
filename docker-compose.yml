@@ -38,9 +38,42 @@ services:
       QUEUE_CONNECTION: sync
     ports:
       - "${APP_HOST_PORT:-8080}:80"
+    volumes:
+      - .:/var/www/html
+      - app_vendor:/var/www/html/vendor
+      - app_node_modules:/var/www/html/node_modules
     depends_on:
       mysql:
         condition: service_healthy
+    command: >
+      sh -c "composer install --no-interaction --prefer-dist
+      && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
+      && chown -R www-data:www-data storage bootstrap/cache
+      && php artisan migrate --seed --force
+      && apache2-foreground"
+
+  vite:
+    build:
+      context: .
+    environment:
+      VITE_DEV_SERVER_HOST: 0.0.0.0
+      VITE_DEV_SERVER_PORT: 5173
+      VITE_HMR_HOST: 127.0.0.1
+      VITE_HMR_PORT: ${VITE_HOST_PORT:-5173}
+      VITE_USE_POLLING: "true"
+    ports:
+      - "${VITE_HOST_PORT:-5173}:5173"
+    volumes:
+      - .:/var/www/html
+      - app_vendor:/var/www/html/vendor
+      - app_node_modules:/var/www/html/node_modules
+    depends_on:
+      - app
+    command: >
+      sh -c "npm install
+      && npm run dev -- --host 0.0.0.0 --port 5173"
 
 volumes:
   mysql_data:
+  app_vendor:
+  app_node_modules:

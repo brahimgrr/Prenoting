@@ -6,6 +6,7 @@ use App\Models\AvailabilitySlot;
 use App\Models\ClinicLocation;
 use App\Models\DoctorProfile;
 use App\Models\DoctorService;
+use App\Models\DoctorTreatmentOffering;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
 use App\Models\Specialty;
@@ -138,6 +139,19 @@ class DatabaseSeeder extends Seeder
           'doctor_id' => $doctors[$doctorName]->id,
           'service_id' => $services[$serviceName]->id,
         ]);
+        DoctorTreatmentOffering::updateOrCreate(
+          [
+            'doctor_id' => $doctors[$doctorName]->id,
+            'name' => $services[$serviceName]->name,
+          ],
+          [
+            'category' => $services[$serviceName]->category,
+            'specialty_id' => $services[$serviceName]->specialty_id,
+            'duration_minutes' => $services[$serviceName]->duration_minutes,
+            'price' => $services[$serviceName]->price,
+            'is_active' => $services[$serviceName]->is_active,
+          ],
+        );
       }
     }
 

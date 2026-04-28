@@ -1,12 +1,30 @@
 @php
-  $queryUrl = function (array $params): string {
+  $queryUrl = function (array $params, ?string $fragment = null): string {
     $query = array_merge(request()->query(), $params);
     $query = array_filter($query, fn ($value) => $value !== null && $value !== '');
+    $url = url()->current().($query ? '?'.http_build_query($query) : '');
 
-    return url()->current().($query ? '?'.http_build_query($query) : '');
+    return $fragment ? $url.'#'.$fragment : $url;
   };
-  $prevWeekUrl = $queryUrl(['week_start' => $weekStart->subWeek()->toDateString(), 'date' => null]);
-  $nextWeekUrl = $queryUrl(['week_start' => $weekStart->addWeek()->toDateString(), 'date' => null]);
+  $prevWeek = $weekStart->subWeek();
+  $nextWeek = $weekStart->addWeek();
+  $prevWeekUrl = $queryUrl([
+    'week_start' => $prevWeek->toDateString(),
+    'month' => $prevWeek->startOfMonth()->format('Y-m'),
+    'date' => null,
+    'slot_id' => null,
+  ], 'booking-step-day');
+  $nextWeekUrl = $queryUrl([
+    'week_start' => $nextWeek->toDateString(),
+    'month' => $nextWeek->startOfMonth()->format('Y-m'),
+    'date' => null,
+    'slot_id' => null,
+  ], 'booking-step-day');
+  $monthOptions = $availableMonths
+    ->concat([$visibleMonth])
+    ->unique(fn ($month) => $month->format('Y-m'))
+    ->sortBy(fn ($month) => $month->format('Y-m'))
+    ->values();
   $periods = [
     'all' => 'Tutti',
     'mattina' => 'Mattina',
@@ -15,7 +33,7 @@
 @endphp
 
 <div class="booking-wizard">
-  <section class="portal-panel booking-step">
+  <section id="booking-step-service" class="portal-panel booking-step">
     <div class="section-heading">
       <h2>1. Scegli la prestazione</h2>
       <span>{{ $services->count() }} disponibili</span>
@@ -25,7 +43,13 @@
         @php
           $isSelected = $selectedService?->id === $service->id;
           $cardClasses = 'service-choice-card'.($isSelected ? ' border-primary bg-primary bg-opacity-10' : '');
-          $href = $isReschedule ? null : $queryUrl(['service_id' => $service->id, 'date' => null]);
+          $href = $isReschedule ? null : $queryUrl([
+            'service_id' => $service->id,
+            'month' => null,
+            'week_start' => null,
+            'date' => null,
+            'slot_id' => null,
+          ], 'booking-step-day');
         @endphp
         @if ($href)
           <a class="{{ $cardClasses }}" href="{{ $href }}">
@@ -49,14 +73,32 @@
   </section>
 
   @if ($selectedService)
-    <section class="portal-panel booking-step">
-      <div class="section-heading">
-        <h2>2. Scegli il giorno</h2>
-        <div class="week-nav">
-          <a class="btn btn-sm btn-outline-secondary" href="{{ $prevWeekUrl }}">Settimana prima</a>
-          <a class="btn btn-sm btn-outline-secondary" href="{{ $nextWeekUrl }}">Settimana dopo</a>
+    <section id="booking-step-day" class="portal-panel booking-step">
+      <div class="section-heading booking-month-heading">
+        <div>
+          <h2>2. Scegli il giorno</h2>
+          <span>Mese visualizzato</span>
+          <strong>{{ ucfirst($visibleMonth->locale('it')->isoFormat('MMMM YYYY')) }}</strong>
+        </div>
+        <div class="month-nav">
+          <select class="form-select form-select-sm month-jump-select" aria-label="Salta a un mese disponibile">
+            @foreach ($monthOptions as $month)
+              <option
+                value="{{ $queryUrl(['month' => $month->format('Y-m'), 'week_start' => null, 'date' => null, 'slot_id' => null], 'booking-step-day') }}"
+                {{ $month->format('Y-m') === $visibleMonth->format('Y-m') ? 'selected' : '' }}
+              >
+                {{ ucfirst($month->locale('it')->isoFormat('MMMM YYYY')) }}
+              </option>
+            @endforeach
+          </select>
         </div>
       </div>
+
+      <div class="week-nav">
+        <a class="btn btn-sm btn-outline-secondary" href="{{ $prevWeekUrl }}">Settimana prima</a>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ $nextWeekUrl }}">Settimana dopo</a>
+      </div>
+
       <div class="week-strip">
         @foreach ($weekDays as $day)
           @php
@@ -65,7 +107,12 @@
             $dayClasses = 'week-day'.($isSelectedDate ? ' week-day--selected' : '').($day['hasSlots'] ? '' : ' week-day--disabled');
           @endphp
           @if ($day['hasSlots'])
-            <a class="{{ $dayClasses }}" href="{{ $queryUrl(['date' => $date->toDateString(), 'week_start' => $weekStart->toDateString()]) }}">
+            <a class="{{ $dayClasses }}" href="{{ $queryUrl([
+              'date' => $date->toDateString(),
+              'week_start' => $weekStart->toDateString(),
+              'month' => $visibleMonth->format('Y-m'),
+              'slot_id' => null,
+            ], 'booking-step-slots') }}">
           @else
             <div class="{{ $dayClasses }}">
           @endif
@@ -83,7 +130,7 @@
   @endif
 
   @if ($selectedService && $selectedDate)
-    <section class="portal-panel booking-step">
+    <section id="booking-step-slots" class="portal-panel booking-step">
       <div class="section-heading">
         <div>
           <h2>3. Scegli l'orario</h2>
@@ -104,17 +151,21 @@
           @foreach ($slots as $slot)
             @php
               $period = $slot->start_at->hour < 13 ? 'mattina' : 'pomeriggio';
+              $isSelectedSlot = $selectedSlot?->id === $slot->id;
             @endphp
             <div class="col-4 col-md-3 col-xl-2 slot-choice-col" data-period="{{ $period }}">
-              <form method="POST" action="{{ $formAction }}">
-                @csrf
-                <input type="hidden" name="service_id" value="{{ $selectedService->id }}">
-                <input type="hidden" name="slot_id" value="{{ $slot->id }}">
-                <button type="submit" class="slot-time-button">
-                  <span>{{ $slot->start_at->format('H:i') }}</span>
-                  <small>{{ $slot->doctor?->display_name ?? 'Medico' }}</small>
-                </button>
-              </form>
+              <a
+                class="slot-time-button {{ $isSelectedSlot ? 'slot-time-button--selected' : '' }}"
+                href="{{ $queryUrl([
+                  'date' => $slot->start_at->toDateString(),
+                  'week_start' => $weekStart->toDateString(),
+                  'month' => $visibleMonth->format('Y-m'),
+                  'slot_id' => $slot->id,
+                ], 'booking-confirm') }}"
+              >
+                <span>{{ $slot->start_at->format('H:i') }}</span>
+                <small>{{ $slot->doctor?->display_name ?? 'Medico' }}</small>
+              </a>
             </div>
           @endforeach
         </div>
@@ -124,22 +175,59 @@
           <p>Scegli un altro giorno o passa alla settimana successiva.</p>
         </div>
       @endif
+    </section>
+  @endif
 
+  @if ($selectedService && $selectedSlot)
+    @php
+      $cancelSelectionUrl = $isReschedule
+        ? $queryUrl(['month' => null, 'week_start' => null, 'date' => null, 'slot_id' => null], 'booking-step-service')
+        : $queryUrl(['service_id' => null, 'month' => null, 'week_start' => null, 'date' => null, 'slot_id' => null], 'booking-step-service');
+    @endphp
+    <section id="booking-confirm" class="portal-panel booking-step booking-confirm-panel">
+      <div class="section-heading">
+        <div>
+          <h2>{{ $isReschedule ? 'Conferma spostamento' : 'Conferma prenotazione' }}</h2>
+          <span>Controlla i dettagli prima di inviare</span>
+        </div>
+      </div>
+
+      <dl class="booking-confirm-summary">
+        <div>
+          <dt>Prestazione</dt>
+          <dd>{{ $selectedService->name }}</dd>
+        </div>
+        <div>
+          <dt>Data e ora</dt>
+          <dd>{{ $selectedSlot->start_at->format('d/m/Y H:i') }}</dd>
+        </div>
+        <div>
+          <dt>Medico</dt>
+          <dd>{{ $selectedSlot->doctor?->display_name ?? 'Medico' }}</dd>
+        </div>
+        <div>
+          <dt>Ambulatorio</dt>
+          <dd>{{ $selectedSlot->clinic?->name ?? 'Ambulatorio #'.$selectedSlot->clinic_id }}</dd>
+        </div>
+      </dl>
+
+      <form method="POST" action="{{ $formAction }}" class="booking-confirm-form">
+        @csrf
+        @if (! $isReschedule)
+          <input type="hidden" name="service_id" value="{{ $selectedService->id }}">
+          <label class="form-label">
+            Note opzionali
+            <textarea class="form-control" name="notes" rows="3" placeholder="Aggiungi indicazioni utili per il medico"></textarea>
+          </label>
+        @endif
+        <input type="hidden" name="slot_id" value="{{ $selectedSlot->id }}">
+        <button type="submit" class="btn btn-primary">
+          {{ $isReschedule ? 'Conferma spostamento' : 'Conferma prenotazione' }}
+        </button>
+        <a class="btn btn-outline-secondary" href="{{ $cancelSelectionUrl }}">
+          {{ $isReschedule ? 'Annulla spostamento' : 'Annulla prenotazione' }}
+        </a>
+      </form>
     </section>
   @endif
 </div>
-
-<script>
-  document.querySelectorAll('[data-slot-period-filter]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var period = button.getAttribute('data-slot-period-filter');
-      document.querySelectorAll('[data-slot-period-filter]').forEach(function (item) {
-        item.classList.toggle('btn-primary', item === button);
-        item.classList.toggle('btn-outline-primary', item !== button);
-      });
-      document.querySelectorAll('.slot-choice-col').forEach(function (slot) {
-        slot.classList.toggle('d-none', period !== 'all' && slot.getAttribute('data-period') !== period);
-      });
-    });
-  });
-</script>
