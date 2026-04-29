@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -25,7 +26,14 @@ class AuthController extends Controller
       'password' => ['required', 'string'],
     ]);
 
-    $user = User::where('username', $validated['username'])->first();
+    $login = $validated['username'];
+    $user = User::query()
+      ->where('username', $login)
+      ->when(
+        Str::contains($login, '@'),
+        fn ($query) => $query->orWhere('email', $login),
+      )
+      ->first();
     if (! $user || ! Hash::check($validated['password'], $user->password)) {
       throw ValidationException::withMessages([
         'username' => 'Credenziali non valide.',

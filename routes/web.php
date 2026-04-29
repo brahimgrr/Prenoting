@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function (): void {
   Route::middleware('role:'.User::ROLE_PATIENT)->group(function (): void {
     Route::get('/patient', [PatientDashboardController::class, 'index']);
     Route::get('/patient/book', [BookingController::class, 'show']);
+    Route::get('/patient/book/week', [BookingController::class, 'week']);
     Route::post('/appointments', [BookingController::class, 'store']);
     Route::get('/patient/appointments', [PatientAppointmentController::class, 'index']);
     Route::get('/appointments/{appointment}/edit', [PatientAppointmentController::class, 'edit']);

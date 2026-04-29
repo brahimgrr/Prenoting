@@ -79,6 +79,98 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee('month='.$month, false);
   }
 
+  public function test_booking_month_selector_contains_direct_navigation_fallback(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    $month = $slot->start_at->format('Y-m');
+
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&month={$month}");
+
+    $response->assertOk();
+    $response->assertSee('onchange="window.location.href=this.value"', false);
+  }
+
+  public function test_booking_week_arrows_render_direct_navigation_links(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    $weekStart = $slot->start_at->copy()->startOfWeek()->toDateString();
+    $prevWeek = CarbonImmutable::parse($weekStart)->subWeek()->toDateString();
+    $serviceId = $service->id;
+
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$slot->start_at->toDateString()}");
+
+    $response->assertOk();
+    $response->assertSee('data-week-url="http://127.0.0.1:8080/patient/book/week?service_id='.$serviceId.'&amp;week_start='.$prevWeek.'"', false);
+    $response->assertSee('week-nav-arrow', false);
+    $response->assertSee('href="http://127.0.0.1:8080/patient/book?service_id='.$serviceId.'&amp;week_start='.$prevWeek.'"', false);
+  }
+
+  public function test_booking_period_filter_shows_only_matching_slots(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    $date = CarbonImmutable::parse($slot->start_at)->startOfDay()->addDay();
+    $morningSlot = AvailabilitySlot::create([
+      'doctor_id' => $doctor->id,
+      'clinic_id' => $clinic->id,
+      'start_at' => $date->setTime(9, 0),
+      'end_at' => $date->setTime(9, 30),
+    ]);
+    $afternoonSlot = AvailabilitySlot::create([
+      'doctor_id' => $doctor->id,
+      'clinic_id' => $clinic->id,
+      'start_at' => $date->setTime(15, 0),
+      'end_at' => $date->setTime(15, 30),
+    ]);
+    $weekStart = $date->copy()->startOfWeek()->toDateString();
+
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$date->toDateString()}&period=mattina");
+
+    $response->assertOk();
+    $response->assertSee($morningSlot->start_at->format('H:i'));
+    $response->assertDontSee($afternoonSlot->start_at->format('H:i'));
+    $response->assertSee('period=mattina', false);
+  }
+
+  public function test_booking_period_filter_keeps_controls_visible_when_no_slots_match(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    $date = CarbonImmutable::parse($slot->start_at)->startOfDay()->addDay();
+    AvailabilitySlot::create([
+      'doctor_id' => $doctor->id,
+      'clinic_id' => $clinic->id,
+      'start_at' => $date->setTime(15, 0),
+      'end_at' => $date->setTime(15, 30),
+    ]);
+    $weekStart = $date->copy()->startOfWeek()->toDateString();
+
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$date->toDateString()}&period=mattina");
+
+    $response->assertOk();
+    $response->assertSee('Filtra orari');
+    $response->assertSee('Nessuno slot disponibile');
+    $response->assertSee('Mattina');
+    $response->assertSee('Pomeriggio');
+  }
+
+  public function test_booking_month_jump_shows_days_from_selected_month_instead_of_previous_month(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    $targetStart = CarbonImmutable::create(2030, 5, 1, 9, 0);
+    AvailabilitySlot::create([
+      'doctor_id' => $doctor->id,
+      'clinic_id' => $clinic->id,
+      'start_at' => $targetStart,
+      'end_at' => $targetStart->addMinutes(30),
+    ]);
+    $month = $targetStart->format('Y-m');
+
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&month={$month}");
+
+    $response->assertOk();
+    $response->assertSee('data-date="2030-05-01"', false);
+    $response->assertDontSee('data-date="2030-04-29"', false);
+  }
+
   public function test_second_booking_attempt_for_same_slot_fails(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();

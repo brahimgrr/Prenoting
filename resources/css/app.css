@@ -557,12 +557,35 @@ a {
   color: var(--color-muted);
 }
 
-.week-nav,
 .month-nav,
 .slot-period-filter {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+#booking-week-region {
+  display: grid;
+  gap: 1rem;
+}
+
+.week-strip-wrapper {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.week-strip-wrapper .week-strip {
+  flex: 1;
+  min-width: 0;
+}
+
+.week-nav-arrow {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
 }
 
 .booking-month-heading {

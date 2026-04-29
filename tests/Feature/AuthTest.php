@@ -64,6 +64,25 @@ class AuthTest extends TestCase
     $this->assertAuthenticatedAs($patient);
   }
 
+  public function test_login_accepts_email_when_form_invites_username_or_email(): void
+  {
+    $patient = User::create([
+      'username' => 'patient',
+      'email' => 'patient@example.com',
+      'password' => Hash::make('patient123'),
+      'role' => User::ROLE_PATIENT,
+    ]);
+    PatientProfile::create(['user_id' => $patient->id, 'phone' => '555-0100']);
+
+    $response = $this->post('/login', [
+      'username' => 'patient@example.com',
+      'password' => 'patient123',
+    ]);
+
+    $response->assertRedirect('/patient');
+    $this->assertAuthenticatedAs($patient);
+  }
+
   public function test_login_rejects_invalid_credentials(): void
   {
     User::create([

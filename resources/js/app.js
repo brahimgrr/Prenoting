@@ -1,33 +1,89 @@
 import "bootstrap";
 
-function initSlotPeriodFilters() {
-  document.querySelectorAll("[data-slot-period-filter]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const period = button.getAttribute("data-slot-period-filter");
+document.addEventListener("click", (e) => {
+  // Week navigation arrow (fetch-based, no page reload)
+  const arrow = e.target.closest("[data-week-url]");
+  const isDisabled = arrow
+    ? (arrow.tagName === "BUTTON" ? arrow.disabled : arrow.getAttribute("aria-disabled") === "true")
+    : false;
+  if (arrow && !isDisabled) {
+    e.preventDefault();
+    const weekUrl = arrow.getAttribute("data-week-url");
+    const pageUrl = arrow.getAttribute("data-page-url");
+    const region = document.getElementById("booking-week-region");
+    if (!region) return;
 
-      document.querySelectorAll("[data-slot-period-filter]").forEach((item) => {
-        item.classList.toggle("btn-primary", item === button);
-        item.classList.toggle("btn-outline-primary", item !== button);
-      });
-
-      document.querySelectorAll(".slot-choice-col").forEach((slot) => {
-        slot.classList.toggle("d-none", period !== "all" && slot.getAttribute("data-period") !== period);
-      });
-    });
-  });
-}
-
-function initMonthJumpSelects() {
-  document.querySelectorAll(".month-jump-select").forEach((select) => {
-    select.addEventListener("change", () => {
-      if (select.value) {
-        window.location.href = select.value;
+    document.querySelectorAll("[data-week-url]").forEach((b) => {
+      if (b.tagName === "BUTTON") {
+        b.disabled = true;
+      } else {
+        b.setAttribute("aria-disabled", "true");
       }
     });
-  });
-}
 
-document.addEventListener("DOMContentLoaded", () => {
-  initSlotPeriodFilters();
-  initMonthJumpSelects();
+    fetch(weekUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.text();
+      })
+      .then((html) => {
+        region.innerHTML = html;
+        history.pushState({}, "", pageUrl);
+      })
+      .catch(() => {
+        window.location.href = pageUrl;
+      });
+    return;
+  }
+
+  // Slot period filter
+  const filterBtn = e.target.closest("[data-slot-period-filter]");
+  if (filterBtn) {
+    const period = filterBtn.getAttribute("data-slot-period-filter");
+    const dayBlock = filterBtn.closest(".slot-day-block");
+    if (!dayBlock) return;
+
+    dayBlock.querySelectorAll("[data-slot-period-filter]").forEach((btn) => {
+      btn.classList.toggle("btn-primary", btn === filterBtn);
+      btn.classList.toggle("btn-outline-primary", btn !== filterBtn);
+    });
+
+    dayBlock.querySelectorAll(".slot-choice-col").forEach((col) => {
+      col.classList.toggle(
+        "d-none",
+        period !== "all" && col.getAttribute("data-period") !== period
+      );
+    });
+    return;
+  }
+
+  // Day card selection (show pre-rendered slot block, no page reload)
+  const dayCard = e.target.closest(".week-day[data-date]");
+  if (dayCard) {
+    e.preventDefault();
+    const date = dayCard.getAttribute("data-date");
+    const region = document.getElementById("booking-week-region");
+    if (!region) return;
+
+    region.querySelectorAll(".week-day").forEach((c) =>
+      c.classList.remove("week-day--selected")
+    );
+    dayCard.classList.add("week-day--selected");
+
+    region.querySelectorAll(".slot-day-block").forEach((block) => {
+      block.classList.toggle(
+        "d-none",
+        block.getAttribute("data-date") !== date
+      );
+    });
+
+    history.pushState({}, "", dayCard.href);
+    return;
+  }
+});
+
+document.addEventListener("change", (e) => {
+  if (e.target.classList.contains("month-jump-select") && e.target.value) {
+    window.location.href = e.target.value;
+  }
 });
