@@ -4,20 +4,11 @@
       <h3>{{ $appointment->service?->name ?? 'Appuntamento' }}</h3>
       <p>{{ $appointment->start_at->format('d/m/Y H:i') }}</p>
     </div>
-    <x-status-badge :status="$appointment->status" />
   </div>
   <dl class="appointment-details">
     <div>
       <dt>Prestazione</dt>
       <dd>{{ $appointment->service?->name ?? 'Appuntamento' }}</dd>
-    </div>
-    <div>
-      <dt>Medico</dt>
-      <dd>{{ $appointment->doctor?->display_name ?? 'Medico in attesa' }}</dd>
-    </div>
-    <div>
-      <dt>Ambulatorio</dt>
-      <dd>{{ $appointment->clinic?->name ?? 'Ambulatorio in attesa' }}</dd>
     </div>
     <div>
       <dt>Orario</dt>

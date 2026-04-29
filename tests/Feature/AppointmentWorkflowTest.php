@@ -241,13 +241,17 @@ class AppointmentWorkflowTest extends TestCase
 
     $response->assertOk();
     $response->assertSee('Conferma prenotazione');
-    $response->assertSee($doctor->display_name);
-    $response->assertSee($clinic->name);
     $response->assertSee('name="slot_id" value="'.$slot->id.'"', false);
     $response->assertSee('action="/appointments"', false);
     $response->assertSee('Annulla prenotazione');
     $response->assertSee('#booking-step-service', false);
     $response->assertSee('#booking-confirm', false);
+    $response->assertSee('Prestazione');
+    $response->assertSee('Data e ora');
+    $response->assertDontSee('Medico');
+    $response->assertDontSee('Ambulatorio');
+    $response->assertDontSeeText('Dott.ssa Amelia Cuori');
+    $response->assertDontSeeText('Ambulatorio Centro');
     $response->assertDontSee('<button type="submit" class="slot-time-button"', false);
   }
 
@@ -277,6 +281,11 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee("/appointments/{$appointment->id}/cancel", false);
     $response->assertSee('name="cancellation_reason"', false);
     $response->assertDontSee('data-bs-toggle="modal"', false);
+    $response->assertDontSeeText('Confermato');
+    $response->assertDontSeeText('Medico');
+    $response->assertDontSeeText('Ambulatorio');
+    $response->assertDontSeeText('Dott.ssa Amelia Cuori');
+    $response->assertDontSeeText('Ambulatorio Centro');
   }
 
   public function test_patient_can_open_reschedule_wizard_and_confirm_new_slot(): void

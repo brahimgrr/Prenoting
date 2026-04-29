@@ -72,14 +72,6 @@
           <dt>Data e ora</dt>
           <dd>{{ $selectedSlot->start_at->format('d/m/Y H:i') }}</dd>
         </div>
-        <div>
-          <dt>Medico</dt>
-          <dd>{{ $selectedSlot->doctor?->display_name ?? 'Medico' }}</dd>
-        </div>
-        <div>
-          <dt>Ambulatorio</dt>
-          <dd>{{ $selectedSlot->clinic?->name ?? 'Ambulatorio #'.$selectedSlot->clinic_id }}</dd>
-        </div>
       </dl>
 
       <form method="POST" action="{{ $formAction }}" class="booking-confirm-form">

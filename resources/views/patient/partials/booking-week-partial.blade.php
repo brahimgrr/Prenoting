@@ -161,7 +161,6 @@
               href="{{ $slotPageUrl }}"
             >
               <span>{{ $slot->start_at->format('H:i') }}</span>
-              <small>{{ $slot->doctor?->display_name ?? 'Medico' }}</small>
             </a>
           </div>
         @endforeach

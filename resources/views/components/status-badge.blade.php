@@ -1,5 +1,6 @@
 @php
   $normalized = strtolower((string) $status);
+  $content = trim((string) $slot);
   $variants = [
     'confirmed' => 'text-bg-success',
     'checked_in' => 'text-bg-info',
@@ -18,5 +19,5 @@
   ];
 @endphp
 <span class="badge rounded-pill {{ $variants[$normalized] ?? 'text-bg-secondary' }}">
-  {{ $slot ?? ($labels[$normalized] ?? str_replace('_', ' ', (string) $status)) }}
+  {{ $content !== '' ? $content : ($labels[$normalized] ?? str_replace('_', ' ', (string) $status)) }}
 </span>

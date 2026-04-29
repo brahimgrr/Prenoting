@@ -2,8 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Models\Appointment;
+use App\Models\AvailabilitySlot;
+use App\Models\ClinicLocation;
+use App\Models\DoctorProfile;
+use App\Models\MedicalService;
 use App\Models\PatientProfile;
+use App\Models\Specialty;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -250,5 +257,71 @@ class AuthTest extends TestCase
     $response->assertSeeText('Prenota per prestazione');
     $response->assertSeeText('I miei appuntamenti');
     $response->assertDontSee('>Prenota visita<', false);
+  }
+
+  public function test_patient_dashboard_shows_status_label_instead_of_empty_badge(): void
+  {
+    $patientUser = User::create([
+      'username' => 'patient@example.com',
+      'email' => 'patient@example.com',
+      'first_name' => 'Mario',
+      'last_name' => 'Rossi',
+      'password' => Hash::make('patient123'),
+      'role' => User::ROLE_PATIENT,
+    ]);
+    $patient = PatientProfile::create([
+      'user_id' => $patientUser->id,
+      'phone' => '555-0100',
+    ]);
+
+    $specialty = Specialty::create(['name' => 'Cardiologia']);
+    $doctorUser = User::create([
+      'username' => 'doctor.heart',
+      'password' => Hash::make('doctor123'),
+      'role' => User::ROLE_DOCTOR,
+    ]);
+    $doctor = DoctorProfile::create([
+      'user_id' => $doctorUser->id,
+      'display_name' => 'Dott.ssa Amelia Cuori',
+      'specialty_id' => $specialty->id,
+    ]);
+    $service = MedicalService::create([
+      'name' => 'Visita cardiologica',
+      'specialty_id' => $specialty->id,
+    ]);
+    $clinic = ClinicLocation::create([
+      'name' => 'Ambulatorio Centro',
+      'address' => 'Via Roma 1',
+    ]);
+    $start = CarbonImmutable::now()->addDay()->setTime(10, 0);
+    $slot = AvailabilitySlot::create([
+      'doctor_id' => $doctor->id,
+      'clinic_id' => $clinic->id,
+      'start_at' => $start,
+      'end_at' => $start->addMinutes(30),
+      'is_booked' => true,
+    ]);
+    Appointment::create([
+      'patient_id' => $patient->id,
+      'doctor_id' => $doctor->id,
+      'service_id' => $service->id,
+      'clinic_id' => $clinic->id,
+      'slot_id' => $slot->id,
+      'start_at' => $start,
+      'end_at' => $start->addMinutes(30),
+      'status' => Appointment::STATUS_CONFIRMED,
+    ]);
+
+    $response = $this->actingAs($patientUser)->get('/patient');
+
+    $response->assertOk();
+    $response->assertDontSeeText('Confermato');
+    $response->assertDontSeeText('Medico');
+    $response->assertDontSeeText('Ambulatorio');
+    $response->assertDontSeeText('Dott.ssa Amelia Cuori');
+    $response->assertDontSeeText('Ambulatorio Centro');
+    $response->assertDontSee('<span class="badge rounded-pill text-bg-success">
+  
+</span>', false);
   }
 }

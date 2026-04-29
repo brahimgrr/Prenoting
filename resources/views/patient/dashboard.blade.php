@@ -26,17 +26,6 @@
               <h3>{{ $nextAppointment->service?->name ?? 'Appuntamento' }}</h3>
               <p>{{ $nextAppointment->start_at->format('d/m/Y H:i') }}</p>
             </div>
-            <dl>
-              <div>
-                <dt>Medico</dt>
-                <dd>{{ $nextAppointment->doctor?->display_name ?? 'Medico in attesa' }}</dd>
-              </div>
-              <div>
-                <dt>Ambulatorio</dt>
-                <dd>{{ $nextAppointment->clinic?->name ?? 'Ambulatorio in attesa' }}</dd>
-              </div>
-            </dl>
-            <x-status-badge :status="$nextAppointment->status" />
           </div>
         @else
           <div class="empty-state">
@@ -70,10 +59,6 @@
               <div>
                 <h3>{{ $appointment->service?->name ?? 'Appuntamento' }}</h3>
                 <p>{{ $appointment->start_at->format('d/m/Y H:i') }}</p>
-              </div>
-              <div class="appointment-row__meta">
-                <span>{{ $appointment->doctor?->display_name ?? 'Medico in attesa' }}</span>
-                <x-status-badge :status="$appointment->status" />
               </div>
             </article>
           @endforeach
