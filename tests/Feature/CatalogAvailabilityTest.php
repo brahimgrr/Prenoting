@@ -92,6 +92,14 @@ class CatalogAvailabilityTest extends TestCase
       ->assertJsonValidationErrors('date');
   }
 
+  public function test_database_config_does_not_expose_redis_section(): void
+  {
+    $config = require config_path('database.php');
+
+    $this->assertArrayHasKey('connections', $config);
+    $this->assertArrayNotHasKey('redis', $config);
+  }
+
   private function doctor(string $username, string $displayName, Specialty $specialty, bool $active = true): DoctorProfile
   {
     $user = User::create([
