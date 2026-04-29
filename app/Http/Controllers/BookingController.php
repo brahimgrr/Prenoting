@@ -13,6 +13,8 @@ use Illuminate\View\View;
 
 class BookingController extends Controller
 {
+  private const AVAILABLE_DAYS_PAGE_SIZE = 5;
+
   public function show(Request $request): View
   {
     $selectedService = $request->integer('service_id')
@@ -20,10 +22,13 @@ class BookingController extends Controller
       : null;
     $selectedSlot = $selectedService ? $this->selectedSlotFor($selectedService, $request->integer('slot_id')) : null;
     $selectedPeriod = $this->resolveSelectedPeriod($request);
-    $weekStart = $this->resolveWeekStart($request, $selectedService, $selectedSlot);
-    $selectedDate = $request->query('date') ?: $selectedSlot?->start_at->toDateString();
-    $visibleMonth = $this->resolveVisibleMonth($request, $weekStart, $selectedSlot);
-    $weekDays = $this->weekDaysFor($weekStart, $selectedService, $selectedPeriod);
+    $allAvailableDates = $selectedService ? $this->availableDatesFor($selectedService) : collect();
+    $filteredAvailableDates = $selectedService ? $this->availableDatesFor($selectedService, $selectedPeriod) : collect();
+    $visibleDates = $filteredAvailableDates->isNotEmpty() ? $filteredAvailableDates : $allAvailableDates;
+    $weekStart = $this->resolveWeekStart($request, $selectedService, $selectedSlot, $visibleDates);
+    $weekDays = $selectedService ? $this->weekDaysFor($visibleDates, $weekStart) : collect();
+    $selectedDate = $this->resolveSelectedDate($request, $selectedSlot, $weekDays);
+    $visibleMonth = $this->resolveVisibleMonth($request, $weekDays, $selectedSlot);
 
     return view('patient.booking', [
       'services' => MedicalService::with('specialty')->where('is_active', true)->orderBy('name')->get(),
@@ -32,8 +37,10 @@ class BookingController extends Controller
       'selectedSlot' => $selectedSlot,
       'selectedPeriod' => $selectedPeriod,
       'weekStart' => $weekStart,
+      'previousWeekStart' => $this->previousWeekStartFor($visibleDates, $weekStart),
+      'nextWeekStart' => $this->nextWeekStartFor($visibleDates, $weekStart),
       'visibleMonth' => $visibleMonth,
-      'availableMonths' => $selectedService ? $this->availableMonthsFor($selectedService) : collect(),
+      'availableMonths' => $selectedService ? $this->availableMonthsFor($allAvailableDates) : collect(),
       'weekDays' => $weekDays,
       'weekSlots' => $this->allWeekSlotsFor($weekDays, $selectedService, $selectedPeriod),
       'weekPartialUrl' => url('/patient/book/week'),
@@ -50,10 +57,13 @@ class BookingController extends Controller
       ? MedicalService::with('specialty')->where('is_active', true)->find($request->integer('service_id'))
       : null;
     $selectedPeriod = $this->resolveSelectedPeriod($request);
-    $weekStart = $this->resolveWeekStart($request, $selectedService, null);
-    $selectedDate = $request->query('date') ?: null;
-    $visibleMonth = $this->resolveVisibleMonth($request, $weekStart, null);
-    $weekDays = $this->weekDaysFor($weekStart, $selectedService, $selectedPeriod);
+    $allAvailableDates = $selectedService ? $this->availableDatesFor($selectedService) : collect();
+    $filteredAvailableDates = $selectedService ? $this->availableDatesFor($selectedService, $selectedPeriod) : collect();
+    $visibleDates = $filteredAvailableDates->isNotEmpty() ? $filteredAvailableDates : $allAvailableDates;
+    $weekStart = $this->resolveWeekStart($request, $selectedService, null, $visibleDates);
+    $weekDays = $selectedService ? $this->weekDaysFor($visibleDates, $weekStart) : collect();
+    $selectedDate = $this->resolveSelectedDate($request, null, $weekDays);
+    $visibleMonth = $this->resolveVisibleMonth($request, $weekDays, null);
 
     return view('patient.partials.booking-week-partial', [
       'selectedService' => $selectedService,
@@ -61,8 +71,10 @@ class BookingController extends Controller
       'selectedSlot' => null,
       'selectedPeriod' => $selectedPeriod,
       'weekStart' => $weekStart,
+      'previousWeekStart' => $this->previousWeekStartFor($visibleDates, $weekStart),
+      'nextWeekStart' => $this->nextWeekStartFor($visibleDates, $weekStart),
       'visibleMonth' => $visibleMonth,
-      'availableMonths' => $selectedService ? $this->availableMonthsFor($selectedService) : collect(),
+      'availableMonths' => $selectedService ? $this->availableMonthsFor($allAvailableDates) : collect(),
       'weekDays' => $weekDays,
       'weekSlots' => $this->allWeekSlotsFor($weekDays, $selectedService, $selectedPeriod),
       'weekPartialUrl' => url('/patient/book/week'),
@@ -88,10 +100,15 @@ class BookingController extends Controller
     return redirect('/patient/appointments')->with('status', 'Appuntamento confermato.');
   }
 
-  private function resolveWeekStart(Request $request, ?MedicalService $service, ?AvailabilitySlot $selectedSlot): CarbonImmutable
+  private function resolveWeekStart(Request $request, ?MedicalService $service, ?AvailabilitySlot $selectedSlot, Collection $availableDates): CarbonImmutable
   {
     if ($request->filled('week_start')) {
-      return CarbonImmutable::parse((string) $request->string('week_start'))->startOfDay();
+      $requested = CarbonImmutable::parse((string) $request->string('week_start'))->startOfDay();
+      $match = $availableDates->first(fn (CarbonImmutable $date) => $date->equalTo($requested));
+
+      if ($match) {
+        return $match;
+      }
     }
 
     if ($selectedSlot) {
@@ -100,18 +117,16 @@ class BookingController extends Controller
 
     if ($request->filled('month')) {
       $month = CarbonImmutable::createFromFormat('Y-m-d', $request->query('month').'-01')->startOfMonth();
-
-      return $service ? $this->firstWeekWithAvailabilityInMonth($service, $month) : $this->firstWorkingWeekOfMonth($month);
+      $monthStart = $availableDates->first(fn (CarbonImmutable $date) => $date->betweenIncluded($month->startOfMonth(), $month->endOfMonth()));
+      if ($monthStart) {
+        return $monthStart;
+      }
     }
 
-    $today = CarbonImmutable::now();
-
-    return $today->isWeekend()
-      ? $today->next(CarbonImmutable::MONDAY)->startOfDay()
-      : $today->startOfWeek(CarbonImmutable::MONDAY);
+    return $availableDates->first() ?? CarbonImmutable::now()->startOfDay();
   }
 
-  private function resolveVisibleMonth(Request $request, CarbonImmutable $weekStart, ?AvailabilitySlot $selectedSlot): CarbonImmutable
+  private function resolveVisibleMonth(Request $request, Collection $weekDays, ?AvailabilitySlot $selectedSlot): CarbonImmutable
   {
     if ($request->filled('month')) {
       return CarbonImmutable::createFromFormat('Y-m-d', $request->query('month').'-01')->startOfMonth();
@@ -121,7 +136,10 @@ class BookingController extends Controller
       return CarbonImmutable::parse($selectedSlot->start_at)->startOfMonth();
     }
 
-    return $weekStart->startOfMonth();
+    $firstVisibleDay = $weekDays->first();
+    $firstVisibleDate = is_array($firstVisibleDay) ? ($firstVisibleDay['date'] ?? null) : null;
+
+    return $firstVisibleDate?->startOfMonth() ?? CarbonImmutable::now()->startOfMonth();
   }
 
   private function resolveSelectedPeriod(Request $request): string
@@ -131,17 +149,47 @@ class BookingController extends Controller
       : 'all';
   }
 
-  private function weekDaysFor(CarbonImmutable $weekStart, ?MedicalService $service, string $selectedPeriod): Collection
+  private function weekDaysFor(Collection $availableDates, CarbonImmutable $weekStart): Collection
   {
-    return collect(range(0, 13))
-      ->map(fn (int $offset) => $weekStart->addDays($offset))
-      ->reject(fn (CarbonImmutable $date) => $date->isWeekend())
-      ->take(5)
+    $startIndex = $this->availableDateIndex($availableDates, $weekStart);
+
+    return $availableDates
+      ->slice($startIndex, self::AVAILABLE_DAYS_PAGE_SIZE)
       ->values()
       ->map(fn (CarbonImmutable $date): array => [
         'date' => $date,
-        'hasSlots' => $service ? $this->availableSlotsFor($service, $date->toDateString())->isNotEmpty() : false,
+        'hasSlots' => true,
       ]);
+  }
+
+  private function previousWeekStartFor(Collection $availableDates, CarbonImmutable $weekStart): ?CarbonImmutable
+  {
+    $startIndex = $this->availableDateIndex($availableDates, $weekStart);
+
+    if ($startIndex <= 0) {
+      return null;
+    }
+
+    return $availableDates->get(max(0, $startIndex - self::AVAILABLE_DAYS_PAGE_SIZE));
+  }
+
+  private function nextWeekStartFor(Collection $availableDates, CarbonImmutable $weekStart): ?CarbonImmutable
+  {
+    $startIndex = $this->availableDateIndex($availableDates, $weekStart);
+    $nextIndex = $startIndex + self::AVAILABLE_DAYS_PAGE_SIZE;
+
+    if ($nextIndex >= $availableDates->count()) {
+      return null;
+    }
+
+    return $availableDates->get($nextIndex);
+  }
+
+  private function availableDateIndex(Collection $availableDates, CarbonImmutable $weekStart): int
+  {
+    $index = $availableDates->search(fn (CarbonImmutable $date) => $date->equalTo($weekStart));
+
+    return $index === false ? 0 : $index;
   }
 
   private function allWeekSlotsFor(Collection $weekDays, ?MedicalService $service, string $selectedPeriod): Collection
@@ -182,34 +230,52 @@ class BookingController extends Controller
       ->first();
   }
 
-  private function availableMonthsFor(MedicalService $service): Collection
+  private function availableMonthsFor(Collection $availableDates): Collection
   {
-    return $this->availableSlotQuery($service)
-      ->orderBy('start_at')
-      ->get(['start_at'])
-      ->map(fn (AvailabilitySlot $slot) => CarbonImmutable::parse($slot->start_at)->startOfMonth())
+    return $availableDates
+      ->map(fn (CarbonImmutable $date) => $date->startOfMonth())
       ->unique(fn (CarbonImmutable $month) => $month->format('Y-m'))
       ->values();
   }
 
-  private function firstWeekWithAvailabilityInMonth(MedicalService $service, CarbonImmutable $month): CarbonImmutable
+  private function resolveSelectedDate(Request $request, ?AvailabilitySlot $selectedSlot, Collection $weekDays): ?string
   {
-    $slot = $this->availableSlotQuery($service)
-      ->whereBetween('start_at', [$month->startOfMonth(), $month->endOfMonth()])
-      ->orderBy('start_at')
-      ->first();
+    $requestedDate = $request->query('date');
 
-    return $slot
-      ? CarbonImmutable::parse($slot->start_at)->startOfDay()
-      : $this->firstWorkingWeekOfMonth($month);
+    if ($requestedDate && $weekDays->contains(fn (array $day) => $day['date']->toDateString() === $requestedDate)) {
+      return $requestedDate;
+    }
+
+    if ($selectedSlot) {
+      return CarbonImmutable::parse($selectedSlot->start_at)->toDateString();
+    }
+
+    $firstVisibleDay = $weekDays->first();
+    $firstVisibleDate = is_array($firstVisibleDay) ? ($firstVisibleDay['date'] ?? null) : null;
+
+    return $firstVisibleDate?->toDateString();
   }
 
-  private function firstWorkingWeekOfMonth(CarbonImmutable $month): CarbonImmutable
+  private function availableDatesFor(MedicalService $service, string $selectedPeriod = 'all'): Collection
   {
-    $firstDay = $month->startOfMonth();
-    $firstWorkingDay = $firstDay->isWeekend() ? $firstDay->next(CarbonImmutable::MONDAY) : $firstDay;
+    return $this->availableSlotQuery($service)
+      ->orderBy('start_at')
+      ->get(['start_at'])
+      ->map(fn (AvailabilitySlot $slot) => CarbonImmutable::parse($slot->start_at))
+      ->filter(function (CarbonImmutable $slot) use ($selectedPeriod): bool {
+        if ($selectedPeriod === 'mattina') {
+          return $slot->hour < 13;
+        }
 
-    return $firstWorkingDay->startOfDay();
+        if ($selectedPeriod === 'pomeriggio') {
+          return $slot->hour >= 13;
+        }
+
+        return true;
+      })
+      ->map(fn (CarbonImmutable $slot) => $slot->startOfDay())
+      ->unique(fn (CarbonImmutable $date) => $date->toDateString())
+      ->values();
   }
 
   private function availableSlotQuery(MedicalService $service)

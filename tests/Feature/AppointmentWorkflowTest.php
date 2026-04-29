@@ -43,15 +43,13 @@ class AppointmentWorkflowTest extends TestCase
   public function test_booking_page_renders_service_week_days_and_available_slots(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $weekStart = $slot->start_at->copy()->startOfWeek()->toDateString();
-
-    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$slot->start_at->toDateString()}");
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}");
 
     $response->assertOk();
     $response->assertSee('Scegli la prestazione');
     $response->assertSee('Scegli il giorno');
     $response->assertSee("Scegli l'orario", false);
-    $response->assertSee('Mese visualizzato');
+    $response->assertDontSee('Mese visualizzato');
     $response->assertDontSee('Mese precedente');
     $response->assertDontSee('Mese successivo');
     $response->assertSee($service->name);
@@ -93,28 +91,76 @@ class AppointmentWorkflowTest extends TestCase
   public function test_booking_week_arrows_render_direct_navigation_links(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $weekStart = $slot->start_at->copy()->startOfWeek()->toDateString();
-    $prevWeek = CarbonImmutable::parse($weekStart)->subWeek()->toDateString();
-    $serviceId = $service->id;
+    AvailabilitySlot::query()->delete();
+    $starts = collect([
+      CarbonImmutable::create(2030, 4, 27, 9, 0),
+      CarbonImmutable::create(2030, 4, 28, 9, 0),
+      CarbonImmutable::create(2030, 4, 29, 9, 0),
+      CarbonImmutable::create(2030, 4, 30, 9, 0),
+      CarbonImmutable::create(2030, 5, 1, 9, 0),
+      CarbonImmutable::create(2030, 5, 2, 9, 0),
+    ]);
 
-    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$slot->start_at->toDateString()}");
+    $starts->each(function (CarbonImmutable $start) use ($doctor, $clinic): void {
+      AvailabilitySlot::create([
+        'doctor_id' => $doctor->id,
+        'clinic_id' => $clinic->id,
+        'start_at' => $start,
+        'end_at' => $start->addMinutes(30),
+      ]);
+    });
+
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}");
 
     $response->assertOk();
-    $response->assertSee('data-week-url="http://127.0.0.1:8080/patient/book/week?service_id='.$serviceId.'&amp;week_start='.$prevWeek.'"', false);
-    $response->assertSee('week-nav-arrow', false);
-    $response->assertSee('href="http://127.0.0.1:8080/patient/book?service_id='.$serviceId.'&amp;week_start='.$prevWeek.'#booking-step-day"', false);
+    $response->assertSee('Aprile 2030');
+    $response->assertDontSee('Mese visualizzato');
+    $response->assertSee("href=\"http://127.0.0.1:8080/patient/book?service_id={$service->id}&amp;week_start=2030-05-02#booking-step-day\"", false);
+
+    $nextResponse = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start=2030-05-02");
+
+    $nextResponse->assertOk();
+    $nextResponse->assertSee('Maggio 2030');
+    $nextResponse->assertSee('value="http://127.0.0.1:8080/patient/book?service_id='.$service->id.'&amp;month=2030-05#booking-step-day"', false);
   }
 
-  public function test_booking_calendar_always_starts_from_monday(): void
+  public function test_booking_calendar_starts_from_nearest_available_date_and_shows_only_available_days(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $sundayWeekStart = CarbonImmutable::create(2026, 5, 3, 10, 0)->toDateString();
+    $nearest = CarbonImmutable::now()->addDays(2)->setTime(9, 0);
+    $later = CarbonImmutable::now()->addDays(5)->setTime(11, 0);
+    AvailabilitySlot::query()->delete();
+    AvailabilitySlot::create([
+      'doctor_id' => $doctor->id,
+      'clinic_id' => $clinic->id,
+      'start_at' => $nearest,
+      'end_at' => $nearest->addMinutes(30),
+    ]);
+    AvailabilitySlot::create([
+      'doctor_id' => $doctor->id,
+      'clinic_id' => $clinic->id,
+      'start_at' => $later,
+      'end_at' => $later->addMinutes(30),
+    ]);
 
-    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$sundayWeekStart}");
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}");
 
     $response->assertOk();
-    $response->assertSee('data-date="2026-05-04"', false);
-    $response->assertDontSee('data-date="2026-05-03"', false);
+    $response->assertSee('data-date="'.$nearest->toDateString().'"', false);
+    $response->assertSee('data-date="'.$later->toDateString().'"', false);
+    $response->assertDontSee('data-date="'.CarbonImmutable::now()->addDay()->toDateString().'"', false);
+  }
+
+  public function test_booking_page_handles_services_with_no_available_slots(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    AvailabilitySlot::query()->delete();
+
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}");
+
+    $response->assertOk();
+    $response->assertSee('Nessuna disponibilita per questa prestazione');
+    $response->assertDontSee('Trying to access array offset on null');
   }
 
   public function test_booking_period_filter_shows_only_matching_slots(): void
@@ -247,9 +293,9 @@ class AppointmentWorkflowTest extends TestCase
   public function test_selected_booking_slot_renders_confirmation_before_posting(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $weekStart = $slot->start_at->copy()->startOfWeek()->toDateString();
+    $anchor = $slot->start_at->toDateString();
 
-    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$slot->start_at->toDateString()}&slot_id={$slot->id}");
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$anchor}&date={$slot->start_at->toDateString()}&slot_id={$slot->id}");
 
     $response->assertOk();
     $response->assertSee('Conferma prenotazione');
@@ -270,7 +316,7 @@ class AppointmentWorkflowTest extends TestCase
   public function test_booking_links_keep_user_on_relevant_step_when_choosing_day_and_time(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $weekStart = $slot->start_at->copy()->startOfWeek()->toDateString();
+    $weekStart = $slot->start_at->toDateString();
     $date = $slot->start_at->toDateString();
 
     $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$date}");
@@ -305,7 +351,7 @@ class AppointmentWorkflowTest extends TestCase
     [$patientUser, $patient, $doctor, $service, $clinic, $oldSlot] = $this->bookingContext();
     $newSlot = $this->slot($doctor, $clinic, 48);
     $appointment = $this->appointment($patient, $doctor, $service, $clinic, $oldSlot);
-    $weekStart = $newSlot->start_at->copy()->startOfWeek()->toDateString();
+    $weekStart = $newSlot->start_at->toDateString();
 
     $response = $this->actingAs($patientUser)->get("/appointments/{$appointment->id}/edit?week_start={$weekStart}&date={$newSlot->start_at->toDateString()}&slot_id={$newSlot->id}");
 
@@ -315,6 +361,18 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee($newSlot->start_at->format('H:i'));
     $response->assertSee('Conferma spostamento');
     $response->assertSee("/appointments/{$appointment->id}/reschedule", false);
+  }
+
+  public function test_patient_can_open_reschedule_wizard_even_when_no_other_slots_are_available(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $oldSlot] = $this->bookingContext();
+    $appointment = $this->appointment($patient, $doctor, $service, $clinic, $oldSlot);
+
+    $response = $this->actingAs($patientUser)->get("/appointments/{$appointment->id}/edit");
+
+    $response->assertOk();
+    $response->assertSee('Nessuna disponibilita per questa prestazione');
+    $response->assertDontSee('Trying to access array offset on null');
   }
 
   public function test_patient_cannot_open_another_patients_reschedule_wizard(): void
