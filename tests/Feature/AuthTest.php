@@ -6,6 +6,7 @@ use App\Models\PatientProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -161,7 +162,7 @@ class AuthTest extends TestCase
       'user_id' => $user->id,
       'phone' => '555-0100',
       'address' => 'Via Roma 1',
-      'identity_code' => 'RSSMRA80A01H501U',
+      'codice_fiscale' => 'RSSMRA80A01H501U',
     ]);
 
     $this->actingAs($user)
@@ -175,6 +176,36 @@ class AuthTest extends TestCase
     $this->assertSame('mario.rossi@example.com', $user->fresh()->email);
     $this->assertSame('555-0200', $profile->fresh()->phone);
     $this->assertSame('Via Milano 2', $profile->fresh()->address);
+  }
+
+  public function test_patient_profiles_table_no_longer_has_identity_code_column(): void
+  {
+    $this->assertFalse(Schema::hasColumn('patient_profiles', 'identity_code'));
+    $this->assertTrue(Schema::hasColumn('patient_profiles', 'codice_fiscale'));
+  }
+
+  public function test_patient_profile_page_shows_codice_fiscale_and_hides_legacy_identity_code(): void
+  {
+    $user = User::create([
+      'username' => 'patient@example.com',
+      'email' => 'patient@example.com',
+      'first_name' => 'Mario',
+      'last_name' => 'Rossi',
+      'password' => Hash::make('patient123'),
+      'role' => User::ROLE_PATIENT,
+    ]);
+    PatientProfile::create([
+      'user_id' => $user->id,
+      'phone' => '555-0100',
+      'codice_fiscale' => 'RSSMRA80A01H501U',
+    ]);
+
+    $response = $this->actingAs($user)->get('/patient/profile');
+
+    $response->assertOk();
+    $response->assertSee('Codice fiscale');
+    $response->assertSee('RSSMRA80A01H501U');
+    $response->assertDontSeeText('Codice identificativo');
   }
 
   public function test_patient_can_change_password_from_profile(): void
@@ -195,5 +226,29 @@ class AuthTest extends TestCase
       ->assertRedirect('/patient/profile');
 
     $this->assertTrue(Hash::check('new-password', $user->fresh()->password));
+  }
+
+  public function test_patient_dashboard_hides_legacy_booking_ctas_and_keeps_clean_quick_actions(): void
+  {
+    $user = User::create([
+      'username' => 'patient@example.com',
+      'email' => 'patient@example.com',
+      'first_name' => 'Mario',
+      'last_name' => 'Rossi',
+      'password' => Hash::make('patient123'),
+      'role' => User::ROLE_PATIENT,
+    ]);
+    PatientProfile::create([
+      'user_id' => $user->id,
+      'phone' => '555-0100',
+    ]);
+
+    $response = $this->actingAs($user)->get('/patient');
+
+    $response->assertOk();
+    $response->assertDontSee('/patient/book?mode=doctor', false);
+    $response->assertSeeText('Prenota per prestazione');
+    $response->assertSeeText('I miei appuntamenti');
+    $response->assertDontSee('>Prenota visita<', false);
   }
 }

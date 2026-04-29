@@ -2,12 +2,11 @@
 
 @section('content')
   <section class="portal-section">
-    <div class="portal-page-heading portal-heading-row">
+    <div class="portal-page-heading">
       <div>
         <span class="portal-eyebrow">Portale paziente</span>
         <h1>Riepilogo</h1>
       </div>
-      <a class="btn btn-primary" href="/patient/book">Prenota visita</a>
     </div>
 
     <div class="dashboard-grid">
@@ -52,10 +51,6 @@
       <a class="quick-action" href="/patient/book?mode=service">
         <span>Prenota per prestazione</span>
         <strong>Trova assistenza</strong>
-      </a>
-      <a class="quick-action" href="/patient/book?mode=doctor">
-        <span>Prenota per medico</span>
-        <strong>Scegli professionista</strong>
       </a>
       <a class="quick-action" href="/patient/appointments">
         <span>I miei appuntamenti</span>

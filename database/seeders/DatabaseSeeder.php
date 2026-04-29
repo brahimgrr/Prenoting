@@ -56,7 +56,6 @@ class DatabaseSeeder extends Seeder
       [
         'phone' => '555-0100',
         'address' => 'Via del Paziente 10',
-        'identity_code' => 'PAT-001',
       ],
     );
 

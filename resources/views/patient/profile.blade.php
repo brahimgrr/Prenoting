@@ -44,10 +44,6 @@
             Codice fiscale
             <input class="form-control" value="{{ $profile?->codice_fiscale ?: '-' }}" readonly>
           </label>
-          <label class="form-label">
-            Codice identificativo
-            <input class="form-control" value="{{ $profile?->identity_code ?: '-' }}" readonly>
-          </label>
         </div>
         <p class="profile-lock-note">Questi dati non sono modificabili dal portale.</p>
       </section>

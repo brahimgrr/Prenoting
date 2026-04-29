@@ -102,7 +102,7 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertOk();
     $response->assertSee('data-week-url="http://127.0.0.1:8080/patient/book/week?service_id='.$serviceId.'&amp;week_start='.$prevWeek.'"', false);
     $response->assertSee('week-nav-arrow', false);
-    $response->assertSee('href="http://127.0.0.1:8080/patient/book?service_id='.$serviceId.'&amp;week_start='.$prevWeek.'"', false);
+    $response->assertSee('href="http://127.0.0.1:8080/patient/book?service_id='.$serviceId.'&amp;week_start='.$prevWeek.'#booking-step-day"', false);
   }
 
   public function test_booking_period_filter_shows_only_matching_slots(): void
@@ -247,7 +247,21 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee('action="/appointments"', false);
     $response->assertSee('Annulla prenotazione');
     $response->assertSee('#booking-step-service', false);
+    $response->assertSee('#booking-confirm', false);
     $response->assertDontSee('<button type="submit" class="slot-time-button"', false);
+  }
+
+  public function test_booking_links_keep_user_on_relevant_step_when_choosing_day_and_time(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    $weekStart = $slot->start_at->copy()->startOfWeek()->toDateString();
+    $date = $slot->start_at->toDateString();
+
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$date}");
+
+    $response->assertOk();
+    $response->assertSee("href=\"http://127.0.0.1:8080/patient/book?service_id={$service->id}&amp;week_start={$weekStart}&amp;date={$date}#booking-step-day\"", false);
+    $response->assertSee("href=\"http://127.0.0.1:8080/patient/book?service_id={$service->id}&amp;week_start={$weekStart}&amp;date={$date}&amp;slot_id={$slot->id}#booking-confirm\"", false);
   }
 
   public function test_patient_appointments_page_renders_cancel_confirmation_modal(): void

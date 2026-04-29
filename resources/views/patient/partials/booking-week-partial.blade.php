@@ -10,17 +10,19 @@
     $baseParams['period'] = $selectedPeriod;
   }
 
-  $buildUrl = function (string $base, array $extra) use ($baseParams): string {
+  $buildUrl = function (string $base, array $extra, ?string $fragment = null) use ($baseParams): string {
     $params = array_filter(
       array_merge($baseParams, $extra),
       fn ($v) => $v !== null && $v !== ''
     );
 
-    return $params ? $base.'?'.http_build_query($params) : $base;
+    $url = $params ? $base.'?'.http_build_query($params) : $base;
+
+    return $fragment ? $url.'#'.$fragment : $url;
   };
 
-  $prevPageUrl = $buildUrl($baseUrl, ['week_start' => $prevWeek->toDateString()]);
-  $nextPageUrl = $buildUrl($baseUrl, ['week_start' => $nextWeek->toDateString()]);
+  $prevPageUrl = $buildUrl($baseUrl, ['week_start' => $prevWeek->toDateString()], 'booking-step-day');
+  $nextPageUrl = $buildUrl($baseUrl, ['week_start' => $nextWeek->toDateString()], 'booking-step-day');
 
   $prevPartialUrl = $weekPartialUrl
     ? $buildUrl($weekPartialUrl, ['week_start' => $prevWeek->toDateString()])
@@ -49,7 +51,7 @@
       <select class="form-select form-select-sm month-jump-select" aria-label="Salta a un mese disponibile" onchange="window.location.href=this.value">
         @foreach ($monthOptions as $month)
           <option
-            value="{{ $buildUrl($baseUrl, ['month' => $month->format('Y-m'), 'week_start' => null, 'date' => null, 'slot_id' => null]) }}"
+            value="{{ $buildUrl($baseUrl, ['month' => $month->format('Y-m'), 'week_start' => null, 'date' => null, 'slot_id' => null], 'booking-step-day') }}"
             {{ $month->format('Y-m') === $visibleMonth->format('Y-m') ? 'selected' : '' }}
           >
             {{ ucfirst($month->locale('it')->isoFormat('MMMM YYYY')) }}
@@ -77,7 +79,7 @@
           $dateStr = $date->toDateString();
           $isSelectedDate = $selectedDate === $dateStr;
           $dayClasses = 'week-day'.($isSelectedDate ? ' week-day--selected' : '').($day['hasSlots'] ? '' : ' week-day--disabled');
-          $dayPageUrl = $buildUrl($baseUrl, ['week_start' => $weekStart->toDateString(), 'date' => $dateStr]);
+          $dayPageUrl = $buildUrl($baseUrl, ['week_start' => $weekStart->toDateString(), 'date' => $dateStr], 'booking-step-day');
         @endphp
         @if ($day['hasSlots'])
           <a class="{{ $dayClasses }}" href="{{ $dayPageUrl }}" data-date="{{ $dateStr }}">
@@ -130,7 +132,7 @@
               'week_start' => $weekStart->toDateString(),
               'date' => $currentDate,
               'slot_id' => null,
-            ]);
+            ], 'booking-step-day');
           @endphp
           <a
             class="btn btn-sm {{ $selectedPeriod === $period ? 'btn-primary' : 'btn-outline-primary' }}"
@@ -151,7 +153,7 @@
               'week_start' => $weekStart->toDateString(),
               'date' => $dateStr,
               'slot_id' => $slot->id,
-            ]);
+            ], 'booking-confirm');
           @endphp
           <div class="col-4 col-md-3 col-xl-2 slot-choice-col" data-period="{{ $slotPeriod }}">
             <a

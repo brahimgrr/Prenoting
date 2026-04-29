@@ -15,7 +15,6 @@ class PatientProfile extends Model
     'gender',
     'phone',
     'address',
-    'identity_code',
     'codice_fiscale',
   ];
 
