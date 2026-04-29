@@ -108,7 +108,7 @@ class BookingController extends Controller
 
     return $today->isWeekend()
       ? $today->next(CarbonImmutable::MONDAY)->startOfDay()
-      : $today->startOfWeek();
+      : $today->startOfWeek(CarbonImmutable::MONDAY);
   }
 
   private function resolveVisibleMonth(Request $request, CarbonImmutable $weekStart, ?AvailabilitySlot $selectedSlot): CarbonImmutable

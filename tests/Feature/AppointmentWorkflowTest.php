@@ -105,6 +105,18 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee('href="http://127.0.0.1:8080/patient/book?service_id='.$serviceId.'&amp;week_start='.$prevWeek.'#booking-step-day"', false);
   }
 
+  public function test_booking_calendar_always_starts_from_monday(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    $sundayWeekStart = CarbonImmutable::create(2026, 5, 3, 10, 0)->toDateString();
+
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$sundayWeekStart}");
+
+    $response->assertOk();
+    $response->assertSee('data-date="2026-05-04"', false);
+    $response->assertDontSee('data-date="2026-05-03"', false);
+  }
+
   public function test_booking_period_filter_shows_only_matching_slots(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
