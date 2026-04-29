@@ -37,9 +37,33 @@
             @error('password') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
           </div>
           <div class="col-md-6">
+            <label class="form-label" for="password_confirmation">Conferma password</label>
+            <input class="form-control" id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="date_of_birth">Data di nascita</label>
+            <input class="form-control @error('date_of_birth') is-invalid @enderror" id="date_of_birth" name="date_of_birth" type="date" value="{{ old('date_of_birth') }}" required>
+            @error('date_of_birth') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="gender">Sesso</label>
+            <select class="form-select @error('gender') is-invalid @enderror" id="gender" name="gender" required>
+              <option value="" @selected(old('gender') === null)>Seleziona</option>
+              <option value="M" @selected(old('gender') === 'M')>Maschile</option>
+              <option value="F" @selected(old('gender') === 'F')>Femminile</option>
+            </select>
+            @error('gender') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+          </div>
+          <div class="col-md-6">
             <label class="form-label" for="phone">Telefono</label>
             <input class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" type="tel" autocomplete="tel" value="{{ old('phone') }}" required>
             @error('phone') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="place_of_birth">Luogo di nascita</label>
+            <input class="form-control @error('place_of_birth') is-invalid @enderror" id="place_of_birth" name="place_of_birth" autocomplete="address-level2" value="{{ old('place_of_birth') }}" required>
+            @error('place_of_birth') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+            <div class="form-text">Scrivi il nome per esteso (es. Reggio Calabria). Per nati all'estero, scrivi il nome del paese in italiano.</div>
           </div>
         </div>
         <button class="btn btn-primary w-100 mt-4" type="submit">Crea account</button>

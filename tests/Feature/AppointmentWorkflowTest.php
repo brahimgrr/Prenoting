@@ -258,9 +258,11 @@ class AppointmentWorkflowTest extends TestCase
     $response = $this->actingAs($patientUser)->get('/patient/appointments');
 
     $response->assertOk();
-    $response->assertSee("cancelAppointmentModal{$appointment->id}", false);
-    $response->assertSee('Si, annulla');
+    $response->assertSee('Elimina appuntamento');
+    $response->assertSee('Conferma annullamento');
     $response->assertSee("/appointments/{$appointment->id}/cancel", false);
+    $response->assertSee('name="cancellation_reason"', false);
+    $response->assertDontSee('data-bs-toggle="modal"', false);
   }
 
   public function test_patient_can_open_reschedule_wizard_and_confirm_new_slot(): void

@@ -29,12 +29,24 @@
             <input class="form-control" value="{{ $user->last_name ?: '-' }}" readonly>
           </label>
           <label class="form-label">
-            Codice identificativo
-            <input class="form-control" value="{{ $profile?->identity_code ?: '-' }}" readonly>
+            Sesso
+            <input class="form-control" value="{{ match($profile?->gender) { 'M' => 'Maschile', 'F' => 'Femminile', default => '-' } }}" readonly>
           </label>
           <label class="form-label">
             Data di nascita
             <input class="form-control" value="{{ $profile?->date_of_birth?->format('d/m/Y') ?: '-' }}" readonly>
+          </label>
+          <label class="form-label">
+            Luogo di nascita
+            <input class="form-control" value="{{ $profile?->place_of_birth ?: '-' }}" readonly>
+          </label>
+          <label class="form-label">
+            Codice fiscale
+            <input class="form-control" value="{{ $profile?->codice_fiscale ?: '-' }}" readonly>
+          </label>
+          <label class="form-label">
+            Codice identificativo
+            <input class="form-control" value="{{ $profile?->identity_code ?: '-' }}" readonly>
           </label>
         </div>
         <p class="profile-lock-note">Questi dati non sono modificabili dal portale.</p>

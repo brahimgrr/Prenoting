@@ -17,8 +17,12 @@ class AuthTest extends TestCase
     $response = $this->post('/register', [
       'username' => 'sara@example.com',
       'password' => 'strong-pass-123',
+      'password_confirmation' => 'strong-pass-123',
       'first_name' => 'Sara',
       'last_name' => 'Conti',
+      'date_of_birth' => '1990-05-21',
+      'place_of_birth' => 'Roma',
+      'gender' => 'F',
       'phone' => '+390000000',
     ]);
 
@@ -29,7 +33,11 @@ class AuthTest extends TestCase
       'role' => User::ROLE_PATIENT,
     ]);
     $this->assertDatabaseHas('patient_profiles', [
+      'date_of_birth' => '1990-05-21',
+      'place_of_birth' => 'Roma',
+      'gender' => 'F',
       'phone' => '+390000000',
+      'codice_fiscale' => 'CNTSRA90E61H501K',
     ]);
   }
 
@@ -38,12 +46,38 @@ class AuthTest extends TestCase
     $response = $this->from('/register')->post('/register', [
       'username' => 'short@example.com',
       'password' => 'short',
+      'password_confirmation' => 'short',
+      'date_of_birth' => '1990-05-21',
+      'place_of_birth' => 'Roma',
+      'gender' => 'M',
       'phone' => '+390000001',
     ]);
 
     $response->assertRedirect('/register');
     $response->assertSessionHasErrors('password');
     $this->assertGuest();
+  }
+
+  public function test_register_rejects_unknown_place_of_birth(): void
+  {
+    $response = $this->from('/register')->post('/register', [
+      'username' => 'unknown-place@example.com',
+      'password' => 'strong-pass-123',
+      'password_confirmation' => 'strong-pass-123',
+      'first_name' => 'Luca',
+      'last_name' => 'Verdi',
+      'date_of_birth' => '1988-11-02',
+      'place_of_birth' => 'Atlantide',
+      'gender' => 'M',
+      'phone' => '+390000099',
+    ]);
+
+    $response->assertRedirect('/register');
+    $response->assertSessionHasErrors('place_of_birth');
+    $this->assertGuest();
+    $this->assertDatabaseMissing('users', [
+      'username' => 'unknown-place@example.com',
+    ]);
   }
 
   public function test_login_routes_roles_to_their_portals(): void
