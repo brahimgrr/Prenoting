@@ -11,10 +11,12 @@ class PatientProfile extends Model
   protected $fillable = [
     'user_id',
     'date_of_birth',
+    'place_of_birth',
     'gender',
     'phone',
     'address',
     'identity_code',
+    'codice_fiscale',
   ];
 
   protected function casts(): array
