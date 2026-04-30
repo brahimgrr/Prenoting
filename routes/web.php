@@ -15,7 +15,7 @@ Route::get('/', function () {
   $user = auth()->user();
 
   return $user ? redirect($user->portalRoute() ?? '/unsupported-role') : view('landing');
-});
+})->name('home');
 
 Route::middleware('guest')->group(function (): void {
   Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
