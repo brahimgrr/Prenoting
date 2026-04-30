@@ -29,7 +29,7 @@ class RoleDashboardTest extends TestCase
       ->assertSee('class="doctor-agenda-timeline"', false)
       ->assertSee('doctor-agenda-item--appointment', false)
       ->assertSee('Mario Rossi')
-      ->assertSee('Altro Paziente')
+      ->assertDontSee('Altro Paziente')
       ->assertSee('Gestisci disponibilita')
       ->assertSee('<details class="availability-manager"', false)
       ->assertSee('<details class="availability-day"', false)
@@ -327,7 +327,7 @@ class RoleDashboardTest extends TestCase
     ]);
     $doctor = DoctorProfile::create([
       'user_id' => $doctorUser->id,
-      'display_name' => 'Dott. Dorian Pelle',
+      'display_name' => 'Dott. Mbappe',
     ]);
     $patientUser = User::create([
       'username' => 'patient',

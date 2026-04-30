@@ -30,21 +30,46 @@
   </section>
 
   {{-- Features --}}
-  <section class="landing-features">
-    <div class="landing-card">
-      <span class="landing-card__icon">🔬</span>
-      <h3>Visite Dermatologiche</h3>
-      <p>Diagnosi e controllo della pelle con specialisti qualificati.</p>
+  <section class="landing-services">
+    <div class="landing-services__heading">
+      <div>
+        <span class="portal-eyebrow">Trattamenti</span>
+        <h2>Prestazioni disponibili</h2>
+      </div>
     </div>
-    <div class="landing-card">
-      <span class="landing-card__icon">🧴</span>
-      <h3>Trattamenti Estetici</h3>
-      <p>Cura e benessere della pelle con trattamenti mirati.</p>
-    </div>
-    <div class="landing-card">
-      <span class="landing-card__icon">📋</span>
-      <h3>Mappatura Nei</h3>
-      <p>Screening e prevenzione con tecnologia avanzata.</p>
+
+    <div class="landing-services__carousel{{ $services->count() <= 3 ? ' landing-services__carousel--centered' : '' }}">
+      @if ($services->count() > 3)
+        <button class="landing-services__arrow landing-services__arrow--prev" type="button" data-landing-services-prev aria-label="Trattamenti precedenti">‹</button>
+      @endif
+      <div class="landing-features{{ $services->count() <= 3 ? ' landing-features--centered' : '' }}" data-landing-services-track>
+        @forelse ($services as $service)
+          <div class="landing-card">
+            <span class="landing-card__icon">{{ $service->category === \App\Models\MedicalService::CATEGORY_EXAM ? '🔬' : '🧴' }}</span>
+            <h3>{{ $service->name }}</h3>
+            <p>{{ $service->category === \App\Models\MedicalService::CATEGORY_EXAM ? 'Esame dermatologico' : 'Visita dermatologica' }} · {{ $service->duration_minutes }} min</p>
+          </div>
+        @empty
+          <div class="landing-card">
+            <span class="landing-card__icon">🔬</span>
+            <h3>Visite Dermatologiche</h3>
+            <p>Diagnosi e controllo della pelle con specialisti qualificati.</p>
+          </div>
+          <div class="landing-card">
+            <span class="landing-card__icon">🧴</span>
+            <h3>Trattamenti Estetici</h3>
+            <p>Cura e benessere della pelle con trattamenti mirati.</p>
+          </div>
+          <div class="landing-card">
+            <span class="landing-card__icon">📋</span>
+            <h3>Mappatura Nei</h3>
+            <p>Screening e prevenzione con tecnologia avanzata.</p>
+          </div>
+        @endforelse
+      </div>
+      @if ($services->count() > 3)
+        <button class="landing-services__arrow landing-services__arrow--next" type="button" data-landing-services-next aria-label="Trattamenti successivi">›</button>
+      @endif
     </div>
   </section>
 
@@ -53,15 +78,16 @@
     <span class="landing-doctor__eyebrow">Chi ti segue</span>
     <div class="landing-doctor__wrap">
       <div class="landing-doctor__card">
-        @if (file_exists(public_path('images/doctor.jpg')))
-          <img class="landing-doctor__photo" src="/images/doctor.jpg" alt="Foto {{ $doctor?->display_name ?? 'medico' }}">
+        @php($doctorName = $doctor?->display_name ?? 'Dott. Mbappe')
+        @if (file_exists(public_path('images/general.png')))
+          <img class="landing-doctor__photo" src="/images/general.png" alt="Foto {{ $doctorName }}">
         @else
           <div class="landing-doctor__photo landing-doctor__photo--placeholder">
-            {{ strtoupper(substr($doctor?->display_name ?? 'M', 0, 1)) }}
+            {{ strtoupper(substr($doctorName, 0, 1)) }}
           </div>
         @endif
         <div>
-          <p class="landing-doctor__name">{{ $doctor?->display_name ?? 'Il nostro medico' }}</p>
+          <p class="landing-doctor__name">{{ $doctorName }}</p>
           <p class="landing-doctor__title">Specialista in Dermatologia</p>
         </div>
         <div class="landing-doctor__divider"></div>

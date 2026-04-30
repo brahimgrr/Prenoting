@@ -1665,25 +1665,84 @@ a {
   justify-content: center;
 }
 
-.landing-features {
+.landing-services {
   background: var(--color-surface);
-  display: flex;
   flex: 1;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: center;
   padding: 2.5rem 2rem;
 }
 
+.landing-services__heading {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin: 0 auto 1.25rem;
+  max-width: 1120px;
+}
+
+.landing-services__heading h2 {
+  color: var(--color-navy);
+  font-size: 1.35rem;
+  font-weight: 850;
+  margin: 0.25rem 0 0;
+}
+
+.landing-services__carousel {
+  align-items: center;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  margin: 0 auto;
+  max-width: 1180px;
+}
+
+.landing-services__carousel--centered {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 880px;
+}
+
+.landing-services__arrow {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-navy);
+  display: inline-flex;
+  font-size: 2.25rem;
+  font-weight: 850;
+  height: 2.5rem;
+  justify-content: center;
+  line-height: 1;
+  width: 2.5rem;
+}
+
+.landing-services__arrow:hover {
+  color: var(--color-blue);
+}
+
+.landing-features {
+  display: flex;
+  gap: 1rem;
+  margin: 0 auto;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 0.25rem 0.2rem 1rem;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+
+.landing-features--centered {
+  justify-content: center;
+}
+
 .landing-card {
-  background: var(--color-canvas);
-  border: 1px solid var(--color-border);
+  background: transparent;
+  border: 0;
   border-radius: 8px;
-  box-shadow: var(--shadow-panel);
-  flex: 1;
-  max-width: 240px;
-  min-width: 180px;
+  box-shadow: none;
+  flex: 0 0 min(300px, 82vw);
   padding: 1.5rem 1.25rem;
+  scroll-snap-align: start;
   text-align: center;
 }
 
@@ -1725,14 +1784,19 @@ a {
     padding: 2.5rem 1rem 2rem;
   }
 
-  .landing-features {
+  .landing-services {
     padding: 1.5rem 1rem;
   }
 
-  .landing-card {
-    max-width: none;
-    min-width: 100%;
+  .landing-services__heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
+
+  .landing-services__carousel {
+    grid-template-columns: 1fr;
+  }
+
 }
 
 /* ── Landing doctor section ── */

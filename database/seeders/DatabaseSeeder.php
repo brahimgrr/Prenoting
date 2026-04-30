@@ -48,8 +48,8 @@ class DatabaseSeeder extends Seeder
       ['username' => 'doctor.derm'],
       [
         'email' => 'doctor.derm@example.com',
-        'first_name' => 'Dorian',
-        'last_name' => 'Pelle',
+        'first_name' => 'Kylian',
+        'last_name' => 'Mbappe',
         'role' => User::ROLE_DOCTOR,
         'password' => Hash::make('doctor123'),
       ],
@@ -57,7 +57,7 @@ class DatabaseSeeder extends Seeder
     DoctorProfile::updateOrCreate(
       ['user_id' => $doctorUser->id],
       [
-        'display_name' => 'Dott. Dorian Pelle',
+        'display_name' => 'Dott. Mbappe',
         'license_number' => 'DERM-001',
         'is_active' => true,
       ],
@@ -66,6 +66,11 @@ class DatabaseSeeder extends Seeder
     foreach ([
       ['Visita dermatologica', MedicalService::CATEGORY_VISIT, 30, '120.00'],
       ['Controllo nei', MedicalService::CATEGORY_EXAM, 30, '90.00'],
+      ['Dermatoscopia digitale', MedicalService::CATEGORY_EXAM, 30, '110.00'],
+      ['Mappatura nei', MedicalService::CATEGORY_EXAM, 30, '140.00'],
+      ['Controllo acne', MedicalService::CATEGORY_VISIT, 30, '95.00'],
+      ['Trattamento cheratosi', MedicalService::CATEGORY_VISIT, 30, '130.00'],
+      ['Consulenza dermatologica pediatrica', MedicalService::CATEGORY_VISIT, 30, '100.00'],
     ] as [$name, $category, $duration, $price]) {
       MedicalService::updateOrCreate(
         ['name' => $name],

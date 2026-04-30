@@ -31,6 +31,21 @@ document.addEventListener("click", (e) => {
     return;
   }
 
+  const servicesArrow = e.target.closest("[data-landing-services-prev], [data-landing-services-next]");
+  if (servicesArrow) {
+    e.preventDefault();
+    const track = document.querySelector("[data-landing-services-track]");
+    if (!track) return;
+
+    const direction = servicesArrow.hasAttribute("data-landing-services-prev") ? -1 : 1;
+    const card = track.querySelector(".landing-card");
+    const visibleWidth = track.clientWidth;
+    const cardWidth = card ? card.getBoundingClientRect().width + 16 : 300;
+    const scrollAmount = Math.max(cardWidth, visibleWidth - cardWidth);
+    track.scrollBy({ left: direction * scrollAmount, behavior: "smooth" });
+    return;
+  }
+
   // Week navigation arrow (fetch-based, no page reload)
   const arrow = e.target.closest("[data-week-url]");
   const isDisabled = arrow

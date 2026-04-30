@@ -403,7 +403,7 @@ class AppointmentWorkflowTest extends TestCase
     ]);
     $doctor = \App\Models\DoctorProfile::create([
       'user_id' => $doctorUser->id,
-      'display_name' => 'Dott. Dorian Pelle',
+      'display_name' => 'Dott. Mbappe',
     ]);
     $service = MedicalService::create(['name' => 'Visita dermatologica']);
     $clinic = null;
