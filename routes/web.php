@@ -14,7 +14,13 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
   $user = auth()->user();
 
-  return $user ? redirect($user->portalRoute() ?? '/unsupported-role') : view('landing');
+  if ($user) {
+    return redirect($user->portalRoute() ?? '/unsupported-role');
+  }
+
+  return view('landing', [
+    'doctor' => \App\Models\DoctorProfile::first(),
+  ]);
 })->name('home');
 
 Route::middleware('guest')->group(function (): void {
