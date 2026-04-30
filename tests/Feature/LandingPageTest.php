@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\DoctorProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -45,5 +46,25 @@ class LandingPageTest extends TestCase
     ]);
 
     $this->actingAs($user)->get('/')->assertRedirect('/doctor');
+  }
+
+  public function test_landing_page_shows_chi_ti_segue_section(): void
+  {
+    $this->get('/')->assertOk()->assertSee('Chi ti segue');
+  }
+
+  public function test_landing_page_shows_doctor_display_name(): void
+  {
+    $user = User::create([
+      'username' => 'doctor.derm',
+      'password' => Hash::make('doctor123'),
+      'role' => User::ROLE_DOCTOR,
+    ]);
+    DoctorProfile::create([
+      'user_id' => $user->id,
+      'display_name' => 'Dott. Giulia Ferretti',
+    ]);
+
+    $this->get('/')->assertOk()->assertSee('Dott. Giulia Ferretti');
   }
 }
