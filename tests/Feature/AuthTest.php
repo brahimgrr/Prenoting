@@ -103,7 +103,7 @@ class AuthTest extends TestCase
     $this->assertAuthenticatedAs($patient);
   }
 
-  public function test_admin_route_redirects_to_phpmyadmin(): void
+  public function test_admin_login_opens_local_portal_with_logout_and_phpmyadmin_link(): void
   {
     $admin = User::create([
       'username' => 'admin',
@@ -111,9 +111,17 @@ class AuthTest extends TestCase
       'role' => User::ROLE_ADMIN,
     ]);
 
-    $this->actingAs($admin)
-      ->get('/admin')
-      ->assertRedirect('http://127.0.0.1:8081');
+    $this->post('/login', [
+      'username' => 'admin',
+      'password' => 'admin123',
+    ])->assertRedirect('/admin');
+    $this->assertAuthenticatedAs($admin);
+
+    $this->get('/admin')
+      ->assertOk()
+      ->assertSee('phpMyAdmin')
+      ->assertSee('href="http://127.0.0.1:8081"', false)
+      ->assertSee('action="/logout"', false);
   }
 
   public function test_login_accepts_email_when_form_invites_username_or_email(): void

@@ -14,6 +14,9 @@
       ['to' => '/doctor/schedule', 'label' => 'Agenda', 'active' => ['doctor/schedule', 'doctor/availability/*']],
       ['to' => '/doctor/treatments', 'label' => 'Trattamenti', 'active' => ['doctor/treatments', 'doctor/treatments/*']],
     ],
+    'admin' => [
+      ['to' => '/admin', 'label' => 'Admin', 'active' => ['admin']],
+    ],
   ][$role] ?? [];
   $roleLabels = ['patient' => 'Paziente', 'doctor' => 'Medico', 'admin' => 'Admin'];
 @endphp
