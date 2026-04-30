@@ -48,6 +48,32 @@
     </div>
   </section>
 
+  {{-- Medico --}}
+  <section class="landing-doctor">
+    <span class="landing-doctor__eyebrow">Chi ti segue</span>
+    <div class="landing-doctor__wrap">
+      <div class="landing-doctor__card">
+        @if (file_exists(public_path('images/doctor.jpg')))
+          <img class="landing-doctor__photo" src="/images/doctor.jpg" alt="Foto {{ $doctor?->display_name ?? 'medico' }}">
+        @else
+          <div class="landing-doctor__photo landing-doctor__photo--placeholder">
+            {{ strtoupper(substr($doctor?->display_name ?? 'M', 0, 1)) }}
+          </div>
+        @endif
+        <div>
+          <p class="landing-doctor__name">{{ $doctor?->display_name ?? 'Il nostro medico' }}</p>
+          <p class="landing-doctor__title">Specialista in Dermatologia</p>
+        </div>
+        <div class="landing-doctor__divider"></div>
+        <div class="landing-doctor__clinic">
+          <span>🏥 <span>Via Roma 1, Milano</span></span>
+          <span>📞 <span>02 1234567</span></span>
+          <span>✉️ <span>info@studiodermatologo.it</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   {{-- Footer --}}
   <footer class="landing-footer">
     &copy; {{ date('Y') }} MedPortal &mdash; Studio Dermatologico &mdash; Tutti i diritti riservati
