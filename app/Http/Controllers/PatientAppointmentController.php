@@ -37,7 +37,7 @@ class PatientAppointmentController extends Controller
   public function edit(Request $request, Appointment $appointment): View
   {
     $this->authorizePatientAppointment($request, $appointment);
-    $appointment->loadMissing(['service.specialty', 'doctor', 'clinic']);
+    $appointment->loadMissing(['service']);
     $service = $appointment->service;
     $selectedSlot = $service ? $this->selectedSlotFor($service, $request->integer('slot_id'), $appointment) : null;
     $selectedPeriod = $this->resolveSelectedPeriod($request);
@@ -51,7 +51,7 @@ class PatientAppointmentController extends Controller
 
     return view('patient.appointment-edit', [
       'appointment' => $appointment,
-      'services' => MedicalService::with('specialty')->where('is_active', true)->orderBy('name')->get(),
+      'services' => MedicalService::where('is_active', true)->orderBy('name')->get(),
       'selectedService' => $service,
       'selectedDate' => $selectedDate,
       'selectedSlot' => $selectedSlot,
@@ -281,11 +281,7 @@ class PatientAppointmentController extends Controller
   private function availableSlotQuery(MedicalService $service, Appointment $appointment)
   {
     return AvailabilitySlot::query()
-      ->with(['doctor', 'clinic'])
       ->publicAvailable()
-      ->whereKeyNot($appointment->slot_id)
-      ->whereHas('doctor.services', fn ($services) => $services
-        ->where('medical_services.id', $service->id)
-        ->where('is_active', true));
+      ->whereKeyNot($appointment->slot_id);
   }
 }

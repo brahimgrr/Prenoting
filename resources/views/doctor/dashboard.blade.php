@@ -98,19 +98,8 @@
               @endforeach
             </select>
           </label>
-          <label class="form-label">
-            Ambulatorio
-            <select class="form-select" name="clinic_id" required>
-              <option value="">Seleziona sede</option>
-              @foreach ($activeClinics as $clinic)
-                <option value="{{ $clinic->id }}" @selected((int) old('clinic_id', $batchForm['clinic_id']) === $clinic->id)>
-                  {{ $clinic->name }}
-                </option>
-              @endforeach
-            </select>
-          </label>
           <div class="availability-batch-actions">
-            <button type="submit" class="btn btn-primary" @disabled($activeClinics->isEmpty())>Genera anteprima</button>
+            <button type="submit" class="btn btn-primary">Genera anteprima</button>
             <span>Creeremo solo slot futuri e senza sovrapposizioni.</span>
           </div>
         </form>
@@ -120,7 +109,7 @@
             <div class="section-heading">
               <div>
                 <h2>Anteprima disponibilita</h2>
-                <p>{{ $availabilityPreview['input']['start_date'] }} - {{ $availabilityPreview['input']['end_date'] }} · {{ $availabilityPreview['weekdayLabels'] }} · {{ $availabilityPreview['clinic']->name }}</p>
+                <p>{{ $availabilityPreview['input']['start_date'] }} - {{ $availabilityPreview['input']['end_date'] }} · {{ $availabilityPreview['weekdayLabels'] }}</p>
               </div>
               <form method="POST" action="/doctor/availability/batch">
                 @csrf
@@ -132,7 +121,6 @@
                 <input type="hidden" name="start_time" value="{{ $availabilityPreview['input']['start_time'] }}">
                 <input type="hidden" name="end_time" value="{{ $availabilityPreview['input']['end_time'] }}">
                 <input type="hidden" name="slot_duration" value="{{ $availabilityPreview['input']['slot_duration'] }}">
-                <input type="hidden" name="clinic_id" value="{{ $availabilityPreview['clinic']->id }}">
                 <button type="submit" class="btn btn-primary" @disabled($availabilityPreview['creatable']->isEmpty())>
                   Crea {{ $availabilityPreview['creatable']->count() }} slot
                 </button>
@@ -194,14 +182,16 @@
         @if ($availabilitySlots->isNotEmpty())
           <div class="availability-day-list">
             @foreach ($availabilitySlots as $slotDate => $slotsForDay)
-              <div class="availability-day">
-                <h3>{{ \Carbon\CarbonImmutable::parse($slotDate)->format('d/m/Y') }}</h3>
+              <details class="availability-day">
+                <summary class="availability-day__summary">
+                  <span>{{ \Carbon\CarbonImmutable::parse($slotDate)->format('d/m/Y') }}</span>
+                  <small>{{ $slotsForDay->count() }} {{ $slotsForDay->count() === 1 ? 'slot' : 'slot' }}</small>
+                </summary>
                 <div class="availability-slot-list">
                   @foreach ($slotsForDay as $slot)
                     <article class="availability-slot-row">
                       <div>
                         <strong>{{ $slot->start_at->format('H:i') }} - {{ $slot->end_at->format('H:i') }}</strong>
-                        <span>{{ $slot->clinic?->name ?? 'Ambulatorio #'.$slot->clinic_id }}</span>
                       </div>
                       <div class="availability-slot-row__actions">
                         @if ($slot->is_booked)
@@ -259,7 +249,7 @@
                     </div>
                   @endforeach
                 </div>
-              </div>
+              </details>
             @endforeach
           </div>
         @else
@@ -285,9 +275,7 @@
                 <th>Orario</th>
                 <th>Paziente</th>
                 <th>Prestazione</th>
-                <th>Ambulatorio</th>
                 <th>Stato</th>
-                <th>Azioni</th>
               </tr>
             </thead>
             <tbody>
@@ -296,41 +284,7 @@
                   <td class="dashboard-table__time">{{ $appointment->start_at->format('H:i') }}</td>
                   <td>{{ $appointment->patientName() }}</td>
                   <td>{{ $appointment->service?->name ?? 'Appuntamento' }}</td>
-                  <td>{{ $appointment->clinic?->name ?? 'Ambulatorio #'.$appointment->clinic_id }}</td>
                   <td><x-status-badge :status="$appointment->status" /></td>
-                  <td>
-                    <div class="status-action-group">
-                      @if ($appointment->status === \App\Models\Appointment::STATUS_CONFIRMED)
-                        <form method="POST" action="/doctor/appointments/{{ $appointment->id }}/status">@csrf<input type="hidden" name="status" value="checked_in"><button class="btn btn-sm btn-outline-primary">Accetta</button></form>
-                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#noShowAppointmentModal{{ $appointment->id }}">Assente</button>
-                        <div class="modal fade" id="noShowAppointmentModal{{ $appointment->id }}" tabindex="-1" aria-labelledby="noShowAppointmentModal{{ $appointment->id }}Label" aria-hidden="true">
-                          <div class="modal-dialog modal-dialog-centered">
-                            <div class="modal-content">
-                              <div class="modal-header">
-                                <h2 class="modal-title fs-5" id="noShowAppointmentModal{{ $appointment->id }}Label">Segna paziente assente</h2>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
-                              </div>
-                              <div class="modal-body">
-                                Confermi che {{ $appointment->patientName() }} non si e presentato per {{ $appointment->service?->name ?? 'questo appuntamento' }}?
-                              </div>
-                              <div class="modal-footer">
-                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Torna indietro</button>
-                                <form method="POST" action="/doctor/appointments/{{ $appointment->id }}/status">
-                                  @csrf
-                                  <input type="hidden" name="status" value="no_show">
-                                  <button type="submit" class="btn btn-danger">Conferma assenza</button>
-                                </form>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      @elseif ($appointment->status === \App\Models\Appointment::STATUS_CHECKED_IN)
-                        <form method="POST" action="/doctor/appointments/{{ $appointment->id }}/status">@csrf<input type="hidden" name="status" value="completed"><button class="btn btn-sm btn-outline-success">Completa</button></form>
-                      @else
-                        <span class="dashboard-readonly">Nessuna azione</span>
-                      @endif
-                    </div>
-                  </td>
                 </tr>
               @endforeach
             </tbody>

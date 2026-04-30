@@ -3,8 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class MedicalService extends Model
 {
@@ -14,7 +12,6 @@ class MedicalService extends Model
   protected $fillable = [
     'name',
     'category',
-    'specialty_id',
     'duration_minutes',
     'price',
     'is_active',
@@ -29,14 +26,4 @@ class MedicalService extends Model
     ];
   }
 
-  public function specialty(): BelongsTo
-  {
-    return $this->belongsTo(Specialty::class);
-  }
-
-  public function doctors(): BelongsToMany
-  {
-    return $this->belongsToMany(DoctorProfile::class, 'doctor_services', 'service_id', 'doctor_id')
-      ->withTimestamps();
-  }
 }

@@ -8,7 +8,6 @@ use App\Http\Controllers\DoctorDashboardController;
 use App\Http\Controllers\DoctorTreatmentController;
 use App\Http\Controllers\PatientAppointmentController;
 use App\Http\Controllers\PatientDashboardController;
-use App\Http\Controllers\StaffDashboardController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -26,13 +25,13 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::get('/catalog/services', [CatalogController::class, 'services']);
-Route::get('/catalog/doctors', [CatalogController::class, 'doctors']);
 Route::get('/availability', [AvailabilityController::class, 'index']);
 
 Route::middleware('auth')->group(function (): void {
   Route::post('/logout', [AuthController::class, 'logout']);
   Route::get('/unsupported-role', [AuthController::class, 'unsupported']);
-  Route::view('/admin', 'auth.admin')->middleware('role:'.User::ROLE_ADMIN);
+  Route::get('/admin', fn () => redirect()->away(env('PHPMYADMIN_URL', 'http://127.0.0.1:8081')))
+    ->middleware('role:'.User::ROLE_ADMIN);
 
   Route::middleware('role:'.User::ROLE_PATIENT)->group(function (): void {
     Route::get('/patient', [PatientDashboardController::class, 'index']);
@@ -60,13 +59,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/doctor/treatments', [DoctorTreatmentController::class, 'store']);
     Route::get('/doctor/treatments/{offering}/edit', [DoctorTreatmentController::class, 'edit']);
     Route::patch('/doctor/treatments/{offering}', [DoctorTreatmentController::class, 'update']);
-    Route::patch('/doctor/treatments/{offering}/status', [DoctorTreatmentController::class, 'updateStatus']);
+    Route::delete('/doctor/treatments/{offering}', [DoctorTreatmentController::class, 'destroy']);
     Route::post('/doctor/appointments/{appointment}/status', [DoctorDashboardController::class, 'updateStatus']);
-  });
-
-  Route::middleware('role:'.User::ROLE_STAFF)->group(function (): void {
-    Route::get('/staff', [StaffDashboardController::class, 'operations']);
-    Route::get('/staff/appointments', [StaffDashboardController::class, 'appointments']);
-    Route::post('/staff/appointments/{appointment}/status', [StaffDashboardController::class, 'updateStatus']);
   });
 });

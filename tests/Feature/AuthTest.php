@@ -4,11 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Appointment;
 use App\Models\AvailabilitySlot;
-use App\Models\ClinicLocation;
-use App\Models\DoctorProfile;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
-use App\Models\Specialty;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -104,6 +101,19 @@ class AuthTest extends TestCase
 
     $response->assertRedirect('/patient');
     $this->assertAuthenticatedAs($patient);
+  }
+
+  public function test_admin_route_redirects_to_phpmyadmin(): void
+  {
+    $admin = User::create([
+      'username' => 'admin',
+      'password' => Hash::make('admin123'),
+      'role' => User::ROLE_ADMIN,
+    ]);
+
+    $this->actingAs($admin)
+      ->get('/admin')
+      ->assertRedirect('http://127.0.0.1:8081');
   }
 
   public function test_login_accepts_email_when_form_invites_username_or_email(): void
@@ -274,38 +284,27 @@ class AuthTest extends TestCase
       'phone' => '555-0100',
     ]);
 
-    $specialty = Specialty::create(['name' => 'Cardiologia']);
     $doctorUser = User::create([
-      'username' => 'doctor.heart',
+      'username' => 'doctor.derm',
       'password' => Hash::make('doctor123'),
       'role' => User::ROLE_DOCTOR,
     ]);
-    $doctor = DoctorProfile::create([
+    \App\Models\DoctorProfile::create([
       'user_id' => $doctorUser->id,
-      'display_name' => 'Dott.ssa Amelia Cuori',
-      'specialty_id' => $specialty->id,
+      'display_name' => 'Dott. Dorian Pelle',
     ]);
     $service = MedicalService::create([
-      'name' => 'Visita cardiologica',
-      'specialty_id' => $specialty->id,
-    ]);
-    $clinic = ClinicLocation::create([
-      'name' => 'Ambulatorio Centro',
-      'address' => 'Via Roma 1',
+      'name' => 'Visita dermatologica',
     ]);
     $start = CarbonImmutable::now()->addDay()->setTime(10, 0);
     $slot = AvailabilitySlot::create([
-      'doctor_id' => $doctor->id,
-      'clinic_id' => $clinic->id,
       'start_at' => $start,
       'end_at' => $start->addMinutes(30),
       'is_booked' => true,
     ]);
     Appointment::create([
       'patient_id' => $patient->id,
-      'doctor_id' => $doctor->id,
       'service_id' => $service->id,
-      'clinic_id' => $clinic->id,
       'slot_id' => $slot->id,
       'start_at' => $start,
       'end_at' => $start->addMinutes(30),
@@ -318,8 +317,6 @@ class AuthTest extends TestCase
     $response->assertDontSeeText('Confermato');
     $response->assertDontSeeText('Medico');
     $response->assertDontSeeText('Ambulatorio');
-    $response->assertDontSeeText('Dott.ssa Amelia Cuori');
-    $response->assertDontSeeText('Ambulatorio Centro');
     $response->assertDontSee('<span class="badge rounded-pill text-bg-success">
   
 </span>', false);

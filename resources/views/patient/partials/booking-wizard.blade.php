@@ -29,7 +29,7 @@
         @endif
             <span class="service-choice-card__name">{{ $service->name }}</span>
             <span class="service-choice-card__meta">
-              {{ $service->specialty?->name ?? $service->category }} · {{ $service->duration_minutes }} min
+              {{ $service->category }} · {{ $service->duration_minutes }} min
             </span>
             @if ($service->price)
               <span class="service-choice-card__price">€ {{ number_format((float) $service->price, 2, ',', '.') }}</span>

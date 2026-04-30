@@ -5,12 +5,8 @@ namespace Tests\Feature;
 use App\Models\Appointment;
 use App\Models\AppointmentStatusHistory;
 use App\Models\AvailabilitySlot;
-use App\Models\ClinicLocation;
-use App\Models\DoctorProfile;
-use App\Models\DoctorService;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
-use App\Models\Specialty;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,8 +30,6 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertRedirect('/patient/appointments');
     $appointment = Appointment::first();
     $this->assertSame($patient->id, $appointment->patient_id);
-    $this->assertSame($doctor->id, $appointment->doctor_id);
-    $this->assertSame($clinic->id, $appointment->clinic_id);
     $this->assertSame(Appointment::STATUS_CONFIRMED, $appointment->status);
     $this->assertTrue($slot->fresh()->is_booked);
   }
@@ -62,8 +56,6 @@ class AppointmentWorkflowTest extends TestCase
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
     $farStart = CarbonImmutable::now()->addMonths(3)->startOfMonth()->next(CarbonImmutable::MONDAY)->setTime(9, 0);
     $farSlot = AvailabilitySlot::create([
-      'doctor_id' => $doctor->id,
-      'clinic_id' => $clinic->id,
       'start_at' => $farStart,
       'end_at' => $farStart->addMinutes(30),
     ]);
@@ -101,10 +93,8 @@ class AppointmentWorkflowTest extends TestCase
       CarbonImmutable::create(2030, 5, 2, 9, 0),
     ]);
 
-    $starts->each(function (CarbonImmutable $start) use ($doctor, $clinic): void {
+    $starts->each(function (CarbonImmutable $start): void {
       AvailabilitySlot::create([
-        'doctor_id' => $doctor->id,
-        'clinic_id' => $clinic->id,
         'start_at' => $start,
         'end_at' => $start->addMinutes(30),
       ]);
@@ -131,14 +121,10 @@ class AppointmentWorkflowTest extends TestCase
     $later = CarbonImmutable::now()->addDays(5)->setTime(11, 0);
     AvailabilitySlot::query()->delete();
     AvailabilitySlot::create([
-      'doctor_id' => $doctor->id,
-      'clinic_id' => $clinic->id,
       'start_at' => $nearest,
       'end_at' => $nearest->addMinutes(30),
     ]);
     AvailabilitySlot::create([
-      'doctor_id' => $doctor->id,
-      'clinic_id' => $clinic->id,
       'start_at' => $later,
       'end_at' => $later->addMinutes(30),
     ]);
@@ -168,14 +154,10 @@ class AppointmentWorkflowTest extends TestCase
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
     $date = CarbonImmutable::parse($slot->start_at)->startOfDay()->addDay();
     $morningSlot = AvailabilitySlot::create([
-      'doctor_id' => $doctor->id,
-      'clinic_id' => $clinic->id,
       'start_at' => $date->setTime(9, 0),
       'end_at' => $date->setTime(9, 30),
     ]);
     $afternoonSlot = AvailabilitySlot::create([
-      'doctor_id' => $doctor->id,
-      'clinic_id' => $clinic->id,
       'start_at' => $date->setTime(15, 0),
       'end_at' => $date->setTime(15, 30),
     ]);
@@ -192,14 +174,13 @@ class AppointmentWorkflowTest extends TestCase
   public function test_booking_period_filter_keeps_controls_visible_when_no_slots_match(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $date = CarbonImmutable::parse($slot->start_at)->startOfDay()->addDay();
+    AvailabilitySlot::query()->delete();
+    $date = CarbonImmutable::now()->addDay()->startOfDay();
     AvailabilitySlot::create([
-      'doctor_id' => $doctor->id,
-      'clinic_id' => $clinic->id,
       'start_at' => $date->setTime(15, 0),
       'end_at' => $date->setTime(15, 30),
     ]);
-    $weekStart = $date->copy()->startOfWeek()->toDateString();
+    $weekStart = $date->toDateString();
 
     $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$date->toDateString()}&period=mattina");
 
@@ -215,8 +196,6 @@ class AppointmentWorkflowTest extends TestCase
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
     $targetStart = CarbonImmutable::create(2030, 5, 1, 9, 0);
     AvailabilitySlot::create([
-      'doctor_id' => $doctor->id,
-      'clinic_id' => $clinic->id,
       'start_at' => $targetStart,
       'end_at' => $targetStart->addMinutes(30),
     ]);
@@ -308,8 +287,6 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee('Data e ora');
     $response->assertDontSee('Medico');
     $response->assertDontSee('Ambulatorio');
-    $response->assertDontSeeText('Dott.ssa Amelia Cuori');
-    $response->assertDontSeeText('Ambulatorio Centro');
     $response->assertDontSee('<button type="submit" class="slot-time-button"', false);
   }
 
@@ -334,6 +311,7 @@ class AppointmentWorkflowTest extends TestCase
     $response = $this->actingAs($patientUser)->get('/patient/appointments');
 
     $response->assertOk();
+    $response->assertSee('Modifica');
     $response->assertSee('Elimina appuntamento');
     $response->assertSee('Conferma annullamento');
     $response->assertSee("/appointments/{$appointment->id}/cancel", false);
@@ -342,8 +320,6 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertDontSeeText('Confermato');
     $response->assertDontSeeText('Medico');
     $response->assertDontSeeText('Ambulatorio');
-    $response->assertDontSeeText('Dott.ssa Amelia Cuori');
-    $response->assertDontSeeText('Ambulatorio Centro');
   }
 
   public function test_patient_can_open_reschedule_wizard_and_confirm_new_slot(): void
@@ -400,20 +376,17 @@ class AppointmentWorkflowTest extends TestCase
   private function bookingContext(): array
   {
     [$patientUser, $patient] = $this->patient('patient');
-    $specialty = Specialty::create(['name' => 'Cardiologia']);
     $doctorUser = User::create([
-      'username' => 'doctor.heart',
+      'username' => 'doctor.derm',
       'password' => Hash::make('doctor123'),
       'role' => User::ROLE_DOCTOR,
     ]);
-    $doctor = DoctorProfile::create([
+    $doctor = \App\Models\DoctorProfile::create([
       'user_id' => $doctorUser->id,
-      'display_name' => 'Dott.ssa Amelia Cuori',
-      'specialty_id' => $specialty->id,
+      'display_name' => 'Dott. Dorian Pelle',
     ]);
-    $service = MedicalService::create(['name' => 'Visita cardiologica', 'specialty_id' => $specialty->id]);
-    DoctorService::create(['doctor_id' => $doctor->id, 'service_id' => $service->id]);
-    $clinic = ClinicLocation::create(['name' => 'Ambulatorio Centro', 'address' => 'Via Roma 1']);
+    $service = MedicalService::create(['name' => 'Visita dermatologica']);
+    $clinic = null;
     $slot = $this->slot($doctor, $clinic, 24);
 
     return [$patientUser, $patient, $doctor, $service, $clinic, $slot];
@@ -431,13 +404,11 @@ class AppointmentWorkflowTest extends TestCase
     return [$user, $profile];
   }
 
-  private function slot(DoctorProfile $doctor, ClinicLocation $clinic, int $offsetHours): AvailabilitySlot
+  private function slot($doctor, $clinic, int $offsetHours): AvailabilitySlot
   {
     $start = CarbonImmutable::now()->addHours($offsetHours);
 
     return AvailabilitySlot::create([
-      'doctor_id' => $doctor->id,
-      'clinic_id' => $clinic->id,
       'start_at' => $start,
       'end_at' => $start->addMinutes(30),
     ]);
@@ -445,9 +416,9 @@ class AppointmentWorkflowTest extends TestCase
 
   private function appointment(
     PatientProfile $patient,
-    DoctorProfile $doctor,
+    $doctor,
     MedicalService $service,
-    ClinicLocation $clinic,
+    $clinic,
     AvailabilitySlot $slot,
     string $status = Appointment::STATUS_CONFIRMED,
   ): Appointment {
@@ -455,9 +426,7 @@ class AppointmentWorkflowTest extends TestCase
 
     return Appointment::create([
       'patient_id' => $patient->id,
-      'doctor_id' => $doctor->id,
       'service_id' => $service->id,
-      'clinic_id' => $clinic->id,
       'slot_id' => $slot->id,
       'start_at' => $slot->start_at,
       'end_at' => $slot->end_at,

@@ -14,12 +14,8 @@
       ['to' => '/doctor/schedule', 'label' => 'Agenda', 'active' => ['doctor/schedule', 'doctor/availability/*']],
       ['to' => '/doctor/treatments', 'label' => 'Trattamenti', 'active' => ['doctor/treatments', 'doctor/treatments/*']],
     ],
-    'staff' => [
-      ['to' => '/staff', 'label' => 'Operativita'],
-      ['to' => '/staff/appointments', 'label' => 'Appuntamenti'],
-    ],
   ][$role] ?? [];
-  $roleLabels = ['patient' => 'Paziente', 'doctor' => 'Medico', 'staff' => 'Staff', 'admin' => 'Admin'];
+  $roleLabels = ['patient' => 'Paziente', 'doctor' => 'Medico', 'admin' => 'Admin'];
 @endphp
 <!doctype html>
 <html lang="it">
@@ -95,7 +91,6 @@
               {{ $errors->first() }}
             </div>
           @endif
-          {{ $slot ?? '' }}
           @yield('content')
         </main>
       </div>

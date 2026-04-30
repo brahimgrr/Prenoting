@@ -36,6 +36,7 @@ services:
       SESSION_DRIVER: database
       CACHE_STORE: database
       QUEUE_CONNECTION: sync
+      PHPMYADMIN_URL: http://127.0.0.1:${PHPMYADMIN_HOST_PORT:-8081}
     ports:
       - "${APP_HOST_PORT:-8080}:80"
     volumes:
@@ -72,6 +73,19 @@ services:
     command: >
       sh -c "npm install
       && npm run dev -- --host 0.0.0.0 --port 5173"
+
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USERNAME:-prenoting}
+      PMA_PASSWORD: ${DB_PASSWORD:-prenoting_password}
+    ports:
+      - "${PHPMYADMIN_HOST_PORT:-8081}:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
 
 volumes:
   mysql_data:

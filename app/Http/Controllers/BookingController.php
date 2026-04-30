@@ -18,7 +18,7 @@ class BookingController extends Controller
   public function show(Request $request): View
   {
     $selectedService = $request->integer('service_id')
-      ? MedicalService::with('specialty')->where('is_active', true)->find($request->integer('service_id'))
+      ? MedicalService::where('is_active', true)->find($request->integer('service_id'))
       : null;
     $selectedSlot = $selectedService ? $this->selectedSlotFor($selectedService, $request->integer('slot_id')) : null;
     $selectedPeriod = $this->resolveSelectedPeriod($request);
@@ -31,7 +31,7 @@ class BookingController extends Controller
     $visibleMonth = $this->resolveVisibleMonth($request, $weekDays, $selectedSlot);
 
     return view('patient.booking', [
-      'services' => MedicalService::with('specialty')->where('is_active', true)->orderBy('name')->get(),
+      'services' => MedicalService::where('is_active', true)->orderBy('name')->get(),
       'selectedService' => $selectedService,
       'selectedDate' => $selectedDate,
       'selectedSlot' => $selectedSlot,
@@ -54,7 +54,7 @@ class BookingController extends Controller
   public function week(Request $request): View
   {
     $selectedService = $request->integer('service_id')
-      ? MedicalService::with('specialty')->where('is_active', true)->find($request->integer('service_id'))
+      ? MedicalService::where('is_active', true)->find($request->integer('service_id'))
       : null;
     $selectedPeriod = $this->resolveSelectedPeriod($request);
     $allAvailableDates = $selectedService ? $this->availableDatesFor($selectedService) : collect();
@@ -281,10 +281,6 @@ class BookingController extends Controller
   private function availableSlotQuery(MedicalService $service)
   {
     return AvailabilitySlot::query()
-      ->with(['doctor', 'clinic'])
-      ->publicAvailable()
-      ->whereHas('doctor.services', fn ($services) => $services
-        ->where('medical_services.id', $service->id)
-        ->where('is_active', true));
+      ->publicAvailable();
   }
 }

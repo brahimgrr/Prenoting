@@ -788,10 +788,46 @@ a {
   padding: 1rem;
 }
 
+.availability-day__summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-weight: 800;
+  gap: 1rem;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.availability-day__summary::-webkit-details-marker {
+  display: none;
+}
+
+.availability-day__summary::after {
+  color: var(--color-muted);
+  content: "Apri";
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.availability-day[open] .availability-day__summary::after {
+  content: "Chiudi";
+}
+
+.availability-day__summary small {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-left: auto;
+}
+
 .availability-day h3 {
   font-size: 1rem;
   font-weight: 800;
   margin: 0;
+}
+
+.availability-day[open] .availability-slot-list {
+  margin-top: 0.75rem;
 }
 
 .availability-slot-row {
@@ -1026,14 +1062,6 @@ a {
 
 .treatment-form-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.treatment-active-check {
-  align-items: center;
-  display: flex;
-  gap: 0.55rem;
-  margin: 0;
-  min-height: 2.75rem;
 }
 
 .treatment-card-grid {
