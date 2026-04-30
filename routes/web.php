@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
   $user = auth()->user();
 
-  return $user ? redirect($user->portalRoute() ?? '/unsupported-role') : redirect('/login');
+  return $user ? redirect($user->portalRoute() ?? '/unsupported-role') : view('landing');
 });
 
 Route::middleware('guest')->group(function (): void {
