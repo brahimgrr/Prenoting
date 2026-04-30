@@ -88,7 +88,7 @@
           {{ $isReschedule ? 'Conferma spostamento' : 'Conferma prenotazione' }}
         </button>
         <a class="btn btn-outline-secondary" href="{{ $cancelSelectionUrl }}">
-          {{ $isReschedule ? 'Annulla spostamento' : 'Annulla prenotazione' }}
+          {{ $isReschedule ? 'Annulla spostamento' : 'Cambia selezione' }}
         </a>
       </form>
     </section>

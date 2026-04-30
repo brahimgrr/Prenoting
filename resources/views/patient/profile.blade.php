@@ -19,31 +19,31 @@
           <h2>Dati anagrafici</h2>
           <span>Dati non modificabili</span>
         </div>
-        <div class="profile-grid">
-          <label class="form-label">
-            Nome
-            <input class="form-control" value="{{ $user->first_name ?: '-' }}" readonly>
-          </label>
-          <label class="form-label">
-            Cognome
-            <input class="form-control" value="{{ $user->last_name ?: '-' }}" readonly>
-          </label>
-          <label class="form-label">
-            Sesso
-            <input class="form-control" value="{{ match($profile?->gender) { 'M' => 'Maschile', 'F' => 'Femminile', default => '-' } }}" readonly>
-          </label>
-          <label class="form-label">
-            Data di nascita
-            <input class="form-control" value="{{ $profile?->date_of_birth?->format('d/m/Y') ?: '-' }}" readonly>
-          </label>
-          <label class="form-label">
-            Luogo di nascita
-            <input class="form-control" value="{{ $profile?->place_of_birth ?: '-' }}" readonly>
-          </label>
-          <label class="form-label">
-            Codice fiscale
-            <input class="form-control" value="{{ $profile?->codice_fiscale ?: '-' }}" readonly>
-          </label>
+        <div class="profile-data-grid">
+          <div class="profile-data-tile">
+            <span>Nome</span>
+            <strong>{{ $user->first_name ?: '-' }}</strong>
+          </div>
+          <div class="profile-data-tile">
+            <span>Cognome</span>
+            <strong>{{ $user->last_name ?: '-' }}</strong>
+          </div>
+          <div class="profile-data-tile">
+            <span>Sesso</span>
+            <strong>{{ match($profile?->gender) { 'M' => 'Maschile', 'F' => 'Femminile', default => '-' } }}</strong>
+          </div>
+          <div class="profile-data-tile">
+            <span>Data di nascita</span>
+            <strong>{{ $profile?->date_of_birth?->format('d/m/Y') ?: '-' }}</strong>
+          </div>
+          <div class="profile-data-tile">
+            <span>Luogo di nascita</span>
+            <strong>{{ $profile?->place_of_birth ?: '-' }}</strong>
+          </div>
+          <div class="profile-data-tile">
+            <span>Codice fiscale</span>
+            <strong>{{ $profile?->codice_fiscale ?: '-' }}</strong>
+          </div>
         </div>
         <p class="profile-lock-note">Questi dati non sono modificabili dal portale.</p>
       </section>

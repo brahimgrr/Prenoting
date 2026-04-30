@@ -71,6 +71,27 @@
                   <h3>{{ $offering->name }}</h3>
                   <span>{{ $categoryLabels[$offering->category] ?? $offering->category }}</span>
                 </div>
+                <div class="card-action-menu dropdown">
+                  <button
+                    class="btn btn-sm btn-outline-secondary card-action-menu__trigger"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    aria-label="Azioni trattamento"
+                  >...</button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <a href="/doctor/treatments/{{ $offering->id }}/edit" class="dropdown-item">Modifica trattamento</a>
+                    </li>
+                    <li>
+                      <form method="POST" action="/doctor/treatments/{{ $offering->id }}" onsubmit="return window.confirm('Eliminare questo trattamento?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="dropdown-item text-danger">Elimina trattamento</button>
+                      </form>
+                    </li>
+                  </ul>
+                </div>
               </div>
               <dl class="treatment-card__facts">
                 <div>
@@ -78,14 +99,6 @@
                   <dd>{{ $offering->price !== null ? 'EUR '.number_format((float) $offering->price, 2, ',', '.') : 'Da definire' }}</dd>
                 </div>
               </dl>
-              <div class="treatment-card__actions">
-                <a href="/doctor/treatments/{{ $offering->id }}/edit" class="btn btn-sm btn-outline-primary">Modifica</a>
-                <form method="POST" action="/doctor/treatments/{{ $offering->id }}" onsubmit="return window.confirm('Eliminare questo trattamento?');">
-                  @csrf
-                  @method('DELETE')
-                  <button type="submit" class="btn btn-sm btn-outline-danger">Elimina</button>
-                </form>
-              </div>
             </article>
           @endforeach
         </div>

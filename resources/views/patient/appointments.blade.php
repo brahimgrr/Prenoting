@@ -18,6 +18,7 @@
         <div class="portal-panel empty-state">
           <h3>Nessun appuntamento imminente</h3>
           <p>Le visite future confermate compariranno qui.</p>
+          <a class="btn btn-primary empty-state__action" href="/patient/book">Prenota visita</a>
         </div>
       @endforelse
     </section>

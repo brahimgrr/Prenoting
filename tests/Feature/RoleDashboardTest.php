@@ -20,14 +20,25 @@ class RoleDashboardTest extends TestCase
   public function test_doctor_sees_schedule_without_raw_data_or_action_buttons(): void
   {
     [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
+    $appointmentDate = $appointment->start_at->toDateString();
 
     $this->actingAs($doctorUser)
-      ->get('/doctor/schedule')
+      ->get("/doctor/schedule?date={$appointmentDate}")
       ->assertOk()
+      ->assertSee('Agenda del giorno')
+      ->assertSee('class="doctor-agenda-timeline"', false)
+      ->assertSee('doctor-agenda-item--appointment', false)
       ->assertSee('Mario Rossi')
       ->assertSee('Altro Paziente')
+      ->assertSee('Gestisci disponibilita')
+      ->assertSee('<details class="availability-manager"', false)
       ->assertSee('<details class="availability-day"', false)
       ->assertSee('/doctor/availability/', false)
+      ->assertSee('type="hidden" name="slot_duration" value="30"', false)
+      ->assertDontSee('Durata slot')
+      ->assertDontSee('<select class="form-select" name="slot_duration"', false)
+      ->assertDontSee('Agenda completa')
+      ->assertDontSee('<table class="table dashboard-table', false)
       ->assertDontSee('Azioni')
       ->assertDontSee('Accetta')
       ->assertDontSee('Assente')
@@ -47,6 +58,85 @@ class RoleDashboardTest extends TestCase
       'changed_by' => $doctorUser->id,
       'new_status' => Appointment::STATUS_CHECKED_IN,
     ]);
+  }
+
+  public function test_doctor_schedule_without_date_defaults_to_today(): void
+  {
+    [$doctorUser] = $this->dashboardContext();
+    $today = now()->toDateString();
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/schedule')
+      ->assertOk()
+      ->assertSee("value=\"{$today}\"", false)
+      ->assertSee("{$today}")
+      ->assertSee('Agenda del giorno');
+  }
+
+  public function test_doctor_agenda_timeline_shows_selected_day_slots_with_inline_actions(): void
+  {
+    [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
+    $date = CarbonImmutable::now()->addDays(3)->toDateString();
+    $patient = $appointment->patient;
+    $service = $appointment->service;
+
+    $freeSlot = AvailabilitySlot::create([
+      'start_at' => CarbonImmutable::parse("{$date} 10:00:00"),
+      'end_at' => CarbonImmutable::parse("{$date} 10:30:00"),
+    ]);
+    $blockedSlot = AvailabilitySlot::create([
+      'start_at' => CarbonImmutable::parse("{$date} 10:30:00"),
+      'end_at' => CarbonImmutable::parse("{$date} 11:00:00"),
+      'is_blocked' => true,
+    ]);
+    $bookedSlot = AvailabilitySlot::create([
+      'start_at' => CarbonImmutable::parse("{$date} 11:00:00"),
+      'end_at' => CarbonImmutable::parse("{$date} 11:30:00"),
+      'is_booked' => true,
+    ]);
+    $this->appointment($patient, $service, $bookedSlot);
+
+    $this->actingAs($doctorUser)
+      ->get("/doctor/schedule?date={$date}")
+      ->assertOk()
+      ->assertSee('class="doctor-agenda-timeline"', false)
+      ->assertSeeInOrder([
+        '10:00',
+        'Libero',
+        'Blocca',
+        '10:30',
+        'Bloccato',
+        'Riapri',
+        '11:00',
+        'Mario Rossi',
+        'Visita dermatologica',
+      ])
+      ->assertSee("action=\"/doctor/availability/{$freeSlot->id}/block\"", false)
+      ->assertSee("action=\"/doctor/availability/{$blockedSlot->id}/unblock\"", false)
+      ->assertDontSee("action=\"/doctor/availability/{$bookedSlot->id}/block\"", false)
+      ->assertDontSee("action=\"/doctor/availability/{$bookedSlot->id}/unblock\"", false);
+  }
+
+  public function test_doctor_today_uses_timeline_without_availability_management(): void
+  {
+    [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
+    $todayStart = CarbonImmutable::now()->setTime(9, 0);
+    $todaySlot = AvailabilitySlot::create([
+      'start_at' => $todayStart,
+      'end_at' => $todayStart->addMinutes(30),
+      'is_booked' => true,
+    ]);
+    $this->appointment($appointment->patient, $appointment->service, $todaySlot);
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor')
+      ->assertOk()
+      ->assertSee('class="doctor-agenda-timeline"', false)
+      ->assertSee('doctor-agenda-item--appointment', false)
+      ->assertSee('Mario Rossi')
+      ->assertDontSee('Gestisci disponibilita')
+      ->assertDontSee('class="availability-manager"', false)
+      ->assertDontSee('/doctor/availability/preview', false);
   }
 
   public function test_doctor_can_block_and_unblock_future_availability_slot(): void
@@ -95,6 +185,7 @@ class RoleDashboardTest extends TestCase
     $response->assertSee('1 slot creabile');
     $response->assertSee('1 saltato');
     $response->assertDontSee('Ambulatorio');
+    $response->assertDontSee('durata slot');
     $response->assertSee('09:30');
   }
 
@@ -195,7 +286,13 @@ class RoleDashboardTest extends TestCase
     $this->actingAs($doctorUser)
       ->get('/doctor/treatments')
       ->assertOk()
-      ->assertSee('Elimina')
+      ->assertSee('aria-label="Azioni trattamento"', false)
+      ->assertSee('data-bs-toggle="dropdown"', false)
+      ->assertSee('Modifica trattamento')
+      ->assertSee("href=\"/doctor/treatments/{$offering->id}/edit\"", false)
+      ->assertSee('Elimina trattamento')
+      ->assertSee("action=\"/doctor/treatments/{$offering->id}\"", false)
+      ->assertDontSee('class="treatment-card__actions"', false)
       ->assertDontSee('Attivo')
       ->assertDontSee('Disattiva')
       ->assertDontSee('Durata');

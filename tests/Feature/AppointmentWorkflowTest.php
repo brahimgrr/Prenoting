@@ -280,7 +280,7 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee('Conferma prenotazione');
     $response->assertSee('name="slot_id" value="'.$slot->id.'"', false);
     $response->assertSee('action="/appointments"', false);
-    $response->assertSee('Annulla prenotazione');
+    $response->assertSee('Cambia selezione');
     $response->assertSee('#booking-step-service', false);
     $response->assertSee('#booking-confirm', false);
     $response->assertSee('Prestazione');
@@ -303,23 +303,43 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee("href=\"http://127.0.0.1:8080/patient/book?service_id={$service->id}&amp;week_start={$weekStart}&amp;date={$date}&amp;slot_id={$slot->id}#booking-confirm\"", false);
   }
 
-  public function test_patient_appointments_page_renders_cancel_confirmation_modal(): void
+  public function test_patient_appointments_page_renders_compact_action_menu_and_cancel_panel(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
     $appointment = $this->appointment($patient, $doctor, $service, $clinic, $slot);
+    $pastSlot = $this->slot($doctor, $clinic, -48);
+    $this->appointment($patient, $doctor, $service, $clinic, $pastSlot, Appointment::STATUS_COMPLETED);
 
     $response = $this->actingAs($patientUser)->get('/patient/appointments');
 
     $response->assertOk();
-    $response->assertSee('Modifica');
-    $response->assertSee('Elimina appuntamento');
+    $response->assertSee('aria-label="Azioni appuntamento"', false);
+    $response->assertSee('data-bs-toggle="dropdown"', false);
+    $response->assertSee('Sposta appuntamento');
+    $response->assertSee("href=\"/appointments/{$appointment->id}/edit\"", false);
+    $response->assertSee('Annulla appuntamento');
+    $response->assertSee("data-cancel-panel-target=\"#appointmentCancelPanel{$appointment->id}\"", false);
+    $response->assertSee("id=\"appointmentCancelPanel{$appointment->id}\"", false);
     $response->assertSee('Conferma annullamento');
     $response->assertSee("/appointments/{$appointment->id}/cancel", false);
     $response->assertSee('name="cancellation_reason"', false);
+    $response->assertDontSee('Elimina appuntamento');
+    $response->assertDontSee('Solo dettagli');
     $response->assertDontSee('data-bs-toggle="modal"', false);
     $response->assertDontSeeText('Confermato');
     $response->assertDontSeeText('Medico');
     $response->assertDontSeeText('Ambulatorio');
+  }
+
+  public function test_patient_appointments_empty_upcoming_state_links_to_booking(): void
+  {
+    [$patientUser] = $this->bookingContext();
+
+    $response = $this->actingAs($patientUser)->get('/patient/appointments');
+
+    $response->assertOk();
+    $response->assertSee('Nessun appuntamento imminente');
+    $response->assertSee('class="btn btn-primary empty-state__action" href="/patient/book"', false);
   }
 
   public function test_patient_can_open_reschedule_wizard_and_confirm_new_slot(): void

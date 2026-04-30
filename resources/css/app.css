@@ -476,6 +476,48 @@ a {
   background: #f8fafc;
 }
 
+.appointment-card__title,
+.treatment-card__header > div:first-child {
+  min-width: 0;
+}
+
+.card-action-menu {
+  flex-shrink: 0;
+  margin-left: auto;
+  position: relative;
+}
+
+.card-action-menu__trigger {
+  align-items: center;
+  display: inline-flex;
+  height: 2.25rem;
+  justify-content: center;
+  line-height: 1;
+  min-width: 2.25rem;
+  padding: 0 0.5rem;
+}
+
+.card-action-menu .dropdown-menu {
+  border-color: var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-panel);
+  left: auto;
+  min-width: 13rem;
+  padding: 0.35rem;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  z-index: 1050;
+}
+
+.card-action-menu .dropdown-item {
+  border-radius: 6px;
+  font-weight: 650;
+}
+
+.card-action-menu form {
+  margin: 0;
+}
+
 .appointment-actions,
 .status-action-group {
   align-items: flex-start;
@@ -504,10 +546,34 @@ a {
   flex-basis: 100%;
 }
 
+.appointment-cancel-panel {
+  background: #fff7f7;
+  border: 1px solid rgba(220, 38, 38, 0.22);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.appointment-cancel-panel__header {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.appointment-cancel-panel__header strong {
+  color: #991b1b;
+}
+
+.appointment-cancel-panel__header p {
+  margin: 0.15rem 0 0;
+}
+
 .appointment-cancel-form {
   display: grid;
   gap: 0.75rem;
-  margin-top: 0.75rem;
+  margin: 0;
 }
 
 .appointment-cancel-actions {
@@ -532,6 +598,11 @@ a {
 
 .appointment-group + .appointment-group {
   margin-top: 1.5rem;
+}
+
+.empty-state__action {
+  margin-top: 0.75rem;
+  width: fit-content;
 }
 
 .booking-layout {
@@ -765,6 +836,34 @@ a {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.profile-data-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-data-tile {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.85rem;
+}
+
+.profile-data-tile span {
+  color: var(--color-muted);
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.profile-data-tile strong {
+  color: var(--color-navy);
+  display: block;
+  margin-top: 0.2rem;
+}
+
 .profile-form {
   display: grid;
   gap: 1rem;
@@ -949,6 +1048,153 @@ a {
   margin-bottom: 1rem;
 }
 
+.doctor-agenda-panel {
+  margin-bottom: 1rem;
+}
+
+.doctor-agenda-timeline {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.doctor-agenda-item {
+  align-items: stretch;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 5rem minmax(0, 1fr);
+}
+
+.doctor-agenda-item__time {
+  color: var(--color-navy);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+  padding-top: 0.85rem;
+  text-align: right;
+}
+
+.doctor-agenda-item__body {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid #94a3b8;
+  border-radius: 8px;
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.85rem 1rem;
+}
+
+.doctor-agenda-item--appointment .doctor-agenda-item__body {
+  border-left-color: var(--color-blue);
+}
+
+.doctor-agenda-item--free .doctor-agenda-item__body {
+  border-left-color: var(--color-teal);
+}
+
+.doctor-agenda-item--blocked .doctor-agenda-item__body {
+  border-left-color: #f59e0b;
+}
+
+.doctor-agenda-item__main {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.doctor-agenda-item__main h3 {
+  color: var(--color-navy);
+  font-size: 1rem;
+  font-weight: 850;
+  margin: 0;
+}
+
+.doctor-agenda-item__main p {
+  font-weight: 700;
+  margin: 0.15rem 0 0;
+}
+
+.doctor-agenda-item__meta {
+  color: var(--color-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+  font-weight: 750;
+  gap: 0.45rem 0.8rem;
+}
+
+.doctor-agenda-item__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.doctor-agenda-item__actions form {
+  margin: 0;
+}
+
+.availability-manager {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-panel);
+  margin-bottom: 1rem;
+  overflow: hidden;
+  padding: 0;
+}
+
+.availability-manager__summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  list-style: none;
+  padding: 1.15rem 1.5rem;
+}
+
+.availability-manager__summary::-webkit-details-marker {
+  display: none;
+}
+
+.availability-manager__summary::after {
+  color: var(--color-blue);
+  content: "Apri";
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.availability-manager[open] .availability-manager__summary::after {
+  content: "Chiudi";
+}
+
+.availability-manager__summary span {
+  color: var(--color-navy);
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+
+.availability-manager__summary small {
+  color: var(--color-muted);
+  font-weight: 750;
+  margin-left: auto;
+}
+
+.availability-manager__content {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.availability-manager__block + .availability-manager__block {
+  border-top: 1px solid var(--color-border);
+  padding-top: 1.25rem;
+}
+
 .dashboard-filter-grid {
   align-items: end;
   display: grid;
@@ -1020,7 +1266,7 @@ a {
 .availability-preview-stats {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .availability-preview-stats div {
@@ -1123,16 +1369,6 @@ a {
   margin: 0.1rem 0 0;
 }
 
-.treatment-card__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.treatment-card__actions form {
-  margin: 0;
-}
-
 .operations-summary-grid {
   display: grid;
   gap: 1rem;
@@ -1233,7 +1469,8 @@ a {
     .availability-preview-stats,
     .treatment-form-grid,
     .treatment-card-grid,
-    .profile-grid {
+    .profile-grid,
+    .profile-data-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1259,10 +1496,16 @@ a {
 
   .portal-heading-row,
   .section-heading,
-  .appointment-card__header,
   .appointment-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .appointment-card__header,
+  .treatment-card__header {
+    align-items: flex-start;
+    flex-direction: row;
+    width: 100%;
   }
 
   .next-appointment dl,
@@ -1284,6 +1527,30 @@ a {
 
   .availability-slot-row__actions {
     justify-content: flex-start;
+  }
+
+  .doctor-agenda-item {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-agenda-item__time {
+    padding-top: 0;
+    text-align: left;
+  }
+
+  .doctor-agenda-item__main,
+  .availability-manager__summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .doctor-agenda-item__actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .availability-manager__summary small {
+    margin-left: 0;
   }
 
   .appointment-row__meta {

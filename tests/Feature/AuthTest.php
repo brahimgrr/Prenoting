@@ -228,8 +228,11 @@ class AuthTest extends TestCase
     $response = $this->actingAs($user)->get('/patient/profile');
 
     $response->assertOk();
+    $response->assertSee('class="profile-data-grid"', false);
+    $response->assertSee('class="profile-data-tile"', false);
     $response->assertSee('Codice fiscale');
     $response->assertSee('RSSMRA80A01H501U');
+    $response->assertDontSee(' readonly', false);
     $response->assertDontSeeText('Codice identificativo');
   }
 

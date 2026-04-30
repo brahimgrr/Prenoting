@@ -147,8 +147,9 @@ class DoctorDashboardController extends Controller
 
   private function viewSchedule(Request $request, string $mode, ?array $availabilityPreview = null): View
   {
-    $date = $request->query('date');
-    $effectiveDate = $mode === 'today' ? now()->toDateString() : $date;
+    $selectedDate = $mode === 'today'
+      ? now()->toDateString()
+      : (string) $request->query('date', now()->toDateString());
     $batchForm = $availabilityPreview['input'] ?? [
       'start_date' => CarbonImmutable::now()->toDateString(),
       'end_date' => CarbonImmutable::now()->addWeeks(2)->toDateString(),
@@ -158,16 +159,21 @@ class DoctorDashboardController extends Controller
       'slot_duration' => 30,
     ];
     $appointments = Appointment::withPortalRelations()
-      ->when($effectiveDate, fn ($query, $selectedDate) => $query->whereDate('start_at', $selectedDate))
+      ->whereDate('start_at', $selectedDate)
       ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
+      ->orderBy('start_at')
+      ->get();
+    $daySlots = AvailabilitySlot::query()
+      ->whereDate('start_at', $selectedDate)
       ->orderBy('start_at')
       ->get();
 
     return view('doctor.dashboard', [
       'mode' => $mode,
-      'date' => $date ?? now()->toDateString(),
+      'date' => $selectedDate,
       'appointments' => $appointments,
-      'visibleAppointments' => $mode === 'today' ? $appointments->take(4) : $appointments,
+      'daySlots' => $daySlots,
+      'timelineItems' => $this->buildTimelineItems($appointments, $daySlots),
       'availabilityPreview' => $availabilityPreview,
       'batchForm' => $batchForm,
       'availabilitySlots' => AvailabilitySlot::query()
@@ -176,6 +182,69 @@ class DoctorDashboardController extends Controller
         ->get()
         ->groupBy(fn (AvailabilitySlot $slot) => $slot->start_at->toDateString()),
     ]);
+  }
+
+  private function buildTimelineItems($appointments, $daySlots)
+  {
+    $appointmentsBySlot = $appointments
+      ->filter(fn (Appointment $appointment) => $appointment->slot_id !== null)
+      ->keyBy('slot_id');
+    $coveredAppointmentIds = collect();
+
+    $slotItems = $daySlots->map(function (AvailabilitySlot $slot) use ($appointmentsBySlot, $coveredAppointmentIds) {
+      $appointment = $appointmentsBySlot->get($slot->id);
+
+      if ($appointment) {
+        $coveredAppointmentIds->push($appointment->id);
+
+        return [
+          'type' => 'appointment',
+          'state' => 'booked',
+          'start_at' => $appointment->start_at,
+          'end_at' => $appointment->end_at,
+          'slot' => $slot,
+          'appointment' => $appointment,
+        ];
+      }
+
+      return [
+        'type' => 'slot',
+        'state' => $this->slotTimelineState($slot),
+        'start_at' => $slot->start_at,
+        'end_at' => $slot->end_at,
+        'slot' => $slot,
+        'appointment' => null,
+      ];
+    });
+
+    $fallbackAppointmentItems = $appointments
+      ->reject(fn (Appointment $appointment) => $coveredAppointmentIds->contains($appointment->id))
+      ->map(fn (Appointment $appointment) => [
+        'type' => 'appointment',
+        'state' => 'booked',
+        'start_at' => $appointment->start_at,
+        'end_at' => $appointment->end_at,
+        'slot' => $appointment->slot,
+        'appointment' => $appointment,
+      ]);
+
+    return $slotItems
+      ->concat($fallbackAppointmentItems)
+      ->sortBy(fn (array $item) => $item['start_at']->getTimestamp())
+      ->values();
+  }
+
+  private function slotTimelineState(AvailabilitySlot $slot): string
+  {
+    if ($slot->is_blocked) {
+      return 'blocked';
+    }
+
+    if ($slot->is_booked) {
+      return 'booked';
+    }
+
+    return 'free';
   }
 
   private function authorizeDoctorArea(Request $request): void
