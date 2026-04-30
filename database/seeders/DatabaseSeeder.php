@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\AvailabilitySlot;
 use App\Models\DoctorProfile;
-use App\Models\DoctorTreatmentOffering;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
 use App\Models\User;
@@ -64,30 +63,17 @@ class DatabaseSeeder extends Seeder
       ],
     );
 
-    $services = [];
     foreach ([
       ['Visita dermatologica', MedicalService::CATEGORY_VISIT, 30, '120.00'],
       ['Controllo nei', MedicalService::CATEGORY_EXAM, 30, '90.00'],
     ] as [$name, $category, $duration, $price]) {
-      $services[$name] = MedicalService::updateOrCreate(
+      MedicalService::updateOrCreate(
         ['name' => $name],
         [
           'category' => $category,
           'duration_minutes' => $duration,
           'price' => $price,
           'is_active' => true,
-        ],
-      );
-    }
-
-    foreach ($services as $service) {
-      DoctorTreatmentOffering::updateOrCreate(
-        ['name' => $service->name],
-        [
-          'category' => $service->category,
-          'duration_minutes' => $service->duration_minutes,
-          'price' => $service->price,
-          'is_active' => $service->is_active,
         ],
       );
     }

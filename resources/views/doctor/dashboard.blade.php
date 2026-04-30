@@ -198,55 +198,19 @@
                           <span class="badge text-bg-secondary">Prenotato</span>
                         @elseif ($slot->is_blocked)
                           <span class="badge text-bg-warning">Bloccato</span>
-                          <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#unblockSlotModal{{ $slot->id }}">Riapri</button>
+                          <form method="POST" action="/doctor/availability/{{ $slot->id }}/unblock">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Riapri</button>
+                          </form>
                         @else
                           <span class="badge text-bg-success">Libero</span>
-                          <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#blockSlotModal{{ $slot->id }}">Blocca</button>
+                          <form method="POST" action="/doctor/availability/{{ $slot->id }}/block">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Blocca</button>
+                          </form>
                         @endif
                       </div>
                     </article>
-
-                    <div class="modal fade" id="blockSlotModal{{ $slot->id }}" tabindex="-1" aria-labelledby="blockSlotModal{{ $slot->id }}Label" aria-hidden="true">
-                      <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                          <div class="modal-header">
-                            <h2 class="modal-title fs-5" id="blockSlotModal{{ $slot->id }}Label">Blocca disponibilita</h2>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
-                          </div>
-                          <div class="modal-body">
-                            Bloccare lo slot del {{ $slot->start_at->format('d/m/Y H:i') }} lo nascondera ai pazienti.
-                          </div>
-                          <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Torna indietro</button>
-                            <form method="POST" action="/doctor/availability/{{ $slot->id }}/block">
-                              @csrf
-                              <button type="submit" class="btn btn-danger">Blocca slot</button>
-                            </form>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="modal fade" id="unblockSlotModal{{ $slot->id }}" tabindex="-1" aria-labelledby="unblockSlotModal{{ $slot->id }}Label" aria-hidden="true">
-                      <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                          <div class="modal-header">
-                            <h2 class="modal-title fs-5" id="unblockSlotModal{{ $slot->id }}Label">Riapri disponibilita</h2>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
-                          </div>
-                          <div class="modal-body">
-                            Riaprire lo slot del {{ $slot->start_at->format('d/m/Y H:i') }} lo rendera nuovamente prenotabile.
-                          </div>
-                          <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Torna indietro</button>
-                            <form method="POST" action="/doctor/availability/{{ $slot->id }}/unblock">
-                              @csrf
-                              <button type="submit" class="btn btn-primary">Riapri slot</button>
-                            </form>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   @endforeach
                 </div>
               </details>

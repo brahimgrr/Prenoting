@@ -57,9 +57,9 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/doctor/availability/{slot}/unblock', [DoctorDashboardController::class, 'unblockAvailability']);
     Route::get('/doctor/treatments', [DoctorTreatmentController::class, 'index']);
     Route::post('/doctor/treatments', [DoctorTreatmentController::class, 'store']);
-    Route::get('/doctor/treatments/{offering}/edit', [DoctorTreatmentController::class, 'edit']);
-    Route::patch('/doctor/treatments/{offering}', [DoctorTreatmentController::class, 'update']);
-    Route::delete('/doctor/treatments/{offering}', [DoctorTreatmentController::class, 'destroy']);
+    Route::get('/doctor/treatments/{service}/edit', [DoctorTreatmentController::class, 'edit']);
+    Route::patch('/doctor/treatments/{service}', [DoctorTreatmentController::class, 'update']);
+    Route::delete('/doctor/treatments/{service}', [DoctorTreatmentController::class, 'destroy']);
     Route::post('/doctor/appointments/{appointment}/status', [DoctorDashboardController::class, 'updateStatus']);
   });
 });

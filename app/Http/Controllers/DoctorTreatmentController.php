@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\DoctorProfile;
-use App\Models\DoctorTreatmentOffering;
 use App\Models\MedicalService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,55 +22,55 @@ class DoctorTreatmentController extends Controller
     $validated['duration_minutes'] = 30;
     $validated['is_active'] = true;
 
-    DoctorTreatmentOffering::create($validated);
+    MedicalService::create($validated);
 
     return redirect('/doctor/treatments')->with('status', 'Trattamento aggiunto.');
   }
 
-  public function edit(Request $request, DoctorTreatmentOffering $offering): View
+  public function edit(Request $request, MedicalService $service): View
   {
     $doctor = $request->user()->doctorProfile;
-    $this->authorizeOffering($doctor, $offering);
+    $this->authorizeTreatmentAccess($doctor);
 
-    return $this->viewTreatments($offering);
+    return $this->viewTreatments($service);
   }
 
-  public function update(Request $request, DoctorTreatmentOffering $offering): RedirectResponse
+  public function update(Request $request, MedicalService $service): RedirectResponse
   {
     $doctor = $request->user()->doctorProfile;
-    $this->authorizeOffering($doctor, $offering);
+    $this->authorizeTreatmentAccess($doctor);
 
-    $validated = $this->validatedOffering($request, $offering);
+    $validated = $this->validatedOffering($request, $service);
     $validated['duration_minutes'] = 30;
     $validated['is_active'] = true;
-    $offering->update($validated);
+    $service->update($validated);
 
     return redirect('/doctor/treatments')->with('status', 'Trattamento aggiornato.');
   }
 
-  public function destroy(Request $request, DoctorTreatmentOffering $offering): RedirectResponse
+  public function destroy(Request $request, MedicalService $service): RedirectResponse
   {
     $doctor = $request->user()->doctorProfile;
-    $this->authorizeOffering($doctor, $offering);
+    $this->authorizeTreatmentAccess($doctor);
 
-    $offering->delete();
+    $service->delete();
 
     return redirect('/doctor/treatments')->with('status', 'Trattamento eliminato.');
   }
 
-  private function viewTreatments(?DoctorTreatmentOffering $editingOffering = null): View
+  private function viewTreatments(?MedicalService $editingOffering = null): View
   {
     return view('doctor.treatments', [
-      'offerings' => DoctorTreatmentOffering::query()
+      'offerings' => MedicalService::query()
         ->orderBy('name')
         ->get(),
       'editingOffering' => $editingOffering,
     ]);
   }
 
-  private function validatedOffering(Request $request, ?DoctorTreatmentOffering $offering = null): array
+  private function validatedOffering(Request $request, ?MedicalService $offering = null): array
   {
-    $nameRule = Rule::unique('doctor_treatment_offerings', 'name');
+    $nameRule = Rule::unique('medical_services', 'name');
 
     if ($offering) {
       $nameRule->ignore($offering->id);
@@ -89,7 +88,7 @@ class DoctorTreatmentController extends Controller
     ]);
   }
 
-  private function authorizeOffering(DoctorProfile $doctor, DoctorTreatmentOffering $offering): void
+  private function authorizeTreatmentAccess(?DoctorProfile $doctor): void
   {
     abort_unless($doctor, 404);
   }

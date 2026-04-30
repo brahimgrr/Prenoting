@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Appointment;
 use App\Models\AvailabilitySlot;
 use App\Models\DoctorProfile;
-use App\Models\DoctorTreatmentOffering;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
 use App\Models\User;
@@ -28,6 +27,7 @@ class RoleDashboardTest extends TestCase
       ->assertSee('Mario Rossi')
       ->assertSee('Altro Paziente')
       ->assertSee('<details class="availability-day"', false)
+      ->assertSee('/doctor/availability/', false)
       ->assertDontSee('Azioni')
       ->assertDontSee('Accetta')
       ->assertDontSee('Assente')
@@ -167,7 +167,7 @@ class RoleDashboardTest extends TestCase
       ])
       ->assertRedirect('/doctor/treatments');
 
-    $offering = DoctorTreatmentOffering::where('name', 'Mappatura nei')->firstOrFail();
+    $offering = MedicalService::where('name', 'Mappatura nei')->firstOrFail();
 
     $this->actingAs($doctorUser)
       ->get("/doctor/treatments/{$offering->id}/edit")
@@ -185,7 +185,7 @@ class RoleDashboardTest extends TestCase
       ])
       ->assertRedirect('/doctor/treatments');
 
-    $this->assertDatabaseHas('doctor_treatment_offerings', [
+    $this->assertDatabaseHas('medical_services', [
       'id' => $offering->id,
       'name' => 'Dermatoscopia',
       'duration_minutes' => 30,
@@ -204,7 +204,7 @@ class RoleDashboardTest extends TestCase
       ->delete("/doctor/treatments/{$offering->id}")
       ->assertRedirect('/doctor/treatments');
 
-    $this->assertDatabaseMissing('doctor_treatment_offerings', [
+    $this->assertDatabaseMissing('medical_services', [
       'id' => $offering->id,
     ]);
   }

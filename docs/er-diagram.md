@@ -1,131 +1,111 @@
 # ER Diagram
 
-This diagram is based on the Laravel schema in `database/migrations`.
-
-Notes:
-- It covers the domain model and omits framework support tables such as `cache`, `cache_locks`, `sessions`, and `password_reset_tokens`.
-- The branch currently contains both the legacy shared catalog path (`medical_services` + `doctor_services`) and the newer doctor-owned catalog path (`doctor_treatment_offerings`).
-- Appointments still reference `medical_services`, not `doctor_treatment_offerings`.
-- This Mermaid version is written for broad parser compatibility, so some uniqueness constraints are described here instead of encoded inline.
-- Unique constraints in schema: `users.username`, `specialties.name`, `patient_profiles.user_id`, `doctor_profiles.user_id`, `doctor_services(doctor_id, service_id)`, `doctor_treatment_offerings(doctor_id, name)`, `availability_slots(doctor_id, start_at)`.
+Schema aggiornato dopo la semplificazione a singolo medico. Il diagramma include solo le tabelle applicative attuali e omette le tabelle tecniche Laravel come `cache`, `sessions`, `password_reset_tokens` e `migrations`.
 
 ```mermaid
 erDiagram
   USERS {
     bigint id PK
-    string username
+    string username UK
     string email
-    string role
     string first_name
     string last_name
+    string password
+    string role
+    string remember_token
+    timestamp created_at
+    timestamp updated_at
   }
 
   PATIENT_PROFILES {
     bigint id PK
     bigint user_id FK
     date date_of_birth
+    string place_of_birth
+    string codice_fiscale
     string gender
     string phone
     string address
-    string identity_code
+    timestamp created_at
+    timestamp updated_at
   }
 
   DOCTOR_PROFILES {
     bigint id PK
     bigint user_id FK
-    bigint specialty_id FK
     string display_name
+    text bio
     string license_number
     boolean is_active
-  }
-
-  SPECIALTIES {
-    bigint id PK
-    string name
-    text description
-  }
-
-  CLINIC_LOCATIONS {
-    bigint id PK
-    string name
-    string address
-    string phone
-    boolean is_active
+    timestamp created_at
+    timestamp updated_at
   }
 
   MEDICAL_SERVICES {
     bigint id PK
-    bigint specialty_id FK
-    string name
+    string name UK
     string category
     int duration_minutes
     decimal price
     boolean is_active
-  }
-
-  DOCTOR_SERVICES {
-    bigint id PK
-    bigint doctor_id FK
-    bigint service_id FK
-  }
-
-  DOCTOR_TREATMENT_OFFERINGS {
-    bigint id PK
-    bigint doctor_id FK
-    bigint specialty_id FK
-    string name
-    string category
-    int duration_minutes
-    decimal price
-    boolean is_active
+    timestamp created_at
+    timestamp updated_at
   }
 
   AVAILABILITY_SLOTS {
     bigint id PK
-    bigint doctor_id FK
-    bigint clinic_id FK
-    datetime start_at
+    datetime start_at UK
     datetime end_at
     boolean is_blocked
     boolean is_booked
+    timestamp created_at
+    timestamp updated_at
   }
 
   APPOINTMENTS {
     bigint id PK
     bigint patient_id FK
-    bigint doctor_id FK
     bigint service_id FK
-    bigint clinic_id FK
     bigint slot_id FK
     datetime start_at
     datetime end_at
     string status
+    text notes
+    text cancellation_reason
+    timestamp created_at
+    timestamp updated_at
   }
 
   APPOINTMENT_STATUS_HISTORY {
     bigint id PK
     bigint appointment_id FK
-    bigint changed_by FK
     string previous_status
     string new_status
+    bigint changed_by FK
     timestamp changed_at
   }
 
-  USERS ||--o| PATIENT_PROFILES : has
-  USERS ||--o| DOCTOR_PROFILES : has
-  SPECIALTIES ||--o{ DOCTOR_PROFILES : classifies
-  SPECIALTIES ||--o{ MEDICAL_SERVICES : defines
-  SPECIALTIES ||--o{ DOCTOR_TREATMENT_OFFERINGS : scopes
-  DOCTOR_PROFILES ||--o{ DOCTOR_SERVICES : offers_legacy
-  MEDICAL_SERVICES ||--o{ DOCTOR_SERVICES : linked_in_legacy
-  DOCTOR_PROFILES ||--o{ DOCTOR_TREATMENT_OFFERINGS : owns
-  DOCTOR_PROFILES ||--o{ AVAILABILITY_SLOTS : publishes
-  CLINIC_LOCATIONS ||--o{ AVAILABILITY_SLOTS : hosts
-  PATIENT_PROFILES ||--o{ APPOINTMENTS : books
-  DOCTOR_PROFILES ||--o{ APPOINTMENTS : receives
-  MEDICAL_SERVICES ||--o{ APPOINTMENTS : used_for
-  CLINIC_LOCATIONS ||--o{ APPOINTMENTS : happens_at
-  AVAILABILITY_SLOTS ||--o{ APPOINTMENTS : scheduled_in
-  APPOINTMENTS ||--o{ APPOINTMENT_STATUS_HISTORY : tracks
-  USERS ||--o{ APPOINTMENT_STATUS_HISTORY : changes
+  USERS ||--o| PATIENT_PROFILES : "ha profilo paziente"
+  USERS ||--o| DOCTOR_PROFILES : "ha profilo medico"
+  PATIENT_PROFILES ||--o{ APPOINTMENTS : "prenota"
+  MEDICAL_SERVICES ||--o{ APPOINTMENTS : "prestazione"
+  AVAILABILITY_SLOTS ||--o| APPOINTMENTS : "slot prenotato"
+  APPOINTMENTS ||--o{ APPOINTMENT_STATUS_HISTORY : "traccia stato"
+  USERS ||--o{ APPOINTMENT_STATUS_HISTORY : "modifica stato"
 ```
+
+Note dominio attuale:
+
+- L'applicazione e pensata per un solo medico, quindi `DOCTOR_PROFILES` resta per autenticazione/profilo dell'area medico ma non viene piu collegata a slot o appuntamenti.
+- La specialita e fissa a livello applicativo, ad esempio dermatologia.
+- Gli appuntamenti non salvano piu medico o ambulatorio, perche il sistema lavora con un solo medico e senza scelta ambulatorio.
+- Le disponibilita sono globali del medico unico: `availability_slots.start_at` e univoco.
+- I trattamenti dell'area medico coincidono con le prestazioni prenotabili e vengono salvati in `medical_services`.
+
+Vincoli principali:
+
+- `users.username` e univoco.
+- `patient_profiles.user_id` e univoco.
+- `doctor_profiles.user_id` e univoco.
+- `medical_services.name` e univoco.
+- `availability_slots.start_at` e univoco.

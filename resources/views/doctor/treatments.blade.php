@@ -14,7 +14,7 @@
       <div>
         <span class="portal-eyebrow">Portale medico</span>
         <h1>Trattamenti</h1>
-        <p>Gestisci le prestazioni private del tuo studio senza modificare il catalogo globale usato dai pazienti.</p>
+        <p>Gestisci le prestazioni prenotabili dai pazienti.</p>
       </div>
       <a href="/doctor/schedule" class="btn btn-outline-secondary">Torna all'agenda</a>
     </div>
@@ -22,7 +22,7 @@
     <section class="portal-panel dashboard-filter-panel">
       <div class="section-heading">
         <h2>{{ $editing ? 'Modifica trattamento' : 'Aggiungi trattamento' }}</h2>
-        <span>{{ $editing ? 'Aggiorna nome, categoria e prezzo' : 'Crea una nuova offerta' }}</span>
+        <span>{{ $editing ? 'Aggiorna nome, categoria e prezzo' : 'Crea una nuova prestazione' }}</span>
       </div>
       <form class="treatment-form-grid" method="POST" action="{{ $editing ? "/doctor/treatments/{$editing->id}" : '/doctor/treatments' }}">
         @csrf
@@ -59,7 +59,7 @@
     <section class="portal-panel dashboard-table-panel">
       <div class="section-heading">
         <h2>I tuoi trattamenti</h2>
-        <span>{{ $offerings->count() }} offerte</span>
+        <span>{{ $offerings->count() }} prestazioni</span>
       </div>
 
       @if ($offerings->isNotEmpty())
@@ -92,7 +92,7 @@
       @else
         <div class="empty-state">
           <h3>Nessun trattamento configurato</h3>
-          <p>Aggiungi la prima prestazione per costruire il tuo catalogo privato.</p>
+          <p>Aggiungi la prima prestazione prenotabile dai pazienti.</p>
         </div>
       @endif
     </section>
