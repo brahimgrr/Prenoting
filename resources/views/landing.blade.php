@@ -5,7 +5,7 @@
 
   {{-- Navbar --}}
   <nav class="landing-nav">
-    <a class="landing-brand" href="/">
+    <a class="landing-brand" href="{{ route('home') }}">
       <span class="app-brand__mark">M</span>
       <span>
         <span class="landing-brand__name">MedPortal</span>
@@ -50,7 +50,7 @@
 
   {{-- Footer --}}
   <footer class="landing-footer">
-    &copy; 2025 MedPortal &mdash; Studio Dermatologico &mdash; Tutti i diritti riservati
+    &copy; {{ date('Y') }} MedPortal &mdash; Studio Dermatologico &mdash; Tutti i diritti riservati
   </footer>
 
 </div>
