@@ -658,12 +658,12 @@ a {
 
 .service-choice-card__meta,
 .week-day__name,
+.week-day__month,
 .availability-slot-row span,
 .profile-lock-note {
   color: var(--color-muted);
 }
 
-.month-nav,
 .slot-period-filter {
   display: flex;
   flex-wrap: wrap;
@@ -694,27 +694,6 @@ a {
   padding-right: 0.6rem;
 }
 
-.booking-month-heading {
-  align-items: flex-start;
-}
-
-.booking-month-heading strong {
-  color: var(--color-navy);
-  display: block;
-  font-size: 1.6rem;
-  line-height: 1.1;
-  margin-top: 0.15rem;
-}
-
-.month-nav {
-  justify-content: flex-end;
-}
-
-.month-jump-select {
-  min-height: 2rem;
-  width: min(16rem, 100%);
-}
-
 .week-strip {
   display: grid;
   gap: 0.75rem;
@@ -733,6 +712,13 @@ a {
   min-height: 6.5rem;
   padding: 0.75rem;
   text-decoration: none;
+}
+
+.week-day__month {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .week-day:hover,

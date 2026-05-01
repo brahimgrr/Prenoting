@@ -1,10 +1,15 @@
-@php($cancelPanelId = "appointmentCancelPanel{$appointment->id}")
+@php
+  $cancelPanelId = "appointmentCancelPanel{$appointment->id}";
+  $serviceCategoryLabel = match ($appointment->service?->category) {
+    'ESAME' => 'ESAME',
+    default => 'VISITA',
+  };
+@endphp
 
 <article class="appointment-card {{ ($muted ?? false) ? 'appointment-card--muted' : '' }}">
   <div class="appointment-card__header">
     <div class="appointment-card__title">
       <h3>{{ $appointment->service?->name ?? 'Appuntamento' }}</h3>
-      <p>{{ $appointment->start_at->format('d/m/Y H:i') }}</p>
     </div>
     @if ($manageable)
       <div class="card-action-menu dropdown">
@@ -33,11 +38,11 @@
   <dl class="appointment-details">
     <div>
       <dt>Prestazione</dt>
-      <dd>{{ $appointment->service?->name ?? 'Appuntamento' }}</dd>
+      <dd>{{ $serviceCategoryLabel }}</dd>
     </div>
     <div>
       <dt>Orario</dt>
-      <dd>{{ $appointment->start_at->format('d/m/Y H:i') }}</dd>
+      <dd>{{ $appointment->start_at->format('d/m/Y H:i') }} - {{ $appointment->end_at->format('H:i') }}</dd>
     </div>
   </dl>
   @if ($manageable)

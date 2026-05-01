@@ -70,7 +70,7 @@
         </div>
         <div>
           <dt>Data e ora</dt>
-          <dd>{{ $selectedSlot->start_at->format('d/m/Y H:i') }}</dd>
+          <dd>{{ $selectedSlot->start_at->format('d/m/Y H:i') }} - {{ $selectedSlot->end_at->format('H:i') }}</dd>
         </div>
       </dl>
 

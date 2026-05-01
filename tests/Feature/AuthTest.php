@@ -313,7 +313,7 @@ class AuthTest extends TestCase
       'end_at' => $start->addMinutes(30),
       'is_booked' => true,
     ]);
-    Appointment::create([
+    $appointment = Appointment::create([
       'patient_id' => $patient->id,
       'service_id' => $service->id,
       'slot_id' => $slot->id,
@@ -323,8 +323,10 @@ class AuthTest extends TestCase
     ]);
 
     $response = $this->actingAs($patientUser)->get('/patient');
+    $appointmentTime = $appointment->start_at->format('d/m/Y H:i').' - '.$appointment->end_at->format('H:i');
 
     $response->assertOk();
+    $this->assertSame(2, substr_count($response->getContent(), $appointmentTime));
     $response->assertDontSeeText('Confermato');
     $response->assertDontSeeText('Medico');
     $response->assertDontSeeText('Ambulatorio');

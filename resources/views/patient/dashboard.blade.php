@@ -24,7 +24,7 @@
           <div class="next-appointment">
             <div>
               <h3>{{ $nextAppointment->service?->name ?? 'Appuntamento' }}</h3>
-              <p>{{ $nextAppointment->start_at->format('d/m/Y H:i') }}</p>
+              <p>{{ $nextAppointment->start_at->format('d/m/Y H:i') }} - {{ $nextAppointment->end_at->format('H:i') }}</p>
             </div>
           </div>
         @else
@@ -58,7 +58,7 @@
             <article class="appointment-row">
               <div>
                 <h3>{{ $appointment->service?->name ?? 'Appuntamento' }}</h3>
-                <p>{{ $appointment->start_at->format('d/m/Y H:i') }}</p>
+                <p>{{ $appointment->start_at->format('d/m/Y H:i') }} - {{ $appointment->end_at->format('H:i') }}</p>
               </div>
             </article>
           @endforeach

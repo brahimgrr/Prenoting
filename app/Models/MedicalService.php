@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MedicalService extends Model
 {
-  public const CATEGORY_VISIT = 'visit';
-  public const CATEGORY_EXAM = 'exam';
+  public const CATEGORY_VISIT = 'VISITA';
+  public const CATEGORY_EXAM = 'ESAME';
 
   protected $fillable = [
     'name',

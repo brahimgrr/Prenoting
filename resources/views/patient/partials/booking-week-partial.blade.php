@@ -32,33 +32,12 @@
     ? $buildUrl($weekPartialUrl, ['week_start' => $nextWeekStart->toDateString()])
     : null;
 
-  $monthOptions = $availableMonths
-    ->concat([$visibleMonth])
-    ->unique(fn ($month) => $month->format('Y-m'))
-    ->sortBy(fn ($month) => $month->format('Y-m'))
-    ->values();
-
   $currentDate = $selectedDate ?? $weekStart->toDateString();
 @endphp
 
 <section id="booking-step-day" class="portal-panel booking-step">
-  <div class="section-heading booking-month-heading">
-    <div>
-      <h2>2. Scegli il giorno</h2>
-      <strong>{{ ucfirst($visibleMonth->locale('it')->isoFormat('MMMM YYYY')) }}</strong>
-    </div>
-    <div class="month-nav">
-      <select class="form-select form-select-sm month-jump-select" aria-label="Salta a un mese disponibile" onchange="window.location.href=this.value">
-        @foreach ($monthOptions as $month)
-          <option
-            value="{{ $buildUrl($baseUrl, ['month' => $month->format('Y-m'), 'week_start' => null, 'date' => null, 'slot_id' => null], 'booking-step-day') }}"
-            {{ $month->format('Y-m') === $visibleMonth->format('Y-m') ? 'selected' : '' }}
-          >
-            {{ ucfirst($month->locale('it')->isoFormat('MMMM YYYY')) }}
-          </option>
-        @endforeach
-      </select>
-    </div>
+  <div class="section-heading">
+    <h2>2. Scegli il giorno</h2>
   </div>
 
   <div class="week-strip-wrapper">
@@ -86,6 +65,7 @@
         @endif
             <span class="week-day__name">{{ ucfirst($date->locale('it')->isoFormat('ddd')) }}</span>
             <strong>{{ $date->format('d') }}</strong>
+            <span class="week-day__month">{{ ucfirst($date->locale('it')->isoFormat('MMM')) }}</span>
             <span class="availability-dot {{ $day['hasSlots'] ? 'availability-dot--open' : 'availability-dot--closed' }}"></span>
         @if ($day['hasSlots'])
           </a>

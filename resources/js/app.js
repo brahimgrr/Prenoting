@@ -126,9 +126,3 @@ document.addEventListener("click", (e) => {
     return;
   }
 });
-
-document.addEventListener("change", (e) => {
-  if (e.target.classList.contains("month-jump-select") && e.target.value) {
-    window.location.href = e.target.value;
-  }
-});

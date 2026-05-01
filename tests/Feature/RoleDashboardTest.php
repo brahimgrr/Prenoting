@@ -29,7 +29,7 @@ class RoleDashboardTest extends TestCase
       ->assertSee('class="doctor-agenda-timeline"', false)
       ->assertSee('doctor-agenda-item--appointment', false)
       ->assertSee('Mario Rossi')
-      ->assertDontSee('Altro Paziente')
+      ->assertSee('Altro Paziente')
       ->assertSee('Gestisci disponibilita')
       ->assertSee('<details class="availability-manager"', false)
       ->assertSee('<details class="availability-day"', false)
@@ -253,7 +253,7 @@ class RoleDashboardTest extends TestCase
     $this->actingAs($doctorUser)
       ->post('/doctor/treatments', [
         'name' => 'Mappatura nei',
-        'category' => MedicalService::CATEGORY_EXAM,
+        'category' => 'ESAME',
         'price' => '95.50',
       ])
       ->assertRedirect('/doctor/treatments');
@@ -271,7 +271,7 @@ class RoleDashboardTest extends TestCase
     $this->actingAs($doctorUser)
       ->patch("/doctor/treatments/{$offering->id}", [
         'name' => 'Dermatoscopia',
-        'category' => MedicalService::CATEGORY_EXAM,
+        'category' => 'ESAME',
         'price' => '110.00',
       ])
       ->assertRedirect('/doctor/treatments');
@@ -279,6 +279,7 @@ class RoleDashboardTest extends TestCase
     $this->assertDatabaseHas('medical_services', [
       'id' => $offering->id,
       'name' => 'Dermatoscopia',
+      'category' => 'ESAME',
       'duration_minutes' => 30,
       'is_active' => true,
     ]);

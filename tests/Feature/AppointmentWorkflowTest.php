@@ -46,7 +46,10 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertDontSee('Mese visualizzato');
     $response->assertDontSee('Mese precedente');
     $response->assertDontSee('Mese successivo');
+    $response->assertDontSee('month-jump-select');
+    $response->assertDontSee(ucfirst($slot->start_at->locale('it')->isoFormat('MMMM YYYY')));
     $response->assertSee($service->name);
+    $response->assertSee($slot->start_at->locale('it')->isoFormat('D MMM'), false);
     $response->assertSee($slot->start_at->format('H:i'));
     $response->assertSee('slot liberi');
   }
@@ -64,12 +67,14 @@ class AppointmentWorkflowTest extends TestCase
     $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&month={$month}");
 
     $response->assertOk();
-    $response->assertSee(ucfirst($farSlot->start_at->locale('it')->isoFormat('MMMM YYYY')));
-    $response->assertSee($farSlot->start_at->format('d'));
-    $response->assertSee('month='.$month, false);
+    $response->assertDontSee('month-jump-select');
+    $response->assertDontSee(ucfirst($farSlot->start_at->locale('it')->isoFormat('MMMM YYYY')));
+    $response->assertSee('<strong>'.$farSlot->start_at->format('d').'</strong>', false);
+    $response->assertSee('<span class="week-day__month">'.ucfirst($farSlot->start_at->locale('it')->isoFormat('MMM')).'</span>', false);
+    $response->assertDontSee('month='.$month, false);
   }
 
-  public function test_booking_month_selector_contains_direct_navigation_fallback(): void
+  public function test_booking_month_selector_is_not_rendered(): void
   {
     [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
     $month = $slot->start_at->format('Y-m');
@@ -77,7 +82,8 @@ class AppointmentWorkflowTest extends TestCase
     $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&month={$month}");
 
     $response->assertOk();
-    $response->assertSee('onchange="window.location.href=this.value"', false);
+    $response->assertDontSee('onchange="window.location.href=this.value"', false);
+    $response->assertDontSee('month-jump-select');
   }
 
   public function test_booking_week_arrows_render_direct_navigation_links(): void
@@ -103,15 +109,17 @@ class AppointmentWorkflowTest extends TestCase
     $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}");
 
     $response->assertOk();
-    $response->assertSee('Aprile 2030');
+    $response->assertSee('<strong>27</strong>', false);
+    $response->assertSee('<span class="week-day__month">Apr</span>', false);
     $response->assertDontSee('Mese visualizzato');
     $response->assertSee("href=\"http://127.0.0.1:8080/patient/book?service_id={$service->id}&amp;week_start=2030-05-02#booking-step-day\"", false);
 
     $nextResponse = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start=2030-05-02");
 
     $nextResponse->assertOk();
-    $nextResponse->assertSee('Maggio 2030');
-    $nextResponse->assertSee('value="http://127.0.0.1:8080/patient/book?service_id='.$service->id.'&amp;month=2030-05#booking-step-day"', false);
+    $nextResponse->assertSee('<strong>02</strong>', false);
+    $nextResponse->assertSee('<span class="week-day__month">Mag</span>', false);
+    $nextResponse->assertDontSee('month-jump-select');
   }
 
   public function test_booking_calendar_starts_from_nearest_available_date_and_shows_only_available_days(): void
@@ -285,6 +293,7 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee('#booking-confirm', false);
     $response->assertSee('Prestazione');
     $response->assertSee('Data e ora');
+    $response->assertSee($slot->start_at->format('H:i').' - '.$slot->end_at->format('H:i'));
     $response->assertDontSee('Medico');
     $response->assertDontSee('Ambulatorio');
     $response->assertDontSee('<button type="submit" class="slot-time-button"', false);
@@ -313,6 +322,13 @@ class AppointmentWorkflowTest extends TestCase
     $response = $this->actingAs($patientUser)->get('/patient/appointments');
 
     $response->assertOk();
+    $response->assertSee('<h3>'.$service->name.'</h3>', false);
+    $response->assertDontSee('<p>'.$appointment->start_at->format('d/m/Y H:i').'</p>', false);
+    $response->assertSee('<dt>Prestazione</dt>', false);
+    $response->assertSee('<dd>VISITA</dd>', false);
+    $response->assertDontSee('<dd>visit</dd>', false);
+    $response->assertSee('<dt>Orario</dt>', false);
+    $response->assertSee('<dd>'.$appointment->start_at->format('d/m/Y H:i').' - '.$appointment->end_at->format('H:i').'</dd>', false);
     $response->assertSee('aria-label="Azioni appuntamento"', false);
     $response->assertSee('data-bs-toggle="dropdown"', false);
     $response->assertSee('Sposta appuntamento');
