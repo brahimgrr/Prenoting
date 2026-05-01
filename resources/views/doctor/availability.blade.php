@@ -86,7 +86,7 @@
               $isBooked  = $slot->is_booked;
               $isBlocked = $slot->is_blocked;
               $barColor  = $isFree ? '#16a34a' : ($isBooked ? '#2563eb' : '#d97706');
-              $patientName = $isBooked ? ($slot->appointments->first()?->patientName() ?? null) : null;
+              $patientName = $isBooked ? $slot->appointments->first()?->patientName() : null;
             @endphp
             <div class="avail-slot-row">
               <div class="avail-slot-bar" style="background:{{ $barColor }}"></div>
@@ -205,13 +205,13 @@
               <div style="flex:1">
                 <div class="avail-field-lbl" style="color:#a16207">Pausa inizio</div>
                 <input type="time" class="avail-input" name="lunch_break_start"
-                  value="{{ old('lunch_break_start', $lunchStart) }}">
+                  value="{{ $lunchStart }}">
               </div>
               <div class="avail-field-sep">—</div>
               <div style="flex:1">
                 <div class="avail-field-lbl" style="color:#a16207">Pausa fine</div>
                 <input type="time" class="avail-input" name="lunch_break_end"
-                  value="{{ old('lunch_break_end', $lunchEnd) }}">
+                  value="{{ $lunchEnd }}">
               </div>
             </div>
             <div class="avail-pausa__hint" id="availPausaHint"
@@ -246,7 +246,7 @@
         </div>
         @if ($availabilityPreview['skipped']->isNotEmpty())
           <p style="font-size:12px;color:#8a9aae;margin-top:10px;margin-bottom:0">
-            {{ $availabilityPreview['skipped']->count() }} slot saltati
+            {{ $availabilityPreview['skipped']->count() }} {{ $availabilityPreview['skipped']->count() === 1 ? 'slot saltato' : 'slot saltati' }}
             (passati, sovrapposti o in pausa pranzo)
           </p>
         @endif
