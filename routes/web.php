@@ -61,8 +61,9 @@ Route::middleware('auth')->group(function (): void {
   });
 
   Route::middleware('role:'.User::ROLE_DOCTOR)->group(function (): void {
-    Route::get('/doctor', [DoctorDashboardController::class, 'today']);
+    Route::get('/doctor', fn () => redirect('/doctor/schedule'));
     Route::get('/doctor/schedule', [DoctorDashboardController::class, 'schedule']);
+    Route::get('/doctor/availability', [DoctorDashboardController::class, 'availability']);
     Route::get('/doctor/availability/preview', [DoctorDashboardController::class, 'previewAvailability']);
     Route::post('/doctor/availability', [DoctorDashboardController::class, 'storeAvailability']);
     Route::post('/doctor/availability/batch', [DoctorDashboardController::class, 'storeAvailabilityBatch']);

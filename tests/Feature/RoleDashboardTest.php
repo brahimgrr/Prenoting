@@ -30,11 +30,10 @@ class RoleDashboardTest extends TestCase
       ->assertSee('doctor-agenda-item--appointment', false)
       ->assertSee('Mario Rossi')
       ->assertSee('Altro Paziente')
-      ->assertSee('Gestisci disponibilita')
-      ->assertSee('<details class="availability-manager"', false)
-      ->assertSee('<details class="availability-day"', false)
-      ->assertSee('/doctor/availability/', false)
-      ->assertSee('type="hidden" name="slot_duration" value="30"', false)
+      ->assertDontSee('Gestisci disponibilita')
+      ->assertDontSee('<details class="availability-manager"', false)
+      ->assertDontSee('<details class="availability-day"', false)
+      ->assertDontSee('type="hidden" name="slot_duration" value="30"', false)
       ->assertDontSee('Durata slot')
       ->assertDontSee('<select class="form-select" name="slot_duration"', false)
       ->assertDontSee('Agenda completa')
@@ -117,26 +116,42 @@ class RoleDashboardTest extends TestCase
       ->assertDontSee("action=\"/doctor/availability/{$bookedSlot->id}/unblock\"", false);
   }
 
-  public function test_doctor_today_uses_timeline_without_availability_management(): void
+  public function test_doctor_root_redirects_to_schedule_without_today_section(): void
   {
-    [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
-    $todayStart = CarbonImmutable::now()->setTime(9, 0);
-    $todaySlot = AvailabilitySlot::create([
-      'start_at' => $todayStart,
-      'end_at' => $todayStart->addMinutes(30),
-      'is_booked' => true,
-    ]);
-    $this->appointment($appointment->patient, $appointment->service, $todaySlot);
+    [$doctorUser] = $this->dashboardContext();
 
     $this->actingAs($doctorUser)
       ->get('/doctor')
+      ->assertRedirect('/doctor/schedule');
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/schedule')
       ->assertOk()
-      ->assertSee('class="doctor-agenda-timeline"', false)
-      ->assertSee('doctor-agenda-item--appointment', false)
-      ->assertSee('Mario Rossi')
+      ->assertDontSee('Oggi')
+      ->assertSee('Agenda')
+      ->assertSee('Agenda del giorno')
       ->assertDontSee('Gestisci disponibilita')
       ->assertDontSee('class="availability-manager"', false)
       ->assertDontSee('/doctor/availability/preview', false);
+  }
+
+  public function test_doctor_availability_is_a_dedicated_section(): void
+  {
+    [$doctorUser] = $this->dashboardContext();
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/availability')
+      ->assertOk()
+      ->assertSee('Disponibilita')
+      ->assertSee('Gestisci disponibilita')
+      ->assertSee('Crea disponibilita in batch')
+      ->assertSee('Disponibilita future')
+      ->assertSee('class="availability-manager"', false)
+      ->assertSee('/doctor/availability/preview', false)
+      ->assertSee('type="hidden" name="slot_duration" value="30"', false)
+      ->assertSee('Agenda')
+      ->assertSee('Trattamenti')
+      ->assertDontSee('Agenda del giorno');
   }
 
   public function test_doctor_can_block_and_unblock_future_availability_slot(): void
@@ -181,6 +196,8 @@ class RoleDashboardTest extends TestCase
     ]));
 
     $response->assertOk();
+    $response->assertSee('Disponibilita');
+    $response->assertDontSee('Agenda del giorno');
     $response->assertSee('Anteprima disponibilita');
     $response->assertSee('1 slot creabile');
     $response->assertSee('1 saltato');
@@ -207,7 +224,7 @@ class RoleDashboardTest extends TestCase
         'end_time' => '15:00',
         'slot_duration' => 30,
       ])
-      ->assertRedirect('/doctor/schedule');
+      ->assertRedirect('/doctor/availability');
 
     $this->assertDatabaseHas('availability_slots', [
       'start_at' => $startDate->setTime(14, 30)->toDateTimeString(),
@@ -227,7 +244,7 @@ class RoleDashboardTest extends TestCase
     $pastDate = CarbonImmutable::now()->subWeeks(2)->startOfWeek();
 
     $response = $this->actingAs($doctorUser)
-      ->from('/doctor/schedule')
+      ->from('/doctor/availability')
       ->post('/doctor/availability/batch', [
         'start_date' => $pastDate->toDateString(),
         'end_date' => $pastDate->toDateString(),
@@ -237,7 +254,7 @@ class RoleDashboardTest extends TestCase
         'slot_duration' => 30,
       ]);
 
-    $response->assertRedirect('/doctor/schedule');
+    $response->assertRedirect('/doctor/availability');
     $response->assertSessionHasErrors('availability');
   }
 

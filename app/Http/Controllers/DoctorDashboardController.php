@@ -14,14 +14,14 @@ use Illuminate\View\View;
 
 class DoctorDashboardController extends Controller
 {
-  public function today(Request $request): View
-  {
-    return $this->viewSchedule($request, 'today');
-  }
-
   public function schedule(Request $request): View
   {
-    return $this->viewSchedule($request, 'schedule');
+    return $this->viewSchedule($request);
+  }
+
+  public function availability(Request $request): View
+  {
+    return $this->viewAvailability($request);
   }
 
   public function updateStatus(Request $request, Appointment $appointment, AppointmentService $appointments): RedirectResponse
@@ -69,7 +69,7 @@ class DoctorDashboardController extends Controller
       'end_at' => $end,
     ]);
 
-    return redirect('/doctor/schedule')->with('status', 'Disponibilita aggiunta.');
+    return redirect('/doctor/availability')->with('status', 'Disponibilita aggiunta.');
   }
 
   public function previewAvailability(Request $request): View
@@ -77,7 +77,7 @@ class DoctorDashboardController extends Controller
     $validated = $this->validatedBatchAvailability($request);
     $preview = $this->buildAvailabilityPreview($validated);
 
-    return $this->viewSchedule($request, 'schedule', $preview);
+    return $this->viewAvailability($request, $preview);
   }
 
   public function storeAvailabilityBatch(Request $request): RedirectResponse
@@ -112,7 +112,7 @@ class DoctorDashboardController extends Controller
       ]);
     }
 
-    return redirect('/doctor/schedule')->with('status', "{$created} slot disponibilita creati.");
+    return redirect('/doctor/availability')->with('status', "{$created} slot disponibilita creati.");
   }
 
   public function blockAvailability(Request $request, AvailabilitySlot $slot): RedirectResponse
@@ -127,7 +127,7 @@ class DoctorDashboardController extends Controller
 
     $slot->forceFill(['is_blocked' => true])->save();
 
-    return redirect('/doctor/schedule')->with('status', 'Disponibilita bloccata.');
+    return redirect()->back()->with('status', 'Disponibilita bloccata.');
   }
 
   public function unblockAvailability(Request $request, AvailabilitySlot $slot): RedirectResponse
@@ -142,22 +142,12 @@ class DoctorDashboardController extends Controller
 
     $slot->forceFill(['is_blocked' => false])->save();
 
-    return redirect('/doctor/schedule')->with('status', 'Disponibilita riaperta.');
+    return redirect()->back()->with('status', 'Disponibilita riaperta.');
   }
 
-  private function viewSchedule(Request $request, string $mode, ?array $availabilityPreview = null): View
+  private function viewSchedule(Request $request): View
   {
-    $selectedDate = $mode === 'today'
-      ? now()->toDateString()
-      : (string) $request->query('date', now()->toDateString());
-    $batchForm = $availabilityPreview['input'] ?? [
-      'start_date' => CarbonImmutable::now()->toDateString(),
-      'end_date' => CarbonImmutable::now()->addWeeks(2)->toDateString(),
-      'weekdays' => [1, 2, 3, 4, 5],
-      'start_time' => '09:00',
-      'end_time' => '12:00',
-      'slot_duration' => 30,
-    ];
+    $selectedDate = (string) $request->query('date', now()->toDateString());
     $appointments = Appointment::withPortalRelations()
       ->whereDate('start_at', $selectedDate)
       ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
@@ -169,11 +159,25 @@ class DoctorDashboardController extends Controller
       ->get();
 
     return view('doctor.dashboard', [
-      'mode' => $mode,
       'date' => $selectedDate,
       'appointments' => $appointments,
       'daySlots' => $daySlots,
       'timelineItems' => $this->buildTimelineItems($appointments, $daySlots),
+    ]);
+  }
+
+  private function viewAvailability(Request $request, ?array $availabilityPreview = null): View
+  {
+    $batchForm = $availabilityPreview['input'] ?? [
+      'start_date' => CarbonImmutable::now()->toDateString(),
+      'end_date' => CarbonImmutable::now()->addWeeks(2)->toDateString(),
+      'weekdays' => [1, 2, 3, 4, 5],
+      'start_time' => '09:00',
+      'end_time' => '12:00',
+      'slot_duration' => 30,
+    ];
+
+    return view('doctor.availability', [
       'availabilityPreview' => $availabilityPreview,
       'batchForm' => $batchForm,
       'availabilitySlots' => AvailabilitySlot::query()

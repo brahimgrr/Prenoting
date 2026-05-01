@@ -10,8 +10,8 @@
       ['to' => '/patient/profile', 'label' => 'Profilo', 'active' => ['patient/profile']],
     ],
     'doctor' => [
-      ['to' => '/doctor', 'label' => 'Oggi', 'active' => ['doctor']],
-      ['to' => '/doctor/schedule', 'label' => 'Agenda', 'active' => ['doctor/schedule', 'doctor/availability/*']],
+      ['to' => '/doctor/schedule', 'label' => 'Agenda', 'active' => ['doctor/schedule']],
+      ['to' => '/doctor/availability', 'label' => 'Disponibilita', 'active' => ['doctor/availability', 'doctor/availability/*']],
       ['to' => '/doctor/treatments', 'label' => 'Trattamenti', 'active' => ['doctor/treatments', 'doctor/treatments/*']],
     ],
     'admin' => [

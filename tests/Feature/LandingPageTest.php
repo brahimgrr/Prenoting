@@ -50,7 +50,7 @@ class LandingPageTest extends TestCase
       'role' => User::ROLE_DOCTOR,
     ]);
 
-    $this->actingAs($user)->get('/')->assertRedirect('/doctor');
+    $this->actingAs($user)->get('/')->assertRedirect('/doctor/schedule');
   }
 
   public function test_landing_page_shows_chi_ti_segue_section(): void

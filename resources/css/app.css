@@ -1134,7 +1134,6 @@ a {
 
 .availability-manager__summary {
   align-items: center;
-  cursor: pointer;
   display: flex;
   gap: 1rem;
   justify-content: space-between;
@@ -1144,17 +1143,6 @@ a {
 
 .availability-manager__summary::-webkit-details-marker {
   display: none;
-}
-
-.availability-manager__summary::after {
-  color: var(--color-blue);
-  content: "Apri";
-  font-size: 0.82rem;
-  font-weight: 850;
-}
-
-.availability-manager[open] .availability-manager__summary::after {
-  content: "Chiudi";
 }
 
 .availability-manager__summary span {
