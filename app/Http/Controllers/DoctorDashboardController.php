@@ -175,19 +175,23 @@ class DoctorDashboardController extends Controller
   private function viewAvailability(Request $request, ?array $availabilityPreview = null): View
   {
     $batchForm = $availabilityPreview['input'] ?? [
-      'start_date' => CarbonImmutable::now()->toDateString(),
-      'end_date' => CarbonImmutable::now()->addWeeks(2)->toDateString(),
-      'weekdays' => [1, 2, 3, 4, 5],
-      'start_time' => '09:00',
-      'end_time' => '12:00',
-      'slot_duration' => 30,
+      'start_date'          => CarbonImmutable::now()->toDateString(),
+      'end_date'            => CarbonImmutable::now()->addWeeks(2)->toDateString(),
+      'weekdays'            => [1, 2, 3, 4, 5],
+      'start_time'          => '09:00',
+      'end_time'            => '12:00',
+      'slot_duration'       => 30,
+      'lunch_break_enabled' => false,
+      'lunch_break_start'   => '13:00',
+      'lunch_break_end'     => '14:00',
     ];
 
     return view('doctor.availability', [
       'availabilityPreview' => $availabilityPreview,
-      'batchForm' => $batchForm,
-      'availabilitySlots' => AvailabilitySlot::query()
+      'batchForm'           => $batchForm,
+      'availabilitySlots'   => AvailabilitySlot::query()
         ->where('start_at', '>=', now())
+        ->with(['appointments.patient.user'])
         ->orderBy('start_at')
         ->get()
         ->groupBy(fn (AvailabilitySlot $slot) => $slot->start_at->toDateString()),
@@ -304,29 +308,30 @@ class DoctorDashboardController extends Controller
   private function validatedBatchAvailability(Request $request): array
   {
     $validated = $request->validate([
-      'start_date' => ['required', 'date_format:Y-m-d'],
-      'end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
-      'weekdays' => ['required', 'array', 'min:1'],
-      'weekdays.*' => ['integer', 'between:1,5'],
-      'start_time' => ['required', 'date_format:H:i'],
-      'end_time' => ['required', 'date_format:H:i'],
-      'slot_duration' => ['required', 'integer', 'in:15,20,30,45,60'],
+      'start_date'          => ['required', 'date_format:Y-m-d'],
+      'end_date'            => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+      'weekdays'            => ['required', 'array', 'min:1'],
+      'weekdays.*'          => ['integer', 'between:1,5'],
+      'start_time'          => ['required', 'date_format:H:i'],
+      'end_time'            => ['required', 'date_format:H:i'],
+      'slot_duration'       => ['required', 'integer', 'in:15,20,30,45,60'],
+      'lunch_break_enabled' => ['nullable', 'string'],
+      'lunch_break_start'   => ['nullable', 'required_if:lunch_break_enabled,1', 'date_format:H:i'],
+      'lunch_break_end'     => ['nullable', 'required_if:lunch_break_enabled,1', 'date_format:H:i'],
     ]);
 
     $startTime = CarbonImmutable::parse("2000-01-01 {$validated['start_time']}:00");
-    $endTime = CarbonImmutable::parse("2000-01-01 {$validated['end_time']}:00");
+    $endTime   = CarbonImmutable::parse("2000-01-01 {$validated['end_time']}:00");
     if ($endTime->lessThanOrEqualTo($startTime)) {
       throw ValidationException::withMessages([
         'end_time' => "L'orario di fine deve essere successivo all'inizio.",
       ]);
     }
 
+    $validated['lunch_break_enabled'] = ($validated['lunch_break_enabled'] ?? null) === '1';
     $validated['weekdays'] = collect($validated['weekdays'])
-      ->map(fn ($weekday) => (int) $weekday)
-      ->unique()
-      ->sort()
-      ->values()
-      ->all();
+      ->map(fn ($w) => (int) $w)
+      ->unique()->sort()->values()->all();
     $validated['slot_duration'] = (int) $validated['slot_duration'];
 
     return $validated;
@@ -341,6 +346,14 @@ class DoctorDashboardController extends Controller
     [$startHour, $startMinute] = array_map('intval', explode(':', $input['start_time']));
     [$endHour, $endMinute] = array_map('intval', explode(':', $input['end_time']));
 
+    $lunchBreakEnabled = $input['lunch_break_enabled'] ?? false;
+    $lunchStart = $lunchBreakEnabled && isset($input['lunch_break_start'])
+      ? CarbonImmutable::parse("2000-01-01 {$input['lunch_break_start']}:00")
+      : null;
+    $lunchEnd = $lunchBreakEnabled && isset($input['lunch_break_end'])
+      ? CarbonImmutable::parse("2000-01-01 {$input['lunch_break_end']}:00")
+      : null;
+
     for ($date = $startDate; $date->lessThanOrEqualTo($endDate); $date = $date->addDay()) {
       if (! in_array($date->dayOfWeekIso, $input['weekdays'], true)) {
         continue;
@@ -354,6 +367,15 @@ class DoctorDashboardController extends Controller
           'start_at' => $slotStart,
           'end_at' => $slotEnd,
         ];
+
+        if ($lunchStart && $lunchEnd) {
+          $slotStartTime = CarbonImmutable::parse("2000-01-01 {$slotStart->format('H:i')}:00");
+          $slotEndTime   = CarbonImmutable::parse("2000-01-01 {$slotEnd->format('H:i')}:00");
+          if ($slotStartTime->lessThan($lunchEnd) && $slotEndTime->greaterThan($lunchStart)) {
+            $skipped->push($candidate + ['reason' => 'pausa pranzo']);
+            continue;
+          }
+        }
 
         if ($slotStart->isPast()) {
           $skipped->push($candidate + ['reason' => 'passato']);
