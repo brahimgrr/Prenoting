@@ -933,11 +933,32 @@ a {
 .dashboard-date-filter {
   color: var(--color-muted);
   display: grid;
-  flex: 0 0 12rem;
   font-size: 0.78rem;
   font-weight: 800;
   gap: 0.35rem;
   text-transform: uppercase;
+  width: 100%;
+}
+
+.dashboard-day-nav__controls {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+}
+
+.dashboard-day-nav__controls .form-control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dashboard-day-nav__arrow {
+  flex: 0 0 auto;
+  font-size: 1.15rem;
+  line-height: 1;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
 }
 
 .dashboard-stat-row {
@@ -956,6 +977,11 @@ a {
   gap: 0.25rem;
   min-height: 8rem;
   padding: 1.15rem;
+}
+
+.dashboard-stat--day-nav {
+  align-content: space-between;
+  gap: 0.75rem;
 }
 
 .dashboard-stat span,
@@ -980,16 +1006,97 @@ a {
   margin-bottom: 1rem;
 }
 
-.doctor-agenda-timeline {
+.doctor-agenda-scroll {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  max-height: 38rem;
+  overflow-y: auto;
+}
+
+.doctor-agenda-grid {
+  background: #ffffff;
+}
+
+.doctor-agenda-row {
   display: grid;
-  gap: 0.7rem;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  min-height: 3.4rem;
+}
+
+.doctor-agenda-row + .doctor-agenda-row {
+  border-top: 1px solid #eef2f7;
+}
+
+.doctor-agenda-row--past .doctor-agenda-row__time {
+  opacity: 0.45;
+}
+
+.doctor-agenda-row--past .doctor-agenda-row__content > .doctor-agenda-item {
+  opacity: 0.48;
+}
+
+.doctor-agenda-row__time {
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  padding: 0.75rem 0.85rem 0.75rem 0;
+  text-align: right;
+}
+
+.doctor-agenda-row__content {
+  border-left: 1px solid #eef2f7;
+  display: grid;
+  gap: 0.45rem;
+  min-height: 3.4rem;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+  position: relative;
+}
+
+.doctor-agenda-row__content[aria-hidden="true"] {
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.04), transparent 45%);
+}
+
+.doctor-agenda-now-marker {
+  align-items: center;
+  color: #dc2626;
+  display: flex;
+  font-size: 0.76rem;
+  font-weight: 850;
+  gap: 0.5rem;
+  left: 0.5rem;
+  line-height: 1;
+  pointer-events: none;
+  position: absolute;
+  right: 0.5rem;
+  top: var(--now-position);
+  transform: translateY(-50%);
+  z-index: 3;
+}
+
+.doctor-agenda-now-marker::before,
+.doctor-agenda-now-marker::after {
+  background: #dc2626;
+  content: "";
+  flex: 1;
+  height: 2px;
+}
+
+.doctor-agenda-now-marker span {
+  background: #ffffff;
+  border: 1px solid rgba(220, 38, 38, 0.32);
+  border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.12);
+  padding: 0.25rem 0.45rem;
 }
 
 .doctor-agenda-item {
   align-items: stretch;
-  display: grid;
-  gap: 0.85rem;
-  grid-template-columns: 5rem minmax(0, 1fr);
+  display: block;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .doctor-agenda-item__time {
@@ -1417,6 +1524,15 @@ a {
     flex-direction: column;
   }
 
+  .dashboard-date-filter {
+    flex: 0 1 auto;
+    width: 100%;
+  }
+
+  .dashboard-day-nav__controls {
+    width: 100%;
+  }
+
   .appointment-card__header,
   .treatment-card__header {
     align-items: flex-start;
@@ -1446,12 +1562,20 @@ a {
   }
 
   .doctor-agenda-item {
-    grid-template-columns: 1fr;
+    display: block;
   }
 
-  .doctor-agenda-item__time {
-    padding-top: 0;
-    text-align: left;
+  .doctor-agenda-row {
+    grid-template-columns: 4rem minmax(0, 1fr);
+  }
+
+  .doctor-agenda-row__time {
+    font-size: 0.8rem;
+    padding: 0.75rem 0.45rem 0.75rem 0;
+  }
+
+  .doctor-agenda-row__content {
+    padding: 0.3rem;
   }
 
   .doctor-agenda-item__main,

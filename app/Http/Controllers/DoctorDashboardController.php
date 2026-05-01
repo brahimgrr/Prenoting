@@ -148,6 +148,8 @@ class DoctorDashboardController extends Controller
   private function viewSchedule(Request $request): View
   {
     $selectedDate = (string) $request->query('date', now()->toDateString());
+    $selectedDay = CarbonImmutable::parse($selectedDate)->startOfDay();
+    $currentTime = CarbonImmutable::now();
     $appointments = Appointment::withPortalRelations()
       ->whereDate('start_at', $selectedDate)
       ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
@@ -157,12 +159,16 @@ class DoctorDashboardController extends Controller
       ->whereDate('start_at', $selectedDate)
       ->orderBy('start_at')
       ->get();
+    $timelineItems = $this->buildTimelineItems($appointments, $daySlots);
 
     return view('doctor.dashboard', [
       'date' => $selectedDate,
       'appointments' => $appointments,
       'daySlots' => $daySlots,
-      'timelineItems' => $this->buildTimelineItems($appointments, $daySlots),
+      'timelineItems' => $timelineItems,
+      'agendaRows' => $this->buildAgendaRows($selectedDay, $timelineItems, $currentTime),
+      'currentTime' => $currentTime,
+      'isSelectedToday' => $selectedDay->toDateString() === $currentTime->toDateString(),
     ]);
   }
 
@@ -236,6 +242,45 @@ class DoctorDashboardController extends Controller
       ->concat($fallbackAppointmentItems)
       ->sortBy(fn (array $item) => $item['start_at']->getTimestamp())
       ->values();
+  }
+
+  private function buildAgendaRows(CarbonImmutable $selectedDay, $timelineItems, CarbonImmutable $currentTime)
+  {
+    $itemsByRow = collect();
+    foreach ($timelineItems as $item) {
+      $minutesFromStart = max(0, min(
+        1439,
+        $selectedDay->diffInMinutes($item['start_at'], false)
+      ));
+      $rowIndex = intdiv((int) $minutesFromStart, 30);
+      $rowItems = $itemsByRow->get($rowIndex, collect());
+      $rowItems->push($item);
+      $itemsByRow->put($rowIndex, $rowItems);
+    }
+
+    $isToday = $selectedDay->toDateString() === $currentTime->toDateString();
+
+    return collect(range(0, 47))->map(function (int $rowIndex) use ($selectedDay, $itemsByRow, $currentTime, $isToday) {
+      $start = $selectedDay->addMinutes($rowIndex * 30);
+      $end = $start->addMinutes(30);
+      $isCurrent = $isToday && $currentTime->greaterThanOrEqualTo($start) && $currentTime->lessThan($end);
+      $nowPosition = null;
+
+      if ($isCurrent) {
+        $minutesIntoRow = $start->diffInMinutes($currentTime);
+        $nowPosition = min(100, max(0, ($minutesIntoRow / 30) * 100));
+      }
+
+      return [
+        'label' => $start->format('H:i'),
+        'start_at' => $start,
+        'end_at' => $end,
+        'items' => $itemsByRow->get($rowIndex, collect()),
+        'is_past' => $isToday && $end->lessThanOrEqualTo($currentTime),
+        'is_current' => $isCurrent,
+        'now_position' => $nowPosition,
+      ];
+    });
   }
 
   private function slotTimelineState(AvailabilitySlot $slot): string

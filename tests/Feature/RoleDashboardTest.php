@@ -27,7 +27,7 @@ class RoleDashboardTest extends TestCase
       ->get("/doctor/schedule?date={$appointmentDate}")
       ->assertOk()
       ->assertSee('Agenda del giorno')
-      ->assertSee('class="doctor-agenda-timeline"', false)
+      ->assertSee('class="doctor-agenda-grid"', false)
       ->assertSee('doctor-agenda-item--appointment', false)
       ->assertSee('Mario Rossi')
       ->assertSee('Altro Paziente')
@@ -65,13 +65,36 @@ class RoleDashboardTest extends TestCase
   {
     [$doctorUser] = $this->dashboardContext();
     $today = now()->toDateString();
+    $previousDay = CarbonImmutable::parse($today)->subDay()->toDateString();
+    $nextDay = CarbonImmutable::parse($today)->addDay()->toDateString();
 
     $this->actingAs($doctorUser)
       ->get('/doctor/schedule')
       ->assertOk()
+      ->assertSee('aria-label="Giorno precedente"', false)
+      ->assertSee('aria-label="Giorno successivo"', false)
+      ->assertSee("href=\"http://127.0.0.1:8080/doctor/schedule?date={$previousDay}\"", false)
+      ->assertSee("href=\"http://127.0.0.1:8080/doctor/schedule?date={$nextDay}\"", false)
       ->assertSee("value=\"{$today}\"", false)
       ->assertSee("{$today}")
-      ->assertSee('Agenda del giorno');
+      ->assertSee('Agenda del giorno')
+      ->assertSee('dashboard-stat dashboard-stat--day-nav', false)
+      ->assertDontSee('<span>Bloccati</span>', false);
+  }
+
+  public function test_doctor_schedule_day_navigation_preserves_filters(): void
+  {
+    [$doctorUser] = $this->dashboardContext();
+    $date = CarbonImmutable::parse('2026-05-10');
+    $previousDay = $date->subDay()->toDateString();
+    $nextDay = $date->addDay()->toDateString();
+
+    $this->actingAs($doctorUser)
+      ->get("/doctor/schedule?date={$date->toDateString()}&status=".Appointment::STATUS_CONFIRMED)
+      ->assertOk()
+      ->assertSee("value=\"{$date->toDateString()}\"", false)
+      ->assertSee("href=\"http://127.0.0.1:8080/doctor/schedule?date={$previousDay}&amp;status=".Appointment::STATUS_CONFIRMED."\"", false)
+      ->assertSee("href=\"http://127.0.0.1:8080/doctor/schedule?date={$nextDay}&amp;status=".Appointment::STATUS_CONFIRMED."\"", false);
   }
 
   public function test_doctor_agenda_timeline_shows_selected_day_slots_with_inline_actions(): void
@@ -100,7 +123,7 @@ class RoleDashboardTest extends TestCase
     $this->actingAs($doctorUser)
       ->get("/doctor/schedule?date={$date}")
       ->assertOk()
-      ->assertSee('class="doctor-agenda-timeline"', false)
+      ->assertSee('class="doctor-agenda-grid"', false)
       ->assertSeeInOrder([
         '10:00',
         'Libero',
@@ -114,8 +137,101 @@ class RoleDashboardTest extends TestCase
       ])
       ->assertSee("action=\"/doctor/availability/{$freeSlot->id}/block\"", false)
       ->assertSee("action=\"/doctor/availability/{$blockedSlot->id}/unblock\"", false)
+      ->assertDontSee('<span class="badge text-bg-success">Libero</span>', false)
+      ->assertDontSee('<span class="badge text-bg-warning">Bloccato</span>', false)
       ->assertDontSee("action=\"/doctor/availability/{$bookedSlot->id}/block\"", false)
       ->assertDontSee("action=\"/doctor/availability/{$bookedSlot->id}/unblock\"", false);
+  }
+
+  public function test_doctor_agenda_renders_full_day_half_hour_grid_with_empty_rows(): void
+  {
+    [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
+    $date = CarbonImmutable::now()->addDays(4)->toDateString();
+    $patient = $appointment->patient;
+    $service = $appointment->service;
+
+    $freeSlot = AvailabilitySlot::create([
+      'start_at' => CarbonImmutable::parse("{$date} 10:00:00"),
+      'end_at' => CarbonImmutable::parse("{$date} 10:30:00"),
+    ]);
+    $bookedSlot = AvailabilitySlot::create([
+      'start_at' => CarbonImmutable::parse("{$date} 11:00:00"),
+      'end_at' => CarbonImmutable::parse("{$date} 11:30:00"),
+      'is_booked' => true,
+    ]);
+    $this->appointment($patient, $service, $bookedSlot);
+
+    $response = $this->actingAs($doctorUser)->get("/doctor/schedule?date={$date}");
+    $content = $response->getContent();
+
+    $response
+      ->assertOk()
+      ->assertSee('class="doctor-agenda-grid"', false)
+      ->assertSee('data-time="00:00"', false)
+      ->assertSee('data-time="00:30"', false)
+      ->assertSee('data-time="23:30"', false)
+      ->assertSee('data-agenda-occupied-row', false)
+      ->assertSee('doctor-agenda-row__content" aria-hidden="true"', false)
+      ->assertSee('Slot libero')
+      ->assertSee('Blocca')
+      ->assertSee('Mario Rossi')
+      ->assertSee('Visita dermatologica');
+
+    $this->assertSame(48, substr_count($content, 'data-time="'));
+    $this->assertStringContainsString("action=\"/doctor/availability/{$freeSlot->id}/block\"", $content);
+  }
+
+  public function test_today_agenda_marks_current_time_and_dims_past_rows_without_passato_badge(): void
+  {
+    $now = CarbonImmutable::parse('2026-05-01 10:15:00');
+    \Carbon\Carbon::setTestNow($now);
+    CarbonImmutable::setTestNow($now);
+
+    try {
+      [$doctorUser] = $this->dashboardContext();
+      $date = $now->toDateString();
+
+      AvailabilitySlot::create([
+        'start_at' => $now->setTime(9, 0),
+        'end_at' => $now->setTime(9, 30),
+      ]);
+      AvailabilitySlot::create([
+        'start_at' => $now->setTime(11, 0),
+        'end_at' => $now->setTime(11, 30),
+      ]);
+
+      $this->actingAs($doctorUser)
+        ->get("/doctor/schedule?date={$date}")
+        ->assertOk()
+        ->assertSee('data-agenda-scroll-container', false)
+        ->assertSee('class="doctor-agenda-now-marker"', false)
+        ->assertSee('data-agenda-now-marker', false)
+        ->assertSee('Ora 10:15')
+        ->assertSee('doctor-agenda-row doctor-agenda-row--past', false)
+        ->assertSee('Slot libero')
+        ->assertSee('Blocca')
+        ->assertDontSee('Passato');
+    } finally {
+      \Carbon\Carbon::setTestNow();
+      CarbonImmutable::setTestNow();
+    }
+  }
+
+  public function test_past_date_agenda_keeps_passato_badge_without_current_time_marker(): void
+  {
+    [$doctorUser] = $this->dashboardContext();
+    $date = CarbonImmutable::now()->subDays(2)->toDateString();
+
+    AvailabilitySlot::create([
+      'start_at' => CarbonImmutable::parse("{$date} 09:00:00"),
+      'end_at' => CarbonImmutable::parse("{$date} 09:30:00"),
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->get("/doctor/schedule?date={$date}")
+      ->assertOk()
+      ->assertSee('Passato')
+      ->assertDontSee('doctor-agenda-now-marker', false);
   }
 
   public function test_doctor_root_redirects_to_schedule_without_today_section(): void

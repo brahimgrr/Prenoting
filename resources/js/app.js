@@ -1,5 +1,28 @@
 import "bootstrap";
 
+function positionAgendaScroll() {
+  const container = document.querySelector("[data-agenda-scroll-container]");
+  const marker = container?.querySelector("[data-agenda-now-marker]");
+  const firstOccupiedRow = container?.querySelector("[data-agenda-occupied-row]");
+  if (!container || (!marker && !firstOccupiedRow)) return;
+
+  requestAnimationFrame(() => {
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = (marker ?? firstOccupiedRow).getBoundingClientRect();
+    const targetTop = targetRect.top - containerRect.top + container.scrollTop;
+
+    if (marker) {
+      const markerCenter = targetTop + targetRect.height / 2;
+      container.scrollTop = Math.max(0, markerCenter - container.clientHeight / 2);
+      return;
+    }
+
+    container.scrollTop = Math.max(0, targetTop);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", positionAgendaScroll);
+
 document.addEventListener("click", (e) => {
   const servicesArrow = e.target.closest("[data-landing-services-prev], [data-landing-services-next]");
   if (servicesArrow) {
