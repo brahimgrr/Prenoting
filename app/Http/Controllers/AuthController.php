@@ -50,7 +50,8 @@ class AuthController extends Controller
 
   public function showRegister(): View
   {
-    return view('auth.register');
+    $comuni = array_keys(require app_path('Data/ComuniItaliani.php'));
+    return view('auth.register', compact('comuni'));
   }
 
   public function register(Request $request): RedirectResponse

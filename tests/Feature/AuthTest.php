@@ -330,7 +330,19 @@ class AuthTest extends TestCase
     $response->assertDontSeeText('Medico');
     $response->assertDontSeeText('Ambulatorio');
     $response->assertDontSee('<span class="badge rounded-pill text-bg-success">
-  
+
 </span>', false);
+  }
+
+  public function test_register_page_shows_datalist_with_comuni(): void
+  {
+    $response = $this->get('/register');
+
+    $response->assertOk();
+    $response->assertSee('<datalist id="comuni-list">', false);
+    $response->assertSee('<option value="ROMA">', false);
+    $response->assertSee('<option value="MILANO">', false);
+    $response->assertSee('<option value="FRANCIA">', false);
+    $response->assertSee('list="comuni-list"', false);
   }
 }
