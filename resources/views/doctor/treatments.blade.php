@@ -59,7 +59,6 @@
     <section class="portal-panel dashboard-table-panel">
       <div class="section-heading">
         <h2>I tuoi trattamenti</h2>
-        <span>{{ $offerings->count() }} prestazioni</span>
       </div>
 
       @if ($offerings->isNotEmpty())

@@ -57,7 +57,6 @@
           <h2>Agenda del giorno</h2>
           <p>{{ \Carbon\CarbonImmutable::parse($date)->format('d/m/Y') }}</p>
         </div>
-        <span>{{ $timelineItems->count() }} {{ $timelineItems->count() === 1 ? 'elemento' : 'elementi' }}</span>
       </div>
 
       <div class="doctor-agenda-scroll" data-agenda-scroll-container aria-label="Agenda completa della giornata">
