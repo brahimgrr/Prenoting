@@ -2,193 +2,337 @@
 
 @php
   $availabilityTotals = $availabilitySlots->flatten(1);
-  $availabilityFree = $availabilityTotals->filter(fn ($slot) => ! $slot->is_booked && ! $slot->is_blocked)->count();
-  $availabilityBooked = $availabilityTotals->where('is_booked', true)->count();
-  $availabilityBlocked = $availabilityTotals->where('is_blocked', true)->count();
-  $weekdayOptions = [1 => 'Lun', 2 => 'Mar', 3 => 'Mer', 4 => 'Gio', 5 => 'Ven'];
-  $selectedWeekdays = old('weekdays', $batchForm['weekdays'] ?? [1, 2, 3, 4, 5]);
-  $selectedWeekdays = is_array($selectedWeekdays) ? array_map('intval', $selectedWeekdays) : [1, 2, 3, 4, 5];
+  $totalFree    = $availabilityTotals->filter(fn ($s) => !$s->is_booked && !$s->is_blocked)->count();
+  $totalBooked  = $availabilityTotals->where('is_booked', true)->count();
+  $totalCount   = $availabilityTotals->count();
+
+  $weekdayOptions   = [1 => 'LUN', 2 => 'MAR', 3 => 'MER', 4 => 'GIO', 5 => 'VEN'];
+  $selectedWeekdays = old('weekdays', $batchForm['weekdays'] ?? [1,2,3,4,5]);
+  $selectedWeekdays = is_array($selectedWeekdays) ? array_map('intval', $selectedWeekdays) : [1,2,3,4,5];
+
+  $lunchEnabled = old('lunch_break_enabled', $batchForm['lunch_break_enabled'] ?? false);
+  $lunchStart   = old('lunch_break_start', $batchForm['lunch_break_start'] ?? '13:00');
+  $lunchEnd     = old('lunch_break_end',   $batchForm['lunch_break_end']   ?? '14:00');
+
+  $dow = ['Mon'=>'Lun','Tue'=>'Mar','Wed'=>'Mer','Thu'=>'Gio','Fri'=>'Ven','Sat'=>'Sab','Sun'=>'Dom'];
 @endphp
 
 @section('content')
-  <section class="portal-section operations-dashboard">
-    <div class="portal-page-heading portal-heading-row">
-      <div>
-        <span class="portal-eyebrow">Portale medico</span>
-        <h1>Disponibilita</h1>
-        <p>Crea slot in batch e controlla la disponibilita futura.</p>
-      </div>
-      <a href="/doctor/schedule" class="btn btn-outline-secondary">Torna all'agenda</a>
+<section class="portal-section">
+
+  {{-- ── Header ── --}}
+  <div class="avail-page-header">
+    <div>
+      <h1 class="avail-page-title">Gestisci disponibilita</h1>
+      <p class="avail-page-subtitle">Crea slot in batch e controlla la disponibilita futura</p>
+    </div>
+    <button class="avail-btn-crea" onclick="availOpenModal()">
+      + Crea disponibilita
+    </button>
+  </div>
+
+  {{-- ── Summary strip ── --}}
+  <div class="avail-summary-strip">
+    <div class="avail-summary-card">
+      <div class="avail-summary-val" style="color:#0f1724">{{ $totalCount }}</div>
+      <div class="avail-summary-lbl">Slot totali</div>
+    </div>
+    <div class="avail-summary-card">
+      <div class="avail-summary-val" style="color:#16a34a">{{ $totalFree }}</div>
+      <div class="avail-summary-lbl">Liberi</div>
+    </div>
+    <div class="avail-summary-card">
+      <div class="avail-summary-val" style="color:#2563eb">{{ $totalBooked }}</div>
+      <div class="avail-summary-lbl">Prenotati</div>
+    </div>
+  </div>
+
+  {{-- ── Tab bar + slot panels ── --}}
+  @if ($availabilitySlots->isNotEmpty())
+    <div class="avail-tabs-wrap" id="availTabBar">
+      @foreach ($availabilitySlots as $slotDate => $slotsForDay)
+        @php
+          $carbon   = \Carbon\CarbonImmutable::parse($slotDate);
+          $dowLabel = $dow[$carbon->format('D')] ?? $carbon->format('D');
+          $hasFree    = $slotsForDay->filter(fn($s) => !$s->is_booked && !$s->is_blocked)->isNotEmpty();
+          $hasBooked  = $slotsForDay->where('is_booked', true)->isNotEmpty();
+          $hasBlocked = $slotsForDay->where('is_blocked', true)->isNotEmpty();
+          $tabIdx = $loop->index;
+        @endphp
+        <div class="avail-day-tab{{ $loop->first ? ' is-active' : '' }}" onclick="availSwitchDay({{ $tabIdx }})">
+          <div class="avail-day-tab__dow">{{ $dowLabel }}</div>
+          <div class="avail-day-tab__date">{{ $carbon->format('d/m') }}</div>
+          <div class="avail-day-tab__dots">
+            @if ($hasFree)    <span class="avail-dot" style="background:#16a34a"></span> @endif
+            @if ($hasBooked)  <span class="avail-dot" style="background:#2563eb"></span> @endif
+            @if ($hasBlocked) <span class="avail-dot" style="background:#d97706"></span> @endif
+          </div>
+        </div>
+      @endforeach
     </div>
 
-    <section class="availability-manager">
-      <div class="availability-manager__summary">
-        <span>Gestisci disponibilita</span>
-        <small>Crea slot in batch e controlla la disponibilita futura</small>
-      </div>
-
-      <div class="availability-manager__content">
-        <div class="availability-manager__block">
-          <div class="section-heading">
-            <h2>Crea disponibilita in batch</h2>
-            <span>Imposta una sessione e controlla l'anteprima</span>
+    @foreach ($availabilitySlots as $slotDate => $slotsForDay)
+      @php $carbon = \Carbon\CarbonImmutable::parse($slotDate); @endphp
+      <div class="avail-day-panel" id="avail-panel-{{ $loop->index }}" @if (!$loop->first) style="display:none" @endif>
+        <div class="avail-slot-panel">
+          <div class="avail-slot-panel__head">
+            <span class="avail-slot-panel__title">{{ $carbon->format('d/m/Y') }}</span>
+            <span class="avail-slot-count">{{ $slotsForDay->count() }} slot</span>
           </div>
-          <form class="availability-batch-form" method="GET" action="/doctor/availability/preview">
-            <label class="form-label">
-              Dal
-              <input class="form-control" type="date" name="start_date" value="{{ old('start_date', $batchForm['start_date']) }}" required>
-            </label>
-            <label class="form-label">
-              Al
-              <input class="form-control" type="date" name="end_date" value="{{ old('end_date', $batchForm['end_date']) }}" required>
-            </label>
-            <div class="form-label availability-weekday-field">
-              Giorni
-              <div class="availability-weekday-pills" role="group" aria-label="Giorni della settimana">
-                @foreach ($weekdayOptions as $weekdayValue => $weekdayLabel)
-                  <input
-                    class="btn-check"
-                    type="checkbox"
-                    name="weekdays[]"
-                    value="{{ $weekdayValue }}"
-                    id="weekday{{ $weekdayValue }}"
-                    @checked(in_array($weekdayValue, $selectedWeekdays, true))
-                  >
-                  <label class="btn btn-outline-primary" for="weekday{{ $weekdayValue }}">{{ $weekdayLabel }}</label>
-                @endforeach
-              </div>
-            </div>
-            <label class="form-label">
-              Ora inizio
-              <input class="form-control" type="time" name="start_time" value="{{ old('start_time', $batchForm['start_time']) }}" required>
-            </label>
-            <label class="form-label">
-              Ora fine
-              <input class="form-control" type="time" name="end_time" value="{{ old('end_time', $batchForm['end_time']) }}" required>
-            </label>
-            <input type="hidden" name="slot_duration" value="30">
-            <div class="availability-batch-actions">
-              <button type="submit" class="btn btn-primary">Genera anteprima</button>
-              <span>Creeremo solo slot futuri e senza sovrapposizioni.</span>
-            </div>
-          </form>
 
-          @if ($availabilityPreview)
-            <div class="availability-preview-card" id="availability-preview">
-              <div class="section-heading">
-                <div>
-                  <h2>Anteprima disponibilita</h2>
-                  <p>{{ $availabilityPreview['input']['start_date'] }} - {{ $availabilityPreview['input']['end_date'] }} - {{ $availabilityPreview['weekdayLabels'] }}</p>
-                </div>
-                <form method="POST" action="/doctor/availability/batch">
+          @forelse ($slotsForDay as $slot)
+            @php
+              $isFree    = !$slot->is_booked && !$slot->is_blocked;
+              $isBooked  = $slot->is_booked;
+              $isBlocked = $slot->is_blocked;
+              $barColor  = $isFree ? '#16a34a' : ($isBooked ? '#2563eb' : '#d97706');
+              $patientName = $isBooked ? ($slot->appointments->first()?->patientName() ?? null) : null;
+            @endphp
+            <div class="avail-slot-row">
+              <div class="avail-slot-bar" style="background:{{ $barColor }}"></div>
+              <span class="avail-slot-time">{{ $slot->start_at->format('H:i') }} – {{ $slot->end_at->format('H:i') }}</span>
+              @if ($patientName)
+                <span class="avail-slot-patient">{{ $patientName }}</span>
+              @endif
+              @if ($isFree)
+                <span class="avail-slot-badge avail-badge--free">Libero</span>
+                <form method="POST" action="/doctor/availability/{{ $slot->id }}/block">
                   @csrf
-                  <input type="hidden" name="start_date" value="{{ $availabilityPreview['input']['start_date'] }}">
-                  <input type="hidden" name="end_date" value="{{ $availabilityPreview['input']['end_date'] }}">
-                  @foreach ($availabilityPreview['input']['weekdays'] as $weekday)
-                    <input type="hidden" name="weekdays[]" value="{{ $weekday }}">
-                  @endforeach
-                  <input type="hidden" name="start_time" value="{{ $availabilityPreview['input']['start_time'] }}">
-                  <input type="hidden" name="end_time" value="{{ $availabilityPreview['input']['end_time'] }}">
-                  <input type="hidden" name="slot_duration" value="{{ $availabilityPreview['input']['slot_duration'] }}">
-                  <button type="submit" class="btn btn-primary" @disabled($availabilityPreview['creatable']->isEmpty())>
-                    Crea {{ $availabilityPreview['creatable']->count() }} slot
-                  </button>
+                  <button type="submit" class="avail-slot-btn">Blocca</button>
                 </form>
-              </div>
-              <div class="availability-preview-stats">
-                <div aria-label="{{ $availabilityPreview['creatable']->count() }} {{ $availabilityPreview['creatable']->count() === 1 ? 'slot creabile' : 'slot creabili' }}">
-                  <strong>{{ $availabilityPreview['creatable']->count() }}</strong>
-                  <span>{{ $availabilityPreview['creatable']->count() === 1 ? 'slot creabile' : 'slot creabili' }}</span>
-                </div>
-                <div aria-label="{{ $availabilityPreview['skipped']->count() }} {{ $availabilityPreview['skipped']->count() === 1 ? 'saltato' : 'saltati' }}">
-                  <strong>{{ $availabilityPreview['skipped']->count() }}</strong>
-                  <span>{{ $availabilityPreview['skipped']->count() === 1 ? 'saltato' : 'saltati' }}</span>
-                </div>
-              </div>
-              @if ($availabilityPreview['creatable']->isNotEmpty())
-                @php
-                  $creatablePreview = $availabilityPreview['creatable'];
-                  $headSlots = $creatablePreview->take(4);
-                  $tailSlots = $creatablePreview->count() > 8 ? $creatablePreview->slice(-4) : $creatablePreview->slice(4);
-                @endphp
-                <div class="availability-preview-list">
-                  @foreach ($headSlots as $candidate)
-                    <span>{{ $candidate['start_at']->format('d/m H:i') }} - {{ $candidate['end_at']->format('H:i') }}</span>
-                  @endforeach
-                  @if ($creatablePreview->count() > 8)
-                    <span>...</span>
-                  @endif
-                  @foreach ($tailSlots as $candidate)
-                    <span>{{ $candidate['start_at']->format('d/m H:i') }} - {{ $candidate['end_at']->format('H:i') }}</span>
-                  @endforeach
-                </div>
+              @elseif ($isBooked)
+                <span class="avail-slot-badge avail-badge--booked">Prenotato</span>
               @else
-                <p class="mb-0 text-muted">Nessuno slot creabile con questi parametri. Cambia giorni, orari o intervallo.</p>
-              @endif
-              @if ($availabilityPreview['skipped']->isNotEmpty())
-                <details class="availability-preview-skipped">
-                  <summary>Mostra slot saltati</summary>
-                  <div>
-                    @foreach ($availabilityPreview['skipped']->take(6) as $candidate)
-                      <span>{{ $candidate['start_at']->format('d/m H:i') }} - {{ $candidate['end_at']->format('H:i') }} - {{ $candidate['reason'] }}</span>
-                    @endforeach
-                  </div>
-                </details>
+                <span class="avail-slot-badge avail-badge--blocked">Bloccato</span>
+                <form method="POST" action="/doctor/availability/{{ $slot->id }}/unblock">
+                  @csrf
+                  <button type="submit" class="avail-slot-btn">Riapri</button>
+                </form>
               @endif
             </div>
-          @endif
+          @empty
+            <p class="avail-empty">Nessuno slot per questo giorno.</p>
+          @endforelse
         </div>
+      </div>
+    @endforeach
+  @else
+    <div class="avail-slot-panel" style="border-radius:11px">
+      <p class="avail-empty">Nessuna disponibilita futura. Crea nuovi slot con il pulsante in alto.</p>
+    </div>
+  @endif
 
-        <div class="availability-manager__block">
-          <div class="section-heading">
-            <h2>Disponibilita future</h2>
-            <span>{{ $availabilityTotals->count() }} slot - {{ $availabilityFree }} liberi - {{ $availabilityBooked }} prenotati - {{ $availabilityBlocked }} bloccati</span>
+</section>
+
+{{-- ════ MODALE ════ --}}
+<div class="avail-modal-overlay" id="availModal" style="display:none" onclick="if(event.target===this)availCloseModal()">
+  <div class="avail-modal-box">
+
+    {{-- Header modale --}}
+    <div class="avail-modal-header">
+      <div>
+        <p class="avail-modal-title" id="availModalTitle">Crea disponibilita</p>
+        <p class="avail-modal-subtitle" id="availModalSubtitle">Genera slot in batch per un periodo selezionato</p>
+      </div>
+      <button class="avail-modal-close" onclick="availCloseModal()">&#x2715;</button>
+    </div>
+
+    {{-- ── Schermata 1: Form ── --}}
+    <div id="availFormScreen">
+      <form method="GET" action="/doctor/availability/preview" id="availPreviewForm">
+        <div class="avail-modal-body">
+
+          {{-- Date range --}}
+          <div class="avail-field-row">
+            <div class="avail-field-col">
+              <div class="avail-field-lbl">Dal</div>
+              <input type="date" class="avail-input" name="start_date"
+                value="{{ old('start_date', $batchForm['start_date']) }}" required>
+            </div>
+            <div class="avail-field-sep">→</div>
+            <div class="avail-field-col">
+              <div class="avail-field-lbl">Al</div>
+              <input type="date" class="avail-input" name="end_date"
+                value="{{ old('end_date', $batchForm['end_date']) }}" required>
+            </div>
           </div>
-          @if ($availabilitySlots->isNotEmpty())
-            <div class="availability-day-list">
-              @foreach ($availabilitySlots as $slotDate => $slotsForDay)
-                <details class="availability-day">
-                  <summary class="availability-day__summary">
-                    <span>{{ \Carbon\CarbonImmutable::parse($slotDate)->format('d/m/Y') }}</span>
-                    <small>{{ $slotsForDay->count() }} {{ $slotsForDay->count() === 1 ? 'slot' : 'slot' }}</small>
-                  </summary>
-                  <div class="availability-slot-list">
-                    @foreach ($slotsForDay as $slot)
-                      <article class="availability-slot-row">
-                        <div>
-                          <strong>{{ $slot->start_at->format('H:i') }} - {{ $slot->end_at->format('H:i') }}</strong>
-                        </div>
-                        <div class="availability-slot-row__actions">
-                          @if ($slot->is_booked)
-                            <span class="badge text-bg-secondary">Prenotato</span>
-                          @elseif ($slot->is_blocked)
-                            <span class="badge text-bg-warning">Bloccato</span>
-                            <form method="POST" action="/doctor/availability/{{ $slot->id }}/unblock">
-                              @csrf
-                              <button type="submit" class="btn btn-sm btn-outline-primary">Riapri</button>
-                            </form>
-                          @else
-                            <span class="badge text-bg-success">Libero</span>
-                            <form method="POST" action="/doctor/availability/{{ $slot->id }}/block">
-                              @csrf
-                              <button type="submit" class="btn btn-sm btn-outline-danger">Blocca</button>
-                            </form>
-                          @endif
-                        </div>
-                      </article>
-                    @endforeach
-                  </div>
-                </details>
+
+          {{-- Time range --}}
+          <div class="avail-field-row">
+            <div class="avail-field-col">
+              <div class="avail-field-lbl">Ora inizio</div>
+              <input type="time" class="avail-input" name="start_time"
+                value="{{ old('start_time', $batchForm['start_time']) }}" required>
+            </div>
+            <div class="avail-field-sep">—</div>
+            <div class="avail-field-col">
+              <div class="avail-field-lbl">Ora fine</div>
+              <input type="time" class="avail-input" name="end_time"
+                value="{{ old('end_time', $batchForm['end_time']) }}" required>
+            </div>
+          </div>
+
+          {{-- Duration hidden --}}
+          <input type="hidden" name="slot_duration" value="30">
+
+          {{-- Giorni chips --}}
+          <div style="margin-bottom:16px">
+            <div class="avail-field-lbl">Giorni</div>
+            <div class="avail-chip-row">
+              @foreach ($weekdayOptions as $val => $label)
+                <label>
+                  <input type="checkbox" name="weekdays[]" value="{{ $val }}"
+                    style="display:none"
+                    @checked(in_array($val, $selectedWeekdays, true))
+                    onchange="availSyncChip(this)">
+                  <span class="avail-chip{{ in_array($val, $selectedWeekdays, true) ? ' is-selected' : '' }}"
+                    onclick="this.previousElementSibling.click()">{{ $label }}</span>
+                </label>
               @endforeach
             </div>
-          @else
-            <div class="empty-state">
-              <h3>Nessuna disponibilita futura</h3>
-              <p>Aggiungi nuovi slot dal modulo qui sopra.</p>
+          </div>
+
+          {{-- Pausa pranzo --}}
+          <div class="avail-pausa{{ $lunchEnabled ? ' is-on' : '' }}" id="availPausaBox">
+            <div class="avail-pausa__toggle" onclick="availTogglePausa()">
+              <span class="avail-pausa__label">&#9749; Pausa pranzo</span>
+              <div class="avail-pausa__switch"></div>
             </div>
-          @endif
+            <input type="hidden" name="lunch_break_enabled" id="availLunchEnabled"
+              value="{{ $lunchEnabled ? '1' : '' }}">
+            <div class="avail-pausa__fields" id="availPausaFields"
+              @if (!$lunchEnabled) style="display:none" @endif>
+              <div style="flex:1">
+                <div class="avail-field-lbl" style="color:#a16207">Pausa inizio</div>
+                <input type="time" class="avail-input" name="lunch_break_start"
+                  value="{{ old('lunch_break_start', $lunchStart) }}">
+              </div>
+              <div class="avail-field-sep">—</div>
+              <div style="flex:1">
+                <div class="avail-field-lbl" style="color:#a16207">Pausa fine</div>
+                <input type="time" class="avail-input" name="lunch_break_end"
+                  value="{{ old('lunch_break_end', $lunchEnd) }}">
+              </div>
+            </div>
+            <div class="avail-pausa__hint" id="availPausaHint"
+              @if (!$lunchEnabled) style="display:none" @endif>
+              Gli slot in questo intervallo verranno esclusi automaticamente.
+            </div>
+          </div>
+
         </div>
+        <div class="avail-modal-footer">
+          <button type="button" onclick="availCloseModal()"
+            style="background:none;border:1.5px solid #dde1e7;border-radius:8px;padding:8px 18px;font-size:14px;font-weight:500;color:#4a5568;cursor:pointer">
+            Annulla
+          </button>
+          <button type="submit"
+            style="background:#1a6fce;border:none;border-radius:8px;padding:8px 22px;font-size:14px;font-weight:600;color:#fff;cursor:pointer">
+            Genera anteprima
+          </button>
+        </div>
+      </form>
+    </div>
+
+    {{-- ── Schermata 2: Preview ── --}}
+    @if ($availabilityPreview)
+    <div id="availPreviewScreen">
+      <div class="avail-modal-body">
+        <div class="avail-preview-bar">
+          <span class="avail-preview-count">{{ $availabilityPreview['creatable']->count() }}</span>
+          <span style="font-size:13px;color:#4a5568">
+            slot verranno creati · solo futuri, senza sovrapposizioni
+          </span>
+        </div>
+        @if ($availabilityPreview['skipped']->isNotEmpty())
+          <p style="font-size:12px;color:#8a9aae;margin-top:10px;margin-bottom:0">
+            {{ $availabilityPreview['skipped']->count() }} slot saltati
+            (passati, sovrapposti o in pausa pranzo)
+          </p>
+        @endif
       </div>
-    </section>
-  </section>
+      <div class="avail-modal-footer">
+        <button type="button" onclick="availShowFormScreen()"
+          style="background:none;border:1.5px solid #dde1e7;border-radius:8px;padding:8px 18px;font-size:14px;font-weight:500;color:#4a5568;cursor:pointer">
+          ← Modifica
+        </button>
+        <form method="POST" action="/doctor/availability/batch">
+          @csrf
+          <input type="hidden" name="start_date"          value="{{ $availabilityPreview['input']['start_date'] }}">
+          <input type="hidden" name="end_date"            value="{{ $availabilityPreview['input']['end_date'] }}">
+          <input type="hidden" name="start_time"          value="{{ $availabilityPreview['input']['start_time'] }}">
+          <input type="hidden" name="end_time"            value="{{ $availabilityPreview['input']['end_time'] }}">
+          <input type="hidden" name="slot_duration"       value="{{ $availabilityPreview['input']['slot_duration'] }}">
+          @if ($availabilityPreview['input']['lunch_break_enabled'])
+            <input type="hidden" name="lunch_break_enabled" value="1">
+            <input type="hidden" name="lunch_break_start"   value="{{ $availabilityPreview['input']['lunch_break_start'] }}">
+            <input type="hidden" name="lunch_break_end"     value="{{ $availabilityPreview['input']['lunch_break_end'] }}">
+          @endif
+          @foreach ($availabilityPreview['input']['weekdays'] as $wd)
+            <input type="hidden" name="weekdays[]" value="{{ $wd }}">
+          @endforeach
+          <button type="submit"
+            @disabled($availabilityPreview['creatable']->isEmpty())
+            style="background:#1a6fce;border:none;border-radius:8px;padding:8px 22px;font-size:14px;font-weight:600;color:#fff;cursor:pointer">
+            Crea {{ $availabilityPreview['creatable']->count() }} slot
+          </button>
+        </form>
+      </div>
+    </div>
+    @endif
+
+  </div>
+</div>
+
+{{-- ── JS ── --}}
+<script>
+function availOpenModal() {
+  document.getElementById('availModal').style.display = 'flex';
+  availShowFormScreen();
+}
+function availCloseModal() {
+  document.getElementById('availModal').style.display = 'none';
+}
+function availShowFormScreen() {
+  document.getElementById('availFormScreen').style.display = '';
+  var ps = document.getElementById('availPreviewScreen');
+  if (ps) ps.style.display = 'none';
+  document.getElementById('availModalTitle').textContent = 'Crea disponibilita';
+  document.getElementById('availModalSubtitle').textContent = 'Genera slot in batch per un periodo selezionato';
+}
+function availShowPreviewScreen() {
+  document.getElementById('availFormScreen').style.display = 'none';
+  var ps = document.getElementById('availPreviewScreen');
+  if (ps) ps.style.display = '';
+  document.getElementById('availModalTitle').textContent = 'Anteprima slot';
+  document.getElementById('availModalSubtitle').textContent = 'Controlla prima di creare';
+}
+function availSwitchDay(idx) {
+  document.querySelectorAll('.avail-day-tab').forEach(function(t, i) {
+    t.classList.toggle('is-active', i === idx);
+  });
+  document.querySelectorAll('.avail-day-panel').forEach(function(p, i) {
+    p.style.display = i === idx ? '' : 'none';
+  });
+}
+function availSyncChip(input) {
+  input.nextElementSibling.classList.toggle('is-selected', input.checked);
+}
+function availTogglePausa() {
+  var box    = document.getElementById('availPausaBox');
+  var fields = document.getElementById('availPausaFields');
+  var hint   = document.getElementById('availPausaHint');
+  var input  = document.getElementById('availLunchEnabled');
+  var isOn   = box.classList.toggle('is-on');
+  fields.style.display = isOn ? 'flex' : 'none';
+  hint.style.display   = isOn ? 'block' : 'none';
+  input.value          = isOn ? '1' : '';
+}
+@if ($availabilityPreview)
+window.addEventListener('DOMContentLoaded', function () {
+  document.getElementById('availModal').style.display = 'flex';
+  availShowPreviewScreen();
+});
+@endif
+</script>
 @endsection
