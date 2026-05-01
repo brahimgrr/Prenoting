@@ -61,9 +61,13 @@
           </div>
           <div class="col-md-6">
             <label class="form-label" for="place_of_birth">Luogo di nascita</label>
-            <input class="form-control @error('place_of_birth') is-invalid @enderror" id="place_of_birth" name="place_of_birth" autocomplete="address-level2" value="{{ old('place_of_birth') }}" required>
+            <input class="form-control @error('place_of_birth') is-invalid @enderror" id="place_of_birth" name="place_of_birth" list="comuni-list" autocomplete="off" value="{{ old('place_of_birth') }}" required>
             @error('place_of_birth') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
-            <div class="form-text">Scrivi il nome per esteso (es. Reggio Calabria). Per nati all'estero, scrivi il nome del paese in italiano.</div>
+            <datalist id="comuni-list">
+              @foreach($comuni as $comune)
+                <option value="{{ $comune }}">
+              @endforeach
+            </datalist>
           </div>
         </div>
         <button class="btn btn-primary w-100 mt-4" type="submit">Crea account</button>
