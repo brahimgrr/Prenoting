@@ -10,7 +10,6 @@
     <section class="appointment-group">
       <div class="section-heading">
         <h2>Imminenti</h2>
-        <span>{{ $upcomingAppointments->count() }}</span>
       </div>
       @forelse ($upcomingAppointments as $appointment)
         @include('patient.partials.appointment-card', ['appointment' => $appointment, 'manageable' => $appointment->isFutureConfirmed()])
@@ -26,7 +25,6 @@
     <section class="appointment-group">
       <div class="section-heading">
         <h2>Passati e annullati</h2>
-        <span>{{ $pastAppointments->count() }}</span>
       </div>
       @forelse ($pastAppointments as $appointment)
         @include('patient.partials.appointment-card', ['appointment' => $appointment, 'manageable' => false, 'muted' => true])

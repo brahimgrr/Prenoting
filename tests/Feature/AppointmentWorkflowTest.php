@@ -346,6 +346,8 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertDontSee('data-cancel-panel-target', false);
     $response->assertDontSee('appointment-cancel-panel', false);
     $response->assertDontSee('window.confirm', false);
+    $response->assertDontSee('<div class="section-heading"><h2>Imminenti</h2><span>', false);
+    $response->assertDontSee('<div class="section-heading"><h2>Passati e annullati</h2><span>', false);
     $response->assertDontSeeText('Confermato');
     $response->assertDontSeeText('Medico');
     $response->assertDontSeeText('Ambulatorio');

@@ -185,8 +185,7 @@
                     style="display:none"
                     @checked(in_array($val, $selectedWeekdays, true))
                     onchange="availSyncChip(this)">
-                  <span class="avail-chip{{ in_array($val, $selectedWeekdays, true) ? ' is-selected' : '' }}"
-                    onclick="this.previousElementSibling.click()">{{ $label }}</span>
+                  <span class="avail-chip{{ in_array($val, $selectedWeekdays, true) ? ' is-selected' : '' }}">{{ $label }}</span>
                 </label>
               @endforeach
             </div>

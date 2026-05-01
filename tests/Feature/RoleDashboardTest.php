@@ -38,7 +38,6 @@ class RoleDashboardTest extends TestCase
       ->assertDontSee('type="hidden" name="slot_duration" value="30"', false)
       ->assertDontSee('Durata slot')
       ->assertDontSee('<select class="form-select" name="slot_duration"', false)
-      ->assertDontSee('Agenda completa')
       ->assertDontSee('<table class="table dashboard-table', false)
       ->assertDontSee('Azioni')
       ->assertDontSee('Accetta')
@@ -126,10 +125,10 @@ class RoleDashboardTest extends TestCase
       ->assertSee('class="doctor-agenda-grid"', false)
       ->assertSeeInOrder([
         '10:00',
-        'Libero',
+        'Slot libero',
         'Blocca',
         '10:30',
-        'Bloccato',
+        'Slot bloccato',
         'Riapri',
         '11:00',
         'Mario Rossi',
@@ -249,7 +248,6 @@ class RoleDashboardTest extends TestCase
       ->assertSee('Agenda')
       ->assertSee('Agenda del giorno')
       ->assertDontSee('Gestisci disponibilita')
-      ->assertDontSee('class="availability-manager"', false)
       ->assertDontSee('/doctor/availability/preview', false);
   }
 
@@ -262,9 +260,18 @@ class RoleDashboardTest extends TestCase
       ->assertOk()
       ->assertSee('Disponibilita')
       ->assertSee('Gestisci disponibilita')
-      ->assertSee('Crea disponibilita in batch')
-      ->assertSee('Disponibilita future')
-      ->assertSee('class="availability-manager"', false)
+      ->assertSee('Crea disponibilita')
+      ->assertSee('Slot totali')
+      ->assertSee('Liberi')
+      ->assertSee('Prenotati')
+      ->assertSee('Pausa pranzo')
+      ->assertSee('class="avail-tabs-wrap"', false)
+      ->assertSee('avail-day-tab', false)
+      ->assertDontSee('previousElementSibling.click()', false)
+      ->assertSee('class="avail-slot-panel"', false)
+      ->assertSee('class="avail-slot-row"', false)
+      ->assertDontSee('class="availability-manager"', false)
+      ->assertDontSee('class="availability-day"', false)
       ->assertSee('/doctor/availability/preview', false)
       ->assertSee('type="hidden" name="slot_duration" value="30"', false)
       ->assertSee('Agenda')
@@ -316,9 +323,9 @@ class RoleDashboardTest extends TestCase
     $response->assertOk();
     $response->assertSee('Disponibilita');
     $response->assertDontSee('Agenda del giorno');
-    $response->assertSee('Anteprima disponibilita');
-    $response->assertSee('1 slot creabile');
-    $response->assertSee('1 saltato');
+    $response->assertSee('Anteprima slot');
+    $response->assertSee('Crea 1 slot');
+    $response->assertSee('1 slot saltato');
     $response->assertDontSee('Ambulatorio');
     $response->assertDontSee('durata slot');
     $response->assertSee('09:30');
