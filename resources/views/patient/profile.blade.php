@@ -10,7 +10,6 @@
     <div class="portal-page-heading">
       <span class="portal-eyebrow">Profilo</span>
       <h1>Profilo paziente</h1>
-      <p>Gestisci contatti e password. I dati anagrafici restano protetti.</p>
     </div>
 
     <div class="profile-stack">

@@ -10,7 +10,6 @@
     <div class="portal-page-heading">
       <span class="portal-eyebrow">Profilo</span>
       <h1>Profilo medico</h1>
-      <p>Gestisci i contatti e il luogo dell'ambulatorio visibili nel portale.</p>
     </div>
 
     <div class="profile-stack">

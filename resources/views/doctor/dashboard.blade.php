@@ -15,7 +15,6 @@
       <div>
         <span class="portal-eyebrow">Portale medico</span>
         <h1>Agenda</h1>
-        <p>Visualizza la giornata in ordine cronologico e gestisci gli slot liberi.</p>
       </div>
     </div>
 

@@ -14,7 +14,6 @@
       <div>
         <span class="portal-eyebrow">Portale medico</span>
         <h1>Trattamenti</h1>
-        <p>Gestisci le prestazioni prenotabili dai pazienti.</p>
       </div>
       <a href="/doctor/schedule" class="btn btn-outline-secondary">Torna all'agenda</a>
     </div>
