@@ -16,7 +16,6 @@
       <section class="portal-panel profile-readonly-panel">
         <div class="section-heading">
           <h2>Dati professionali</h2>
-          <span>Dati principali</span>
         </div>
         <div class="profile-data-grid">
           <div class="profile-data-tile">
@@ -33,7 +32,6 @@
       <section class="portal-panel">
         <div class="section-heading">
           <h2>Contatti ambulatorio</h2>
-          <span>Email, telefono e luogo</span>
         </div>
         <form method="POST" action="/doctor/profile" class="profile-form">
           @csrf

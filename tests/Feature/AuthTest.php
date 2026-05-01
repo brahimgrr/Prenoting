@@ -37,13 +37,12 @@ class AuthTest extends TestCase
       'username' => 'sara@example.com',
       'role' => User::ROLE_PATIENT,
     ]);
-    $this->assertDatabaseHas('patient_profiles', [
-      'date_of_birth' => '1990-05-21',
-      'place_of_birth' => 'Roma',
-      'gender' => 'F',
-      'phone' => '+390000000',
-      'codice_fiscale' => 'CNTSRA90E61H501K',
-    ]);
+    $profile = PatientProfile::firstOrFail();
+    $this->assertSame('1990-05-21', $profile->date_of_birth?->toDateString());
+    $this->assertSame('Roma', $profile->place_of_birth);
+    $this->assertSame('F', $profile->gender);
+    $this->assertSame('+390000000', $profile->phone);
+    $this->assertSame('CNTSRA90E61H501K', $profile->codice_fiscale);
   }
 
   public function test_register_rejects_short_password(): void

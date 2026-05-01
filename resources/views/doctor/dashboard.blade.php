@@ -2,9 +2,8 @@
 
 @php
   $dayFreeSlots = $daySlots->filter(fn ($slot) => ! $slot->is_booked && ! $slot->is_blocked)->count();
-  $dayBookedSlots = $daySlots->where('is_booked', true)->count();
-  $dayBlockedSlots = $daySlots->where('is_blocked', true)->count();
   $selectedDay = \Carbon\CarbonImmutable::parse($date);
+  $selectedDayLabel = ucfirst($selectedDay->locale('it')->isoFormat('dddd DD/MM/YYYY'));
   $previousDayUrl = request()->fullUrlWithQuery(['date' => $selectedDay->subDay()->toDateString()]);
   $nextDayUrl = request()->fullUrlWithQuery(['date' => $selectedDay->addDay()->toDateString()]);
 @endphp
@@ -22,12 +21,10 @@
       <section class="dashboard-stat">
         <span>Appuntamenti</span>
         <strong>{{ $appointments->count() }}</strong>
-        <small>{{ $date === now()->toDateString() ? 'oggi' : $date }}</small>
       </section>
       <section class="dashboard-stat">
         <span>Slot liberi</span>
         <strong>{{ $dayFreeSlots }}</strong>
-        <small>{{ $dayBookedSlots }} prenotati</small>
       </section>
       <section class="dashboard-stat dashboard-stat--day-nav">
         <form method="GET" action="/doctor/schedule" class="dashboard-date-filter dashboard-day-nav">
@@ -54,7 +51,7 @@
       <div class="section-heading">
         <div>
           <h2>Agenda del giorno</h2>
-          <p>{{ \Carbon\CarbonImmutable::parse($date)->format('d/m/Y') }}</p>
+          <p>{{ $selectedDayLabel }}</p>
         </div>
       </div>
 

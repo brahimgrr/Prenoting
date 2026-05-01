@@ -664,7 +664,8 @@ a {
 }
 
 .week-day:hover,
-.week-day--selected {
+.week-day--selected,
+.week-day.active {
   border-color: var(--color-blue);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
   color: var(--color-ink);
@@ -719,6 +720,33 @@ a {
 
 .slot-time-button small {
   color: var(--color-muted);
+}
+
+.avail-tabs-wrap {
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.avail-tabs-wrap .week-strip {
+  display: flex;
+  min-width: max-content;
+}
+
+.avail-tabs-wrap .week-day {
+  flex: 0 0 6.5rem;
+  font: inherit;
+}
+
+.avail-slot-panel {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.avail-slot-row + .avail-slot-row {
+  margin-top: 0.5rem;
 }
 
 .booking-confirm-panel {
@@ -1276,20 +1304,51 @@ a {
   font-weight: 750;
 }
 
+.availability-lunch-card {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  padding: 1rem;
+}
+
+.availability-lunch-card__toggle {
+  margin-bottom: 1rem;
+}
+
+.availability-lunch-card--collapsed {
+  padding: 0.8rem 1rem;
+}
+
+.availability-lunch-card--collapsed .availability-lunch-card__toggle {
+  margin-bottom: 0;
+}
+
+.availability-lunch-card--collapsed .availability-lunch-card__fields {
+  display: none;
+}
+
+.availability-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  width: 100%;
+}
+
 .availability-preview-card {
   background: #f8fafc;
   border: 1px solid rgba(37, 99, 235, 0.28);
   border-radius: 8px;
   display: grid;
   gap: 1rem;
-  margin-top: 1rem;
   padding: 1rem;
 }
 
 .availability-preview-stats {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
 }
 
 .availability-preview-stats div {

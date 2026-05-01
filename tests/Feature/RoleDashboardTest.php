@@ -84,13 +84,16 @@ class RoleDashboardTest extends TestCase
   public function test_doctor_schedule_day_navigation_preserves_filters(): void
   {
     [$doctorUser] = $this->dashboardContext();
-    $date = CarbonImmutable::parse('2026-05-10');
+    $date = CarbonImmutable::parse('2026-06-02');
     $previousDay = $date->subDay()->toDateString();
     $nextDay = $date->addDay()->toDateString();
 
     $this->actingAs($doctorUser)
       ->get("/doctor/schedule?date={$date->toDateString()}&status=".Appointment::STATUS_CONFIRMED)
       ->assertOk()
+      ->assertSee('<p>Martedì 02/06/2026</p>', false)
+      ->assertDontSee("<small>{$date->toDateString()}</small>", false)
+      ->assertDontSee('<small>0 prenotati</small>', false)
       ->assertSee("value=\"{$date->toDateString()}\"", false)
       ->assertSee("href=\"http://127.0.0.1:8080/doctor/schedule?date={$previousDay}&amp;status=".Appointment::STATUS_CONFIRMED."\"", false)
       ->assertSee("href=\"http://127.0.0.1:8080/doctor/schedule?date={$nextDay}&amp;status=".Appointment::STATUS_CONFIRMED."\"", false);
@@ -267,13 +270,18 @@ class RoleDashboardTest extends TestCase
       ->assertSee('Pausa pranzo')
       ->assertSee('class="avail-tabs-wrap"', false)
       ->assertSee('avail-day-tab', false)
+      ->assertSee('week-day__name', false)
+      ->assertSee('week-day__month', false)
       ->assertDontSee('previousElementSibling.click()', false)
       ->assertSee('class="avail-slot-panel"', false)
       ->assertSee('class="avail-slot-row"', false)
+      ->assertDontSee('Disponibilita future')
       ->assertDontSee('class="availability-manager"', false)
       ->assertDontSee('class="availability-day"', false)
       ->assertSee('/doctor/availability/preview', false)
       ->assertSee('type="hidden" name="slot_duration" value="30"', false)
+      ->assertSee('availability-lunch-card availability-lunch-card--collapsed', false)
+      ->assertSee('data-availability-lunch-fields', false)
       ->assertSee('Agenda')
       ->assertSee('Trattamenti')
       ->assertDontSee('Agenda del giorno');
@@ -302,7 +310,7 @@ class RoleDashboardTest extends TestCase
     $this->assertFalse($slot->fresh()->is_blocked);
   }
 
-  public function test_doctor_can_preview_batch_availability_with_creatable_and_skipped_counts(): void
+  public function test_doctor_can_preview_batch_availability_without_showing_skipped_slots(): void
   {
     [$doctorUser] = $this->dashboardContext();
     $startDate = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
@@ -324,8 +332,16 @@ class RoleDashboardTest extends TestCase
     $response->assertSee('Disponibilita');
     $response->assertDontSee('Agenda del giorno');
     $response->assertSee('Anteprima slot');
+    $response->assertSee('data-availability-preview-open', false);
+    $response->assertSee('data-availability-preview-step', false);
+    $response->assertSee('class="availability-step availability-step--form d-none" data-availability-form-step', false);
+    $response->assertSee('availability-preview-card', false);
+    $response->assertSee('form="availability-create-form"', false);
     $response->assertSee('Crea 1 slot');
-    $response->assertSee('1 slot saltato');
+    $response->assertSee('Modifica');
+    $response->assertDontSee('Slot saltato');
+    $response->assertDontSee('slot saltato');
+    $response->assertDontSee('dashboard-filter-panel', false);
     $response->assertDontSee('Ambulatorio');
     $response->assertDontSee('durata slot');
     $response->assertSee('09:30');

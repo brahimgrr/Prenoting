@@ -21,7 +21,6 @@
     <section class="portal-panel dashboard-filter-panel">
       <div class="section-heading">
         <h2>{{ $editing ? 'Modifica trattamento' : 'Aggiungi trattamento' }}</h2>
-        <span>{{ $editing ? 'Aggiorna nome, categoria e prezzo' : 'Crea una nuova prestazione' }}</span>
       </div>
       <form class="treatment-form-grid" method="POST" action="{{ $editing ? "/doctor/treatments/{$editing->id}" : '/doctor/treatments' }}">
         @csrf
