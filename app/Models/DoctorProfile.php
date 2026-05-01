@@ -12,6 +12,8 @@ class DoctorProfile extends Model
     'display_name',
     'bio',
     'license_number',
+    'phone',
+    'clinic_address',
     'is_active',
   ];
 

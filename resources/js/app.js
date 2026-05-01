@@ -1,36 +1,6 @@
 import "bootstrap";
 
 document.addEventListener("click", (e) => {
-  // Appointment cancellation panel
-  const cancelPanelTrigger = e.target.closest("[data-cancel-panel-target]");
-  if (cancelPanelTrigger) {
-    e.preventDefault();
-    const target = cancelPanelTrigger.getAttribute("data-cancel-panel-target");
-    const panel = target ? document.querySelector(target) : null;
-    if (!panel) return;
-
-    panel.classList.remove("d-none");
-    panel.setAttribute("aria-hidden", "false");
-
-    const reasonInput = panel.querySelector("[name='cancellation_reason']");
-    if (reasonInput) reasonInput.focus();
-    return;
-  }
-
-  const cancelPanelClose = e.target.closest("[data-cancel-panel-close]");
-  if (cancelPanelClose) {
-    e.preventDefault();
-    const panel = cancelPanelClose.closest(".appointment-cancel-panel");
-    if (!panel) return;
-
-    panel.classList.add("d-none");
-    panel.setAttribute("aria-hidden", "true");
-
-    const trigger = document.querySelector(`[data-cancel-panel-target="#${panel.id}"]`);
-    if (trigger) trigger.focus();
-    return;
-  }
-
   const servicesArrow = e.target.closest("[data-landing-services-prev], [data-landing-services-next]");
   if (servicesArrow) {
     e.preventDefault();

@@ -62,17 +62,25 @@ class LandingPageTest extends TestCase
   {
     $user = User::create([
       'username' => 'doctor.derm',
+      'email' => 'giulia.ferretti@example.com',
       'password' => Hash::make('doctor123'),
       'role' => User::ROLE_DOCTOR,
     ]);
     DoctorProfile::create([
       'user_id' => $user->id,
       'display_name' => 'Dott. Giulia Ferretti',
+      'phone' => '555-2020',
+      'clinic_address' => 'Via Milano 20',
     ]);
 
     $this->get('/')
       ->assertOk()
-      ->assertSee('Dott. Giulia Ferretti');
+      ->assertSee('Dott. Giulia Ferretti')
+      ->assertSee('Via Milano 20')
+      ->assertSee('555-2020')
+      ->assertSee('giulia.ferretti@example.com')
+      ->assertDontSee('02 1234567')
+      ->assertDontSee('info@studiodermatologo.it');
   }
 
   public function test_landing_page_uses_general_doctor_image(): void

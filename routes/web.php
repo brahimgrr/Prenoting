@@ -5,6 +5,7 @@ use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\DoctorDashboardController;
+use App\Http\Controllers\DoctorProfileController;
 use App\Http\Controllers\DoctorTreatmentController;
 use App\Http\Controllers\PatientAppointmentController;
 use App\Http\Controllers\PatientDashboardController;
@@ -74,6 +75,8 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/doctor/treatments/{service}/edit', [DoctorTreatmentController::class, 'edit']);
     Route::patch('/doctor/treatments/{service}', [DoctorTreatmentController::class, 'update']);
     Route::delete('/doctor/treatments/{service}', [DoctorTreatmentController::class, 'destroy']);
+    Route::get('/doctor/profile', [DoctorProfileController::class, 'edit']);
+    Route::patch('/doctor/profile', [DoctorProfileController::class, 'update']);
     Route::post('/doctor/appointments/{appointment}/status', [DoctorDashboardController::class, 'updateStatus']);
   });
 });

@@ -526,64 +526,6 @@ a {
   gap: 0.65rem;
 }
 
-.appointment-cancel-details {
-  display: grid;
-  min-width: 0;
-}
-
-.appointment-cancel-details summary {
-  cursor: pointer;
-  display: inline-flex;
-  list-style: none;
-  width: fit-content;
-}
-
-.appointment-cancel-details summary::-webkit-details-marker {
-  display: none;
-}
-
-.appointment-cancel-details[open] {
-  flex-basis: 100%;
-}
-
-.appointment-cancel-panel {
-  background: #fff7f7;
-  border: 1px solid rgba(220, 38, 38, 0.22);
-  border-radius: 8px;
-  display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
-}
-
-.appointment-cancel-panel__header {
-  align-items: flex-start;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-}
-
-.appointment-cancel-panel__header strong {
-  color: #991b1b;
-}
-
-.appointment-cancel-panel__header p {
-  margin: 0.15rem 0 0;
-}
-
-.appointment-cancel-form {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0;
-}
-
-.appointment-cancel-actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  justify-content: space-between;
-}
-
 .appointment-actions form {
   align-items: center;
   display: flex;

@@ -78,7 +78,12 @@
     <span class="landing-doctor__eyebrow">Chi ti segue</span>
     <div class="landing-doctor__wrap">
       <div class="landing-doctor__card">
-        @php($doctorName = $doctor?->display_name ?? 'Dott. Mbappe')
+        @php
+          $doctorName = $doctor?->display_name ?? 'Dott. Mbappe';
+          $doctorClinicAddress = $doctor?->clinic_address ?: 'Via Roma 1';
+          $doctorPhone = $doctor?->phone ?: '555-1000';
+          $doctorEmail = $doctor?->user?->email ?: 'doctor.derm@example.com';
+        @endphp
         @if (file_exists(public_path('images/general.png')))
           <img class="landing-doctor__photo" src="/images/general.png" alt="Foto {{ $doctorName }}">
         @else
@@ -92,9 +97,9 @@
         </div>
         <div class="landing-doctor__divider"></div>
         <div class="landing-doctor__clinic">
-          <span>🏥 <span>Via Roma 1, Milano</span></span>
-          <span>📞 <span>02 1234567</span></span>
-          <span>✉️ <span>info@studiodermatologo.it</span></span>
+          <span>🏥 <span>{{ $doctorClinicAddress }}</span></span>
+          <span>📞 <span>{{ $doctorPhone }}</span></span>
+          <span>✉️ <span>{{ $doctorEmail }}</span></span>
         </div>
       </div>
     </div>

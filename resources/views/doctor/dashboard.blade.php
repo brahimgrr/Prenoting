@@ -74,7 +74,6 @@
                       <h3>{{ $appointment->patientName() }}</h3>
                       <p>{{ $appointment->service?->name ?? 'Appuntamento' }}</p>
                     </div>
-                    <x-status-badge :status="$appointment->status" />
                   </div>
                   <div class="doctor-agenda-item__meta">
                     <span>{{ $start->format('H:i') }} - {{ $end->format('H:i') }}</span>

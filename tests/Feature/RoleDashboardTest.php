@@ -11,6 +11,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class RoleDashboardTest extends TestCase
@@ -30,6 +31,7 @@ class RoleDashboardTest extends TestCase
       ->assertSee('doctor-agenda-item--appointment', false)
       ->assertSee('Mario Rossi')
       ->assertSee('Altro Paziente')
+      ->assertDontSeeText('Confermato')
       ->assertDontSee('Gestisci disponibilita')
       ->assertDontSee('<details class="availability-manager"', false)
       ->assertDontSee('<details class="availability-day"', false)
@@ -324,6 +326,47 @@ class RoleDashboardTest extends TestCase
     ]);
   }
 
+  public function test_doctor_profiles_table_has_contact_and_clinic_fields(): void
+  {
+    $this->assertTrue(Schema::hasColumn('doctor_profiles', 'phone'));
+    $this->assertTrue(Schema::hasColumn('doctor_profiles', 'clinic_address'));
+  }
+
+  public function test_doctor_can_view_and_update_profile_contact_fields(): void
+  {
+    [$doctorUser, $doctor] = $this->dashboardContext();
+    $doctorUser->forceFill(['email' => 'doctor.old@example.com'])->save();
+    $doctor->forceFill([
+      'phone' => '555-1000',
+      'clinic_address' => 'Via Roma 1',
+    ])->save();
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/profile')
+      ->assertOk()
+      ->assertSee('Profilo medico')
+      ->assertSee("Numero di iscrizione all'albo", false)
+      ->assertDontSee('Numero iscrizione')
+      ->assertSee('doctor.old@example.com')
+      ->assertSee('555-1000')
+      ->assertSee('Via Roma 1')
+      ->assertSee('Agenda')
+      ->assertSee('Disponibilita')
+      ->assertSee('Trattamenti');
+
+    $this->actingAs($doctorUser)
+      ->patch('/doctor/profile', [
+        'email' => 'doctor.new@example.com',
+        'phone' => '555-2000',
+        'clinic_address' => 'Via Milano 2',
+      ])
+      ->assertRedirect('/doctor/profile');
+
+    $this->assertSame('doctor.new@example.com', $doctorUser->fresh()->email);
+    $this->assertSame('555-2000', $doctor->fresh()->phone);
+    $this->assertSame('Via Milano 2', $doctor->fresh()->clinic_address);
+  }
+
   public function test_patient_cannot_access_doctor_routes(): void
   {
     $patientUser = User::create([
@@ -334,6 +377,7 @@ class RoleDashboardTest extends TestCase
     PatientProfile::create(['user_id' => $patientUser->id, 'phone' => '555-0100']);
 
     $this->actingAs($patientUser)->get('/doctor')->assertForbidden();
+    $this->actingAs($patientUser)->get('/doctor/profile')->assertForbidden();
   }
 
   private function dashboardContext(string $status = Appointment::STATUS_CONFIRMED): array

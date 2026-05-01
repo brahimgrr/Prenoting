@@ -59,6 +59,8 @@ class DatabaseSeeder extends Seeder
       [
         'display_name' => 'Dott. Mbappe',
         'license_number' => 'DERM-001',
+        'phone' => '555-1000',
+        'clinic_address' => 'Via Roma 1',
         'is_active' => true,
       ],
     );
