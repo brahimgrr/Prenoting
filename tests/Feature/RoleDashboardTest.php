@@ -558,4 +558,50 @@ class RoleDashboardTest extends TestCase
       'status' => $status,
     ]);
   }
+
+  private function makeDoctorUser(): User
+  {
+    $doctorUser = User::create([
+      'username' => 'doctor.test',
+      'password' => \Illuminate\Support\Facades\Hash::make('doctor123'),
+      'role' => User::ROLE_DOCTOR,
+    ]);
+    DoctorProfile::create([
+      'user_id' => $doctorUser->id,
+      'display_name' => 'Dott. Test',
+    ]);
+
+    return $doctorUser;
+  }
+
+  public function test_doctor_preview_excludes_lunch_break_slots(): void
+  {
+    $doctorUser = $this->makeDoctorUser();
+    $targetDate = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    $startDate  = $targetDate->toDateString();
+
+    $response = $this->actingAs($doctorUser)->get('/doctor/availability/preview?' . http_build_query([
+      'start_date'          => $startDate,
+      'end_date'            => $startDate,
+      'weekdays'            => [$targetDate->dayOfWeekIso],
+      'start_time'          => '09:00',
+      'end_time'            => '14:00',
+      'slot_duration'       => '30',
+      'lunch_break_enabled' => '1',
+      'lunch_break_start'   => '13:00',
+      'lunch_break_end'     => '14:00',
+    ]));
+
+    $response->assertOk();
+
+    $view = $response->viewData('availabilityPreview');
+    $creatableTimes = $view['creatable']->map(fn ($c) => $c['start_at']->format('H:i'))->all();
+
+    $this->assertNotContains('13:00', $creatableTimes);
+    $this->assertContains('09:00', $creatableTimes);
+    $this->assertContains('12:30', $creatableTimes);
+
+    $skippedReasons = $view['skipped']->pluck('reason')->all();
+    $this->assertContains('pausa pranzo', $skippedReasons);
+  }
 }

@@ -329,6 +329,17 @@ class DoctorDashboardController extends Controller
     }
 
     $validated['lunch_break_enabled'] = ($validated['lunch_break_enabled'] ?? null) === '1';
+
+    if ($validated['lunch_break_enabled']) {
+      $lbStart = CarbonImmutable::parse("2000-01-01 {$validated['lunch_break_start']}:00");
+      $lbEnd   = CarbonImmutable::parse("2000-01-01 {$validated['lunch_break_end']}:00");
+      if ($lbEnd->lessThanOrEqualTo($lbStart)) {
+        throw ValidationException::withMessages([
+          'lunch_break_end' => "La fine della pausa deve essere successiva all'inizio.",
+        ]);
+      }
+    }
+
     $validated['weekdays'] = collect($validated['weekdays'])
       ->map(fn ($w) => (int) $w)
       ->unique()->sort()->values()->all();
