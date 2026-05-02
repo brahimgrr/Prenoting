@@ -113,47 +113,7 @@
                           @endif
                         </div>
                         @push('modals')
-                          <div class="modal fade" id="appointmentInfoModal{{ $appointment->id }}" tabindex="-1" aria-labelledby="appointmentInfoModal{{ $appointment->id }}Label" aria-hidden="true" data-bs-backdrop="false">
-                            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                              <div class="modal-content">
-                                <div class="modal-header">
-                                  <h2 class="modal-title h5" id="appointmentInfoModal{{ $appointment->id }}Label">Informazioni appuntamento</h2>
-                                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
-                                </div>
-                                <div class="modal-body">
-                                  <h3 class="fs-6 fw-semibold mb-2">Paziente</h3>
-                                  <dl class="row g-1 mb-3">
-                                    <dt class="col-5">Nome</dt>
-                                    <dd class="col-7">{{ $appointment->patientName() }}</dd>
-                                    <dt class="col-5">Telefono</dt>
-                                    <dd class="col-7">{{ $appointment->patient?->phone ?? '—' }}</dd>
-                                    <dt class="col-5">Email</dt>
-                                    <dd class="col-7">{{ $appointment->patient?->user?->email ?? '—' }}</dd>
-                                    <dt class="col-5">Data di nascita</dt>
-                                    <dd class="col-7">{{ $appointment->patient?->date_of_birth?->format('d/m/Y') ?? '—' }}</dd>
-                                    <dt class="col-5">Codice fiscale</dt>
-                                    <dd class="col-7">{{ $appointment->patient?->codice_fiscale ?? '—' }}</dd>
-                                  </dl>
-                                  <h3 class="fs-6 fw-semibold mb-2">Prestazione</h3>
-                                  <dl class="row g-1 mb-3">
-                                    <dt class="col-5">Nome</dt>
-                                    <dd class="col-7">{{ $appointment->service?->name ?? '—' }}</dd>
-                                    <dt class="col-5">Categoria</dt>
-                                    <dd class="col-7">{{ match($appointment->service?->category) { 'VISITA' => 'Visita', 'ESAME' => 'Esame', default => '—' } }}</dd>
-                                    <dt class="col-5">Durata</dt>
-                                    <dd class="col-7">{{ $appointment->service?->duration_minutes ? $appointment->service->duration_minutes . ' min' : '—' }}</dd>
-                                    <dt class="col-5">Prezzo</dt>
-                                    <dd class="col-7">{{ $appointment->service?->price !== null ? 'EUR ' . number_format((float) $appointment->service->price, 2, ',', '.') : 'Da definire' }}</dd>
-                                  </dl>
-                                  <h3 class="fs-6 fw-semibold mb-2">Note di prenotazione</h3>
-                                  <p class="mb-0">{{ $appointment->notes ?? 'Nessuna nota' }}</p>
-                                </div>
-                                <div class="modal-footer">
-                                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                          @include('doctor.partials.appointment-info-modal', ['appointment' => $appointment])
                         @endpush
                       @else
                         @php
