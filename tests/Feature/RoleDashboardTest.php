@@ -487,6 +487,19 @@ class RoleDashboardTest extends TestCase
     ]);
   }
 
+  public function test_doctor_cannot_delete_treatment_with_existing_appointments(): void
+  {
+    [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
+    $service = $appointment->service;
+
+    $this->actingAs($doctorUser)
+      ->delete("/doctor/treatments/{$service->id}")
+      ->assertRedirect('/doctor/treatments')
+      ->assertSessionHasErrors();
+
+    $this->assertDatabaseHas('medical_services', ['id' => $service->id]);
+  }
+
   public function test_doctor_profiles_table_has_contact_and_clinic_fields(): void
   {
     $this->assertTrue(Schema::hasColumn('doctor_profiles', 'phone'));

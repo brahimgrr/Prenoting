@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
 use App\Models\DoctorProfile;
 use App\Models\MedicalService;
 use Illuminate\Http\RedirectResponse;
@@ -52,6 +53,11 @@ class DoctorTreatmentController extends Controller
   {
     $doctor = $request->user()->doctorProfile;
     $this->authorizeTreatmentAccess($doctor);
+
+    if (Appointment::where('service_id', $service->id)->exists()) {
+      return redirect('/doctor/treatments')
+        ->withErrors(['Impossibile eliminare: questo trattamento ha appuntamenti già prenotati.']);
+    }
 
     $service->delete();
 
