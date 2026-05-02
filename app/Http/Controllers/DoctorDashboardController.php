@@ -191,7 +191,7 @@ class DoctorDashboardController extends Controller
       'batchForm'           => $batchForm,
       'availabilitySlots'   => AvailabilitySlot::query()
         ->where('start_at', '>=', now())
-        ->with(['appointments.patient.user'])
+        ->with(['appointments.patient.user', 'appointments.service'])
         ->orderBy('start_at')
         ->get()
         ->groupBy(fn (AvailabilitySlot $slot) => $slot->start_at->toDateString()),

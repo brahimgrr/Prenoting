@@ -103,7 +103,8 @@
                     @php
                       $isFree = ! $slot->is_booked && ! $slot->is_blocked;
                       $isBooked = $slot->is_booked;
-                      $patientName = $isBooked ? $slot->appointments->first()?->patientName() : null;
+                      $infoAppt = $isBooked ? $slot->appointments->first() : null;
+                      $patientName = $infoAppt?->patientName();
                       $slotStateClass = $isFree ? 'free' : ($isBooked ? 'appointment' : 'blocked');
                       $slotLabel = $isFree ? 'Slot libero' : ($isBooked ? ($patientName ?? 'Slot prenotato') : 'Slot bloccato');
                     @endphp
@@ -121,8 +122,14 @@
                                   @csrf
                                   <button type="submit" class="btn btn-sm btn-outline-danger">Blocca</button>
                                 </form>
-                              @elseif ($isBooked)
-                                <span class="badge text-bg-primary">Prenotato</span>
+                              @elseif ($isBooked && $infoAppt)
+                                <button
+                                  class="btn btn-sm btn-outline-secondary"
+                                  type="button"
+                                  data-bs-toggle="modal"
+                                  data-bs-target="#appointmentInfoModal{{ $infoAppt->id }}"
+                                  aria-label="Informazioni appuntamento"
+                                ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg></button>
                               @else
                                 <form method="POST" action="/doctor/availability/{{ $slot->id }}/unblock">
                                   @csrf
@@ -150,6 +157,59 @@
       @endif
     </section>
   </section>
+
+  @push('modals')
+    @foreach ($availabilitySlots as $slotsForDay)
+      @foreach ($slotsForDay as $slot)
+        @php
+          $infoAppt = $slot->is_booked ? $slot->appointments->first() : null;
+        @endphp
+        @if ($infoAppt)
+          <div class="modal fade" id="appointmentInfoModal{{ $infoAppt->id }}" tabindex="-1" aria-labelledby="appointmentInfoModal{{ $infoAppt->id }}Label" aria-hidden="true" data-bs-backdrop="false">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h2 class="modal-title h5" id="appointmentInfoModal{{ $infoAppt->id }}Label">Informazioni appuntamento</h2>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                </div>
+                <div class="modal-body">
+                  <h3 class="fs-6 fw-semibold mb-2">Paziente</h3>
+                  <dl class="row g-1 mb-3">
+                    <dt class="col-5">Nome</dt>
+                    <dd class="col-7">{{ $infoAppt->patientName() }}</dd>
+                    <dt class="col-5">Telefono</dt>
+                    <dd class="col-7">{{ $infoAppt->patient?->phone ?? '—' }}</dd>
+                    <dt class="col-5">Email</dt>
+                    <dd class="col-7">{{ $infoAppt->patient?->user?->email ?? '—' }}</dd>
+                    <dt class="col-5">Data di nascita</dt>
+                    <dd class="col-7">{{ $infoAppt->patient?->date_of_birth?->format('d/m/Y') ?? '—' }}</dd>
+                    <dt class="col-5">Codice fiscale</dt>
+                    <dd class="col-7">{{ $infoAppt->patient?->codice_fiscale ?? '—' }}</dd>
+                  </dl>
+                  <h3 class="fs-6 fw-semibold mb-2">Prestazione</h3>
+                  <dl class="row g-1 mb-3">
+                    <dt class="col-5">Nome</dt>
+                    <dd class="col-7">{{ $infoAppt->service?->name ?? '—' }}</dd>
+                    <dt class="col-5">Categoria</dt>
+                    <dd class="col-7">{{ match($infoAppt->service?->category) { 'VISITA' => 'Visita', 'ESAME' => 'Esame', default => '—' } }}</dd>
+                    <dt class="col-5">Durata</dt>
+                    <dd class="col-7">{{ $infoAppt->service?->duration_minutes ? $infoAppt->service->duration_minutes . ' min' : '—' }}</dd>
+                    <dt class="col-5">Prezzo</dt>
+                    <dd class="col-7">{{ $infoAppt->service?->price !== null ? 'EUR ' . number_format((float) $infoAppt->service->price, 2, ',', '.') : 'Da definire' }}</dd>
+                  </dl>
+                  <h3 class="fs-6 fw-semibold mb-2">Note di prenotazione</h3>
+                  <p class="mb-0">{{ $infoAppt->notes ?? 'Nessuna nota' }}</p>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        @endif
+      @endforeach
+    @endforeach
+  @endpush
 
   <div
     class="modal fade"

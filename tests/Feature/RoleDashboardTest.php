@@ -120,7 +120,7 @@ class RoleDashboardTest extends TestCase
       'end_at' => CarbonImmutable::parse("{$date} 11:30:00"),
       'is_booked' => true,
     ]);
-    $this->appointment($patient, $service, $bookedSlot);
+    $bookedAppointment = $this->appointment($patient, $service, $bookedSlot);
 
     $this->actingAs($doctorUser)
       ->get("/doctor/schedule?date={$date}")
@@ -145,7 +145,13 @@ class RoleDashboardTest extends TestCase
       ->assertDontSee('<span class="badge text-bg-success">Libero</span>', false)
       ->assertDontSee('<span class="badge text-bg-warning">Bloccato</span>', false)
       ->assertDontSee("action=\"/doctor/availability/{$bookedSlot->id}/block\"", false)
-      ->assertDontSee("action=\"/doctor/availability/{$bookedSlot->id}/unblock\"", false);
+      ->assertDontSee("action=\"/doctor/availability/{$bookedSlot->id}/unblock\"", false)
+      ->assertSee('aria-label="Informazioni appuntamento"', false)
+      ->assertSee("data-bs-target=\"#appointmentInfoModal{$bookedAppointment->id}\"", false)
+      ->assertSee("id=\"appointmentInfoModal{$bookedAppointment->id}\"", false)
+      ->assertSee('Informazioni appuntamento', false)
+      ->assertSee('Note di prenotazione', false)
+      ->assertSee($service->name, false);
   }
 
   public function test_doctor_agenda_renders_full_day_half_hour_grid_with_empty_rows(): void
@@ -301,6 +307,48 @@ class RoleDashboardTest extends TestCase
       ->assertSee('Agenda')
       ->assertSee('Trattamenti')
       ->assertDontSee('Agenda del giorno');
+  }
+
+  public function test_doctor_availability_booked_slot_shows_appointment_info_modal(): void
+  {
+    [$doctorUser, $doctor, $existingAppointment] = $this->dashboardContext();
+    $patient = $existingAppointment->patient;
+    $service = $existingAppointment->service;
+
+    $slot = AvailabilitySlot::create([
+      'start_at' => CarbonImmutable::now()->addDays(5)->setTime(14, 0),
+      'end_at' => CarbonImmutable::now()->addDays(5)->setTime(14, 30),
+      'is_booked' => true,
+    ]);
+    $appointment = Appointment::create([
+      'patient_id' => $patient->id,
+      'service_id' => $service->id,
+      'slot_id' => $slot->id,
+      'start_at' => $slot->start_at,
+      'end_at' => $slot->end_at,
+      'status' => Appointment::STATUS_CONFIRMED,
+      'notes' => 'Visita di controllo annuale',
+    ]);
+
+    $response = $this->actingAs($doctorUser)->get('/doctor/availability');
+    $content = $response->getContent();
+    $buttonPos = strpos($content, "data-bs-target=\"#appointmentInfoModal{$appointment->id}\"");
+    $articleClosePos = strpos($content, '</article>', $buttonPos === false ? 0 : $buttonPos);
+    $modalPos = strpos($content, "id=\"appointmentInfoModal{$appointment->id}\"");
+
+    $response
+      ->assertOk()
+      ->assertSee('aria-label="Informazioni appuntamento"', false)
+      ->assertSee("data-bs-target=\"#appointmentInfoModal{$appointment->id}\"", false)
+      ->assertSee("id=\"appointmentInfoModal{$appointment->id}\"", false)
+      ->assertSee('Informazioni appuntamento', false)
+      ->assertSee('Note di prenotazione', false)
+      ->assertSee('Visita di controllo annuale', false);
+
+    $this->assertNotFalse($buttonPos);
+    $this->assertNotFalse($articleClosePos);
+    $this->assertNotFalse($modalPos);
+    $this->assertGreaterThan($articleClosePos, $modalPos);
   }
 
   public function test_doctor_can_block_and_unblock_future_availability_slot(): void
