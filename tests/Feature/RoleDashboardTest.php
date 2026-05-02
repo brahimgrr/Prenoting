@@ -471,7 +471,12 @@ class RoleDashboardTest extends TestCase
       ->assertDontSee('class="treatment-card__actions"', false)
       ->assertDontSee('Attivo')
       ->assertDontSee('Disattiva')
-      ->assertDontSee('Durata');
+      ->assertDontSee('Durata')
+      ->assertSee("data-bs-target=\"#deleteTreatmentModal{$offering->id}\"", false)
+      ->assertSee("id=\"deleteTreatmentModal{$offering->id}\"", false)
+      ->assertSee('Conferma eliminazione', false)
+      ->assertSee('Gli appuntamenti già prenotati resteranno validi.', false)
+      ->assertDontSee('window.confirm', false);
 
     $this->actingAs($doctorUser)
       ->delete("/doctor/treatments/{$offering->id}")

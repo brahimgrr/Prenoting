@@ -80,11 +80,12 @@
                       <a href="/doctor/treatments/{{ $offering->id }}/edit" class="dropdown-item">Modifica trattamento</a>
                     </li>
                     <li>
-                      <form method="POST" action="/doctor/treatments/{{ $offering->id }}" onsubmit="return window.confirm('Eliminare questo trattamento?');">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="dropdown-item text-danger">Elimina trattamento</button>
-                      </form>
+                      <button
+                        class="dropdown-item text-danger"
+                        type="button"
+                        data-bs-toggle="modal"
+                        data-bs-target="#deleteTreatmentModal{{ $offering->id }}"
+                      >Elimina trattamento</button>
                     </li>
                   </ul>
                 </div>
@@ -95,6 +96,27 @@
                   <dd>{{ $offering->price !== null ? 'EUR '.number_format((float) $offering->price, 2, ',', '.') : 'Da definire' }}</dd>
                 </div>
               </dl>
+              <div class="modal fade" id="deleteTreatmentModal{{ $offering->id }}" tabindex="-1" aria-labelledby="deleteTreatmentModal{{ $offering->id }}Label" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content">
+                    <form method="POST" action="/doctor/treatments/{{ $offering->id }}">
+                      @csrf
+                      @method('DELETE')
+                      <div class="modal-header">
+                        <h2 class="modal-title fs-5" id="deleteTreatmentModal{{ $offering->id }}Label">Conferma eliminazione</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi conferma eliminazione"></button>
+                      </div>
+                      <div class="modal-body">
+                        <p>Questo trattamento verrà rimosso. Gli appuntamenti già prenotati resteranno validi.</p>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+                        <button type="submit" class="btn btn-danger">Sì, elimina</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
             </article>
           @endforeach
         </div>
