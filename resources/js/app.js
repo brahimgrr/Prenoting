@@ -106,10 +106,68 @@ function selectComuneOption(option) {
   });
 }
 
+function tickAgendaNowMarker() {
+  const container = document.querySelector("[data-agenda-scroll-container]");
+  if (!container) return;
+
+  const now = new Date();
+  const rows = Array.from(container.querySelectorAll(".doctor-agenda-row"));
+
+  let currentRow = null;
+  rows.forEach((row) => {
+    const timeEl = row.querySelector("time[datetime]");
+    if (!timeEl) return;
+    const rowStart = new Date(timeEl.getAttribute("datetime"));
+    const rowEnd = new Date(rowStart.getTime() + 30 * 60 * 1000);
+    row.classList.toggle("doctor-agenda-row--past", now >= rowEnd);
+    if (now >= rowStart && now < rowEnd) currentRow = row;
+  });
+
+  let marker = container.querySelector("[data-agenda-now-marker]");
+
+  if (!currentRow) {
+    marker?.remove();
+    return;
+  }
+
+  const contentDiv = currentRow.querySelector(".doctor-agenda-row__content");
+  if (!contentDiv) return;
+
+  contentDiv.removeAttribute("aria-hidden");
+
+  if (!marker) {
+    marker = document.createElement("div");
+    marker.className = "doctor-agenda-now-marker";
+    marker.setAttribute("data-agenda-now-marker", "");
+    marker.innerHTML = "<span></span>";
+    contentDiv.prepend(marker);
+  } else if (!contentDiv.contains(marker)) {
+    const oldContent = marker.parentElement;
+    marker.remove();
+    if (oldContent && !oldContent.querySelector(".doctor-agenda-item")) {
+      oldContent.setAttribute("aria-hidden", "true");
+    }
+    contentDiv.prepend(marker);
+  }
+
+  const rowStart = new Date(currentRow.querySelector("time[datetime]").getAttribute("datetime"));
+  const minutesIntoRow = (now - rowStart) / 60000;
+  marker.style.setProperty("--now-position", `${Math.min(100, Math.max(0, (minutesIntoRow / 30) * 100))}%`);
+
+  const label = marker.querySelector("span");
+  if (label) {
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    label.textContent = `Ora ${hh}:${mm}`;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   positionAgendaScroll();
   openAvailabilityPreviewModal();
   syncAvailabilityLunchCards();
+  tickAgendaNowMarker();
+  setInterval(tickAgendaNowMarker, 30_000);
 });
 
 document.addEventListener("input", (e) => {
