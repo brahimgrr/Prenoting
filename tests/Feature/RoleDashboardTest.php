@@ -482,22 +482,12 @@ class RoleDashboardTest extends TestCase
       ->delete("/doctor/treatments/{$offering->id}")
       ->assertRedirect('/doctor/treatments');
 
-    $this->assertDatabaseMissing('medical_services', [
-      'id' => $offering->id,
-    ]);
-  }
-
-  public function test_doctor_can_delete_treatment_even_with_existing_appointments(): void
-  {
-    [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
-    $service = $appointment->service;
+    $this->assertDatabaseHas('medical_services', ['id' => $offering->id, 'is_active' => false]);
 
     $this->actingAs($doctorUser)
-      ->delete("/doctor/treatments/{$service->id}")
-      ->assertRedirect('/doctor/treatments');
-
-    $this->assertDatabaseMissing('medical_services', ['id' => $service->id]);
-    $this->assertNull($appointment->fresh()->service_id);
+      ->get('/doctor/treatments')
+      ->assertOk()
+      ->assertDontSee($offering->name);
   }
 
 public function test_doctor_profiles_table_has_contact_and_clinic_fields(): void

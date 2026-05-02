@@ -53,15 +53,15 @@ class DoctorTreatmentController extends Controller
     $doctor = $request->user()->doctorProfile;
     $this->authorizeTreatmentAccess($doctor);
 
-    $service->delete();
+    $service->update(['is_active' => false]);
 
-    return redirect('/doctor/treatments')->with('status', 'Trattamento eliminato.');
+    return redirect('/doctor/treatments')->with('status', 'Trattamento disabilitato.');
   }
 
   private function viewTreatments(?MedicalService $editingOffering = null): View
   {
     return view('doctor.treatments', [
-      'offerings' => MedicalService::query()
+      'offerings' => MedicalService::where('is_active', true)
         ->orderBy('name')
         ->get(),
       'editingOffering' => $editingOffering,

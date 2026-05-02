@@ -107,7 +107,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi conferma eliminazione"></button>
                       </div>
                       <div class="modal-body">
-                        <p>Questo trattamento verrà rimosso. Gli appuntamenti già prenotati resteranno validi.</p>
+                        <p>Questo trattamento verrà disabilitato. Non sarà più possibile prenotare nuovi appuntamenti. Gli appuntamenti già prenotati resteranno validi.</p>
                       </div>
                       <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
