@@ -100,6 +100,46 @@ a {
   min-height: 2.75rem;
 }
 
+.comune-combobox {
+  position: relative;
+}
+
+.comune-suggestions {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+  display: grid;
+  left: 0;
+  max-height: 14rem;
+  overflow-y: auto;
+  padding: 0.35rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 20;
+}
+
+.comune-suggestions[hidden] {
+  display: none;
+}
+
+.comune-suggestion {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--color-ink);
+  font-weight: 650;
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+}
+
+.comune-suggestion:hover,
+.comune-suggestion:focus {
+  background: rgba(37, 99, 235, 0.1);
+  outline: none;
+}
+
 .btn {
   font-weight: 650;
 }
@@ -542,6 +582,10 @@ a {
   margin-top: 1.5rem;
 }
 
+.appointment-group .section-heading {
+  margin-bottom: 0.85rem;
+}
+
 .empty-state__action {
   margin-top: 0.75rem;
   width: fit-content;
@@ -829,9 +873,29 @@ a {
   background: #f8fafc;
 }
 
+.profile-page .section-heading {
+  margin-bottom: 0.85rem;
+}
+
+.treatments-list-panel .section-heading {
+  margin-bottom: 0.85rem;
+}
+
+.patient-upcoming-panel .section-heading {
+  margin-bottom: 0.85rem;
+}
+
+.next-appointment-panel .section-heading {
+  margin-bottom: 0.85rem;
+}
+
+.doctor-agenda-panel .section-heading p {
+  margin-top: 0.45rem;
+}
+
 .profile-lock-note {
   font-weight: 700;
-  margin: 0;
+  margin: 0.85rem 0 0;
 }
 
 .availability-day {
@@ -1157,6 +1221,19 @@ a {
 
 .doctor-agenda-item--blocked .doctor-agenda-item__body {
   border-left-color: #f59e0b;
+}
+
+.doctor-agenda-item--free .doctor-agenda-item__body,
+.doctor-agenda-item--blocked .doctor-agenda-item__body {
+  opacity: 0.50;
+  transition: opacity 0.20s ease;
+}
+
+.doctor-agenda-item--free:hover .doctor-agenda-item__body,
+.doctor-agenda-item--free:focus-within .doctor-agenda-item__body,
+.doctor-agenda-item--blocked:hover .doctor-agenda-item__body,
+.doctor-agenda-item--blocked:focus-within .doctor-agenda-item__body {
+  opacity: 0.9;
 }
 
 .doctor-agenda-item__main {
@@ -1665,19 +1742,25 @@ a {
   }
 }
 
-/* ── Landing page ── */
+/* Landing page */
 .landing-page {
+  background: #eff7f6;
+  color: var(--color-ink);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .landing-nav {
   align-items: center;
-  background: var(--color-navy);
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(219, 228, 238, 0.8);
   display: flex;
-  justify-content: space-between;
-  padding: 0.875rem 1.75rem;
+  justify-content: flex-start;
+  padding: 1rem clamp(1rem, 4vw, 3.5rem);
+  position: relative;
+  z-index: 3;
 }
 
 .landing-brand {
@@ -1688,190 +1771,198 @@ a {
 }
 
 .landing-brand__name {
-  color: #ffffff;
+  color: var(--color-navy);
   display: block;
   font-size: 1rem;
   font-weight: 800;
 }
 
 .landing-brand__sub {
-  color: #94a3b8;
+  color: var(--color-muted);
   display: block;
   font-size: 0.78rem;
 }
 
-.landing-nav__links {
+.landing-main {
+  align-items: center;
   display: flex;
-  gap: 0.5rem;
-}
-
-.landing-nav__link {
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 650;
-  padding: 0.45rem 1rem;
-  text-decoration: none;
-}
-
-.landing-nav__link--ghost {
-  background: rgba(255, 255, 255, 0.08);
-  color: #cbd5e1;
-}
-
-.landing-nav__link--ghost:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
-}
-
-.landing-nav__link--primary {
-  background: var(--color-blue);
-  color: #ffffff;
-}
-
-.landing-nav__link--primary:hover {
-  background: #1d4ed8;
-  color: #ffffff;
+  flex: 1;
+  justify-content: center;
+  padding: clamp(2rem, 6vw, 5rem) clamp(1rem, 5vw, 4rem);
+  position: relative;
 }
 
 .landing-hero {
+  align-items: center;
+  display: flex;
+  min-height: min(720px, calc(100vh - 9rem));
+  overflow: hidden;
+  position: relative;
+  text-align: left;
+  width: min(1160px, 100%);
+}
+
+.landing-hero::before {
   background:
-    linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(37, 99, 235, 0.08)),
-    var(--color-canvas);
-  padding: 4rem 2rem 3.5rem;
-  text-align: center;
+    linear-gradient(90deg, rgba(239, 247, 246, 1) 0%, rgba(239, 247, 246, 0.94) 44%, rgba(239, 247, 246, 0.1) 76%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(215, 235, 239, 0.62));
+  content: "";
+  inset: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+.landing-hero__media {
+  align-items: flex-end;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  position: absolute;
+  right: clamp(-5rem, -5vw, -1rem);
+  top: 0;
+  width: min(58vw, 660px);
+  z-index: 0;
+}
+
+.landing-hero__portrait {
+  filter: saturate(0.95) contrast(1.04);
+  height: min(700px, 88vh);
+  max-width: none;
+  object-fit: contain;
+  object-position: bottom right;
+  width: auto;
+}
+
+.landing-hero__portrait--placeholder {
+  align-items: center;
+  background: #d9f0ec;
+  color: var(--color-teal);
+  display: flex;
+  font-size: 6rem;
+  font-weight: 850;
+  height: min(560px, 78vh);
+  justify-content: center;
+  width: min(440px, 52vw);
+}
+
+.landing-hero__content {
+  max-width: 620px;
+  padding: clamp(1rem, 4vw, 3rem) 0;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.landing-kicker {
+  color: var(--color-teal);
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.95rem;
+  text-transform: uppercase;
 }
 
 .landing-hero h1 {
   color: var(--color-navy);
-  font-size: clamp(2rem, 5vw, 2.8rem);
-  font-weight: 800;
-  line-height: 1.1;
-  margin-bottom: 0.875rem;
+  font-size: clamp(3rem, 8vw, 5.7rem);
+  font-weight: 900;
+  line-height: 0.95;
+  margin: 0;
+  max-width: 8ch;
 }
 
-.landing-hero > p {
-  color: var(--color-muted);
-  font-size: 1rem;
+.landing-specialty {
+  color: var(--color-navy);
+  font-size: clamp(1.2rem, 2.2vw, 1.55rem);
+  font-weight: 750;
+  margin: 1rem 0 0;
+}
+
+.landing-intro {
+  color: #405166;
+  font-size: 1.08rem;
   line-height: 1.6;
-  margin: 0 auto 1.75rem;
-  max-width: 460px;
+  margin: 1rem 0 1.65rem;
+  max-width: 520px;
 }
 
 .landing-cta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  justify-content: center;
+  justify-content: flex-start;
+  margin-bottom: 2rem;
 }
 
-.landing-services {
-  background: var(--color-surface);
-  flex: 1;
-  padding: 2.5rem 2rem;
+.landing-cta .btn {
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.14);
+  min-width: 12rem;
+  padding-left: 1.15rem;
+  padding-right: 1.15rem;
 }
 
-.landing-services__heading {
-  align-items: center;
+.landing-cta .btn-outline-primary {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: none;
+}
+
+.landing-contacts {
   display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-  margin: 0 auto 1.25rem;
-  max-width: 1120px;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  max-width: 640px;
 }
 
-.landing-services__heading h2 {
+.landing-contacts div {
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(219, 228, 238, 0.9);
+  border-radius: 8px;
+  display: flex;
+  flex: 1 1 11rem;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.85rem 0.95rem;
+}
+
+.landing-contacts span {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.landing-contacts strong,
+.landing-contacts a {
   color: var(--color-navy);
-  font-size: 1.35rem;
-  font-weight: 850;
-  margin: 0.25rem 0 0;
+  font-size: 0.94rem;
+  font-weight: 800;
+  line-height: 1.3;
+  text-decoration: none;
+  word-break: break-word;
 }
 
-.landing-services__carousel {
-  align-items: center;
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  margin: 0 auto;
-  max-width: 1180px;
-}
-
-.landing-services__carousel--centered {
-  grid-template-columns: minmax(0, 1fr);
-  max-width: 880px;
-}
-
-.landing-services__arrow {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  color: var(--color-navy);
-  display: inline-flex;
-  font-size: 2.25rem;
-  font-weight: 850;
-  height: 2.5rem;
-  justify-content: center;
-  line-height: 1;
-  width: 2.5rem;
-}
-
-.landing-services__arrow:hover {
+.landing-contacts a:hover {
   color: var(--color-blue);
 }
 
-.landing-features {
+.landing-note {
+  color: #405166;
   display: flex;
-  gap: 1rem;
-  margin: 0 auto;
-  max-width: 100%;
-  overflow-x: auto;
-  padding: 0.25rem 0.2rem 1rem;
-  scroll-behavior: smooth;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: thin;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
 }
 
-.landing-features--centered {
-  justify-content: center;
-}
-
-.landing-card {
-  background: transparent;
-  border: 0;
-  border-radius: 8px;
-  box-shadow: none;
-  flex: 0 0 min(300px, 82vw);
-  padding: 1.5rem 1.25rem;
-  scroll-snap-align: start;
-  text-align: center;
-}
-
-.landing-card__icon {
-  display: block;
-  font-size: 2rem;
-  margin-bottom: 0.75rem;
-}
-
-.landing-card h3 {
-  color: var(--color-navy);
-  font-size: 0.95rem;
-  font-weight: 800;
-  margin-bottom: 0.4rem;
-}
-
-.landing-card p {
-  color: var(--color-muted);
+.landing-note span {
+  background: rgba(15, 118, 110, 0.1);
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 999px;
   font-size: 0.82rem;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.landing-footer {
-  background: var(--color-canvas);
-  border-top: 1px solid var(--color-border);
-  color: var(--color-muted);
-  font-size: 0.78rem;
-  padding: 0.875rem 1.5rem;
-  text-align: center;
+  font-weight: 750;
+  padding: 0.4rem 0.75rem;
 }
 
 @media (max-width: 560px) {
@@ -1879,122 +1970,51 @@ a {
     padding: 0.75rem 1rem;
   }
 
-  .landing-hero {
-    padding: 2.5rem 1rem 2rem;
-  }
-
-  .landing-services {
-    padding: 1.5rem 1rem;
-  }
-
-  .landing-services__heading {
+  .landing-main {
     align-items: flex-start;
-    flex-direction: column;
+    padding: 1.75rem 1rem 2.5rem;
   }
 
-  .landing-services__carousel {
-    grid-template-columns: 1fr;
+  .landing-hero {
+    min-height: auto;
   }
 
-}
-
-/* ── Landing doctor section ── */
-.landing-doctor {
-  background: var(--color-canvas);
-  border-top: 1px solid var(--color-border);
-  padding: 2.5rem 2rem;
-  text-align: center;
-}
-
-.landing-doctor__eyebrow {
-  color: var(--color-teal);
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  margin-bottom: 1.25rem;
-  text-transform: uppercase;
-}
-
-.landing-doctor__wrap {
-  display: flex;
-  justify-content: center;
-}
-
-.landing-doctor__card {
-  align-items: center;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-panel);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 400px;
-  padding: 1.75rem 2.25rem;
-  width: 100%;
-}
-
-.landing-doctor__photo {
-  border: 3px solid var(--color-teal);
-  border-radius: 50%;
-  height: 96px;
-  object-fit: cover;
-  width: 96px;
-}
-
-.landing-doctor__photo--placeholder {
-  align-items: center;
-  background: #e0f5f2;
-  color: var(--color-teal);
-  display: flex;
-  font-size: 2.5rem;
-  font-weight: 800;
-  justify-content: center;
-}
-
-.landing-doctor__name {
-  color: var(--color-navy);
-  font-size: 1.1rem;
-  font-weight: 800;
-  margin: 0;
-}
-
-.landing-doctor__title {
-  color: var(--color-muted);
-  font-size: 0.875rem;
-  margin-top: 0.2rem;
-}
-
-.landing-doctor__divider {
-  background: var(--color-border);
-  border-radius: 2px;
-  height: 2px;
-  width: 40px;
-}
-
-.landing-doctor__clinic {
-  color: var(--color-muted);
-  display: flex;
-  flex-direction: column;
-  font-size: 0.875rem;
-  gap: 0.4rem;
-  text-align: center;
-}
-
-.landing-doctor__clinic span {
-  align-items: center;
-  display: flex;
-  gap: 0.4rem;
-  justify-content: center;
-}
-
-@media (max-width: 560px) {
-  .landing-doctor {
-    padding: 1.5rem 1rem;
+  .landing-hero::before {
+    background: linear-gradient(180deg, rgba(239, 247, 246, 0.98) 0%, rgba(239, 247, 246, 0.86) 100%);
   }
 
-  .landing-doctor__card {
-    padding: 1.25rem 1rem;
+  .landing-hero__media {
+    justify-content: center;
+    opacity: 0.16;
+    right: -6.5rem;
+    width: 100%;
+  }
+
+  .landing-hero__portrait {
+    height: 34rem;
+  }
+
+  .landing-hero__content {
+    padding: 1.5rem 0 0;
+  }
+
+  .landing-specialty {
+    margin-top: 0.75rem;
+  }
+
+  .landing-intro {
+    font-size: 1rem;
+  }
+
+  .landing-cta .btn {
+    width: 100%;
+  }
+
+  .landing-contacts {
+    gap: 0.55rem;
+  }
+
+  .landing-contacts div {
+    flex-basis: 100%;
   }
 }

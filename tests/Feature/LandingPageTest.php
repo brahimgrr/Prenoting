@@ -17,7 +17,13 @@ class LandingPageTest extends TestCase
   {
     $this->get('/')
       ->assertOk()
-      ->assertSee('La tua pelle')
+      ->assertSee('Dott. Mbappe')
+      ->assertSee('Specialista in Dermatologia')
+      ->assertSee('Indirizzo')
+      ->assertSee('Telefono')
+      ->assertSee('Email')
+      ->assertDontSee('Prestazioni disponibili')
+      ->assertDontSee('Chi ti segue')
       ->assertDontSee('data-landing-services-prev', false)
       ->assertDontSee('data-landing-services-next', false);
   }
@@ -53,9 +59,12 @@ class LandingPageTest extends TestCase
     $this->actingAs($user)->get('/')->assertRedirect('/doctor/schedule');
   }
 
-  public function test_landing_page_shows_chi_ti_segue_section(): void
+  public function test_landing_page_shows_clean_doctor_intro(): void
   {
-    $this->get('/')->assertOk()->assertSee('Chi ti segue');
+    $this->get('/')
+      ->assertOk()
+      ->assertSee('Studio Dermatologico')
+      ->assertSee('Cura della pelle');
   }
 
   public function test_landing_page_shows_doctor_display_name_from_database(): void
@@ -87,11 +96,11 @@ class LandingPageTest extends TestCase
   {
     $this->get('/')
       ->assertOk()
-      ->assertSee('src="/images/general.png"', false)
+      ->assertSee('src="/images/pigeon.png"', false)
       ->assertSee('alt="Foto Dott. Mbappe"', false);
   }
 
-  public function test_landing_page_shows_active_medical_services_as_feature_cards(): void
+  public function test_landing_page_keeps_medical_services_off_the_clean_intro(): void
   {
     MedicalService::create([
       'name' => 'Dermatoscopia digitale',
@@ -109,12 +118,12 @@ class LandingPageTest extends TestCase
 
     $this->get('/')
       ->assertOk()
-      ->assertSee('Dermatoscopia digitale')
-      ->assertSee('Esame dermatologico')
+      ->assertDontSee('Dermatoscopia digitale')
+      ->assertDontSee('Esame dermatologico')
       ->assertDontSee('Trattamento non visibile');
   }
 
-  public function test_landing_page_allows_scrolling_when_many_services_are_available(): void
+  public function test_landing_page_does_not_render_service_carousel_controls(): void
   {
     foreach (range(1, 4) as $index) {
       MedicalService::create([
@@ -127,8 +136,8 @@ class LandingPageTest extends TestCase
 
     $this->get('/')
       ->assertOk()
-      ->assertSee('Trattamento 4')
-      ->assertSee('data-landing-services-prev', false)
-      ->assertSee('data-landing-services-next', false);
+      ->assertDontSee('Trattamento 4')
+      ->assertDontSee('data-landing-services-prev', false)
+      ->assertDontSee('data-landing-services-next', false);
   }
 }

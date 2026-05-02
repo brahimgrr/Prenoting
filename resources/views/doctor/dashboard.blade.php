@@ -97,12 +97,11 @@
                               <p>{{ $appointment->service?->name ?? 'Appuntamento' }}</p>
                             </div>
                           </div>
-                          <div class="doctor-agenda-item__meta">
-                            <span>{{ $start->format('H:i') }} - {{ $end->format('H:i') }}</span>
-                            @if (! $slot)
+                          @if (! $slot)
+                            <div class="doctor-agenda-item__meta">
                               <span>Slot non collegato</span>
-                            @endif
-                          </div>
+                            </div>
+                          @endif
                         </div>
                       @else
                         @php
@@ -116,7 +115,6 @@
                           <div class="doctor-agenda-item__main">
                             <div>
                               <h3>{{ $slotTitle }}</h3>
-                              <p>{{ $start->format('H:i') }} - {{ $end->format('H:i') }}</p>
                             </div>
                             <div class="doctor-agenda-item__actions">
                               @if ($showPassatoBadge)

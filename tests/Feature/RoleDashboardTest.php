@@ -139,6 +139,9 @@ class RoleDashboardTest extends TestCase
       ])
       ->assertSee("action=\"/doctor/availability/{$freeSlot->id}/block\"", false)
       ->assertSee("action=\"/doctor/availability/{$blockedSlot->id}/unblock\"", false)
+      ->assertDontSee('<p>10:00 - 10:30</p>', false)
+      ->assertDontSee('<p>10:30 - 11:00</p>', false)
+      ->assertDontSee('<span>11:00 - 11:30</span>', false)
       ->assertDontSee('<span class="badge text-bg-success">Libero</span>', false)
       ->assertDontSee('<span class="badge text-bg-warning">Bloccato</span>', false)
       ->assertDontSee("action=\"/doctor/availability/{$bookedSlot->id}/block\"", false)
@@ -257,6 +260,15 @@ class RoleDashboardTest extends TestCase
   public function test_doctor_availability_is_a_dedicated_section(): void
   {
     [$doctorUser] = $this->dashboardContext();
+    $freeSlot = AvailabilitySlot::create([
+      'start_at' => CarbonImmutable::now()->addDays(3)->setTime(10, 0),
+      'end_at' => CarbonImmutable::now()->addDays(3)->setTime(10, 30),
+    ]);
+    $blockedSlot = AvailabilitySlot::create([
+      'start_at' => CarbonImmutable::now()->addDays(3)->setTime(10, 30),
+      'end_at' => CarbonImmutable::now()->addDays(3)->setTime(11, 0),
+      'is_blocked' => true,
+    ]);
 
     $this->actingAs($doctorUser)
       ->get('/doctor/availability')
@@ -282,6 +294,10 @@ class RoleDashboardTest extends TestCase
       ->assertSee('type="hidden" name="slot_duration" value="30"', false)
       ->assertSee('availability-lunch-card availability-lunch-card--collapsed', false)
       ->assertSee('data-availability-lunch-fields', false)
+      ->assertSee("action=\"/doctor/availability/{$freeSlot->id}/block\"", false)
+      ->assertSee("action=\"/doctor/availability/{$blockedSlot->id}/unblock\"", false)
+      ->assertDontSee('<span class="badge text-bg-success">Libero</span>', false)
+      ->assertDontSee('<span class="badge text-bg-warning">Bloccato</span>', false)
       ->assertSee('Agenda')
       ->assertSee('Trattamenti')
       ->assertDontSee('Agenda del giorno');
@@ -406,7 +422,8 @@ class RoleDashboardTest extends TestCase
     $this->actingAs($doctorUser)
       ->get('/doctor/treatments')
       ->assertOk()
-      ->assertSee('Trattamenti');
+      ->assertSee('Trattamenti')
+      ->assertDontSee("Torna all'agenda", false);
 
     $this->actingAs($doctorUser)
       ->post('/doctor/treatments', [

@@ -117,7 +117,6 @@
                             </div>
                             <div class="doctor-agenda-item__actions">
                               @if ($isFree)
-                                <span class="badge text-bg-success">Libero</span>
                                 <form method="POST" action="/doctor/availability/{{ $slot->id }}/block">
                                   @csrf
                                   <button type="submit" class="btn btn-sm btn-outline-danger">Blocca</button>
@@ -125,7 +124,6 @@
                               @elseif ($isBooked)
                                 <span class="badge text-bg-primary">Prenotato</span>
                               @else
-                                <span class="badge text-bg-warning">Bloccato</span>
                                 <form method="POST" action="/doctor/availability/{{ $slot->id }}/unblock">
                                   @csrf
                                   <button type="submit" class="btn btn-sm btn-outline-primary">Riapri</button>

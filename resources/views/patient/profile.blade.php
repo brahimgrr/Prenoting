@@ -16,7 +16,6 @@
       <section class="portal-panel profile-readonly-panel">
         <div class="section-heading">
           <h2>Dati anagrafici</h2>
-          <span>Dati non modificabili</span>
         </div>
         <div class="profile-data-grid">
           <div class="profile-data-tile">
@@ -50,7 +49,6 @@
       <section class="portal-panel">
         <div class="section-heading">
           <h2>Contatto</h2>
-          <span>Email, telefono e indirizzo</span>
         </div>
         <form method="POST" action="/patient/profile" class="profile-form">
           @csrf
@@ -79,7 +77,6 @@
       <section class="portal-panel">
         <div class="section-heading">
           <h2>Password</h2>
-          <span>Proteggi il tuo account</span>
         </div>
         <form method="POST" action="/patient/password" class="profile-form">
           @csrf

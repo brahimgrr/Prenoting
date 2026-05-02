@@ -45,10 +45,131 @@ function syncAvailabilityLunchCards() {
     .forEach(setAvailabilityLunchCardState);
 }
 
+const COMUNE_SUGGESTION_LIMIT = 8;
+let suppressComuneFocusUpdate = false;
+
+function normalizeComune(value) {
+  return value.trim().toLocaleUpperCase("it-IT");
+}
+
+function hideComuneSuggestions(combobox) {
+  const input = combobox.querySelector("[data-comune-input]");
+  const suggestions = combobox.querySelector("[data-comune-suggestions]");
+
+  suggestions?.setAttribute("hidden", "");
+  input?.setAttribute("aria-expanded", "false");
+  suggestions?.querySelectorAll("[data-comune-option]").forEach((option) => {
+    option.hidden = true;
+  });
+}
+
+function updateComuneSuggestions(input) {
+  const combobox = input.closest("[data-comune-combobox]");
+  const suggestions = combobox?.querySelector("[data-comune-suggestions]");
+  if (!combobox || !suggestions) return;
+
+  const query = normalizeComune(input.value);
+  let shown = 0;
+
+  suggestions.querySelectorAll("[data-comune-option]").forEach((option) => {
+    const matches =
+      query.length > 0 &&
+      normalizeComune(option.value).includes(query) &&
+      shown < COMUNE_SUGGESTION_LIMIT;
+
+    option.hidden = !matches;
+    if (matches) shown += 1;
+  });
+
+  suggestions.toggleAttribute("hidden", shown === 0);
+  input.setAttribute("aria-expanded", shown > 0 ? "true" : "false");
+}
+
+function visibleComuneOptions(combobox) {
+  return Array.from(combobox.querySelectorAll("[data-comune-option]")).filter(
+    (option) => !option.hidden
+  );
+}
+
+function selectComuneOption(option) {
+  const combobox = option.closest("[data-comune-combobox]");
+  const input = combobox?.querySelector("[data-comune-input]");
+  if (!combobox || !input) return;
+
+  suppressComuneFocusUpdate = true;
+  input.value = option.value;
+  input.focus();
+  hideComuneSuggestions(combobox);
+
+  requestAnimationFrame(() => {
+    suppressComuneFocusUpdate = false;
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   positionAgendaScroll();
   openAvailabilityPreviewModal();
   syncAvailabilityLunchCards();
+});
+
+document.addEventListener("input", (e) => {
+  const comuneInput = e.target.closest("[data-comune-input]");
+  if (!comuneInput) return;
+
+  updateComuneSuggestions(comuneInput);
+});
+
+document.addEventListener("focusin", (e) => {
+  const comuneInput = e.target.closest("[data-comune-input]");
+  if (!comuneInput || suppressComuneFocusUpdate) return;
+
+  updateComuneSuggestions(comuneInput);
+});
+
+document.addEventListener("keydown", (e) => {
+  const comuneInput = e.target.closest("[data-comune-input]");
+  if (comuneInput) {
+    const combobox = comuneInput.closest("[data-comune-combobox]");
+    const options = combobox ? visibleComuneOptions(combobox) : [];
+
+    if (e.key === "ArrowDown" && options.length > 0) {
+      e.preventDefault();
+      options[0].focus();
+    }
+
+    if (e.key === "Escape" && combobox) {
+      hideComuneSuggestions(combobox);
+    }
+
+    return;
+  }
+
+  const comuneOption = e.target.closest("[data-comune-option]");
+  if (!comuneOption) return;
+
+  const combobox = comuneOption.closest("[data-comune-combobox]");
+  const options = combobox ? visibleComuneOptions(combobox) : [];
+  const currentIndex = options.indexOf(comuneOption);
+
+  if (e.key === "ArrowDown" && options[currentIndex + 1]) {
+    e.preventDefault();
+    options[currentIndex + 1].focus();
+  }
+
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    if (options[currentIndex - 1]) {
+      options[currentIndex - 1].focus();
+      return;
+    }
+
+    combobox?.querySelector("[data-comune-input]")?.focus();
+  }
+
+  if (e.key === "Escape" && combobox) {
+    hideComuneSuggestions(combobox);
+    combobox.querySelector("[data-comune-input]")?.focus();
+  }
 });
 
 document.addEventListener("change", (e) => {
@@ -59,20 +180,17 @@ document.addEventListener("change", (e) => {
 });
 
 document.addEventListener("click", (e) => {
-  const servicesArrow = e.target.closest("[data-landing-services-prev], [data-landing-services-next]");
-  if (servicesArrow) {
-    e.preventDefault();
-    const track = document.querySelector("[data-landing-services-track]");
-    if (!track) return;
-
-    const direction = servicesArrow.hasAttribute("data-landing-services-prev") ? -1 : 1;
-    const card = track.querySelector(".landing-card");
-    const visibleWidth = track.clientWidth;
-    const cardWidth = card ? card.getBoundingClientRect().width + 16 : 300;
-    const scrollAmount = Math.max(cardWidth, visibleWidth - cardWidth);
-    track.scrollBy({ left: direction * scrollAmount, behavior: "smooth" });
+  const comuneOption = e.target.closest("[data-comune-option]");
+  if (comuneOption) {
+    selectComuneOption(comuneOption);
     return;
   }
+
+  document.querySelectorAll("[data-comune-combobox]").forEach((combobox) => {
+    if (!combobox.contains(e.target)) {
+      hideComuneSuggestions(combobox);
+    }
+  });
 
   // Week navigation arrow (fetch-based, no page reload)
   const arrow = e.target.closest("[data-week-url]");

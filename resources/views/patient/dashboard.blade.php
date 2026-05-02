@@ -47,7 +47,7 @@
       </a>
     </section>
 
-    <section class="portal-panel">
+    <section class="portal-panel patient-upcoming-panel">
       <div class="section-heading">
         <h2>Appuntamenti imminenti</h2>
         <a href="/patient/appointments">Vedi tutti</a>

@@ -61,13 +61,26 @@
           </div>
           <div class="col-md-6">
             <label class="form-label" for="place_of_birth">Luogo di nascita</label>
-            <input class="form-control @error('place_of_birth') is-invalid @enderror" id="place_of_birth" name="place_of_birth" list="comuni-list" autocomplete="off" value="{{ old('place_of_birth') }}" required>
+            <div class="comune-combobox" data-comune-combobox>
+              <input
+                class="form-control @error('place_of_birth') is-invalid @enderror"
+                id="place_of_birth"
+                name="place_of_birth"
+                autocomplete="off"
+                aria-autocomplete="list"
+                aria-expanded="false"
+                aria-controls="comuni-suggestions"
+                data-comune-input
+                value="{{ old('place_of_birth') }}"
+                required
+              >
+              <div class="comune-suggestions" id="comuni-suggestions" role="listbox" data-comune-suggestions hidden>
+                @foreach($comuni as $comune)
+                  <button type="button" class="comune-suggestion" role="option" data-comune-option value="{{ $comune }}" hidden>{{ $comune }}</button>
+                @endforeach
+              </div>
+            </div>
             @error('place_of_birth') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
-            <datalist id="comuni-list">
-              @foreach($comuni as $comune)
-                <option value="{{ $comune }}">
-              @endforeach
-            </datalist>
           </div>
         </div>
         <button class="btn btn-primary w-100 mt-4" type="submit">Crea account</button>

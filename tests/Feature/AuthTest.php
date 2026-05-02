@@ -334,15 +334,18 @@ class AuthTest extends TestCase
 </span>', false);
   }
 
-  public function test_register_page_shows_datalist_with_comuni(): void
+  public function test_register_page_shows_comuni_suggestions_below_the_input(): void
   {
     $response = $this->get('/register');
 
     $response->assertOk();
-    $response->assertSee('<datalist id="comuni-list">', false);
-    $response->assertSee('<option value="ROMA">', false);
-    $response->assertSee('<option value="MILANO">', false);
-    $response->assertSee('<option value="FRANCIA">', false);
-    $response->assertSee('list="comuni-list"', false);
+    $response->assertSee('data-comune-combobox', false);
+    $response->assertSee('data-comune-input', false);
+    $response->assertSee('data-comune-suggestions', false);
+    $response->assertSee('data-comune-option value="ROMA"', false);
+    $response->assertSee('data-comune-option value="MILANO"', false);
+    $response->assertSee('data-comune-option value="FRANCIA"', false);
+    $response->assertDontSee('<datalist', false);
+    $response->assertDontSee('list="comuni-list"', false);
   }
 }

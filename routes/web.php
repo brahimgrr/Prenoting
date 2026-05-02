@@ -9,7 +9,6 @@ use App\Http\Controllers\DoctorProfileController;
 use App\Http\Controllers\DoctorTreatmentController;
 use App\Http\Controllers\PatientAppointmentController;
 use App\Http\Controllers\PatientDashboardController;
-use App\Models\MedicalService;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -22,10 +21,6 @@ Route::get('/', function () {
 
   return view('landing', [
     'doctor' => \App\Models\DoctorProfile::first(),
-    'services' => MedicalService::query()
-      ->where('is_active', true)
-      ->orderBy('name')
-      ->get(),
   ]);
 })->name('home');
 

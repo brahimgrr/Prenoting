@@ -15,7 +15,6 @@
         <span class="portal-eyebrow">Portale medico</span>
         <h1>Trattamenti</h1>
       </div>
-      <a href="/doctor/schedule" class="btn btn-outline-secondary">Torna all'agenda</a>
     </div>
 
     <section class="portal-panel dashboard-filter-panel">
@@ -54,7 +53,7 @@
       </form>
     </section>
 
-    <section class="portal-panel dashboard-table-panel">
+    <section class="portal-panel dashboard-table-panel treatments-list-panel">
       <div class="section-heading">
         <h2>I tuoi trattamenti</h2>
       </div>
