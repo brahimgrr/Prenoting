@@ -682,6 +682,11 @@ a {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+.week-strip--agenda {
+  gap: 0.5rem;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
 .week-day {
   align-items: center;
   background: #ffffff;
@@ -694,6 +699,16 @@ a {
   min-height: 6.5rem;
   padding: 0.75rem;
   text-decoration: none;
+}
+
+.week-strip--agenda .week-day {
+  min-height: 5.75rem;
+  padding: 0.6rem 0.35rem;
+}
+
+.week-day--weekend:not(.week-day--selected) {
+  background: #fff7f7;
+  border-color: #dc3545;
 }
 
 .week-day__month {
@@ -709,6 +724,17 @@ a {
   border-color: var(--color-blue);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
   color: var(--color-ink);
+}
+
+.week-day--weekend:not(.week-day--selected):hover {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.16);
+}
+
+.week-day--weekend.week-day--selected {
+  background: #fff7f7;
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.16);
 }
 
 .week-day--disabled {
@@ -1567,6 +1593,21 @@ a {
   .week-strip,
   .booking-confirm-summary {
     grid-template-columns: 1fr;
+  }
+
+  .week-strip--agenda {
+    gap: 0.35rem;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .week-strip--agenda .week-day {
+    min-height: 4.75rem;
+    padding: 0.4rem 0.2rem;
+  }
+
+  .week-strip--agenda .week-day__name,
+  .week-strip--agenda .week-day__month {
+    font-size: 0.68rem;
   }
 
   .month-nav {

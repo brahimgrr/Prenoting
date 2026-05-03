@@ -126,7 +126,7 @@ class DoctorDashboardController extends Controller
     $weekStart = CarbonImmutable::parse(
       $weekStartParam ?? $selectedDay->toDateString()
     )->startOfWeek(CarbonImmutable::MONDAY);
-    $weekEnd = $weekStart->addDays(4);
+    $weekEnd = $weekStart->addDays(6);
 
     $daysWithSlots = AvailabilitySlot::query()
       ->whereBetween('start_at', [$weekStart->startOfDay(), $weekEnd->endOfDay()])
@@ -135,7 +135,7 @@ class DoctorDashboardController extends Controller
       ->pluck('slot_date')
       ->all();
 
-    $weekDays = collect(range(0, 4))->map(fn ($i) => [
+    $weekDays = collect(range(0, 6))->map(fn ($i) => [
       'date'     => $weekStart->addDays($i),
       'hasSlots' => in_array($weekStart->addDays($i)->toDateString(), $daysWithSlots),
     ]);

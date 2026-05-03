@@ -56,12 +56,13 @@
            href="/doctor/agenda?date={{ $previousWeekStart->toDateString() }}&week_start={{ $previousWeekStart->toDateString() }}"
            aria-label="Settimana precedente">&#8249;</a>
 
-        <div class="week-strip">
+        <div class="week-strip week-strip--agenda">
           @foreach ($weekDays as $weekDay)
             @php
               $dayDateStr = $weekDay['date']->toDateString();
               $isSelected = $dayDateStr === $date;
-              $dayClass   = 'week-day' . ($isSelected ? ' week-day--selected' : '');
+              $isWeekend  = $weekDay['date']->isWeekend();
+              $dayClass   = 'week-day' . ($isWeekend ? ' week-day--weekend' : '') . ($isSelected ? ' week-day--selected' : '');
             @endphp
             <a class="{{ $dayClass }}"
                href="/doctor/agenda?date={{ $dayDateStr }}&week_start={{ $weekStart->toDateString() }}">

@@ -584,23 +584,26 @@ class RoleDashboardTest extends TestCase
       ->assertRedirect('/doctor/agenda?date=2030-04-29');
   }
 
-  public function test_doctor_agenda_week_strip_shows_only_weekdays(): void
+  public function test_doctor_agenda_week_strip_shows_full_week_on_one_line(): void
   {
     $doctorUser = $this->makeDoctorUser();
     $weekStart = CarbonImmutable::parse('2030-04-29')->startOfWeek(CarbonImmutable::MONDAY);
 
     $response = $this->actingAs($doctorUser)
       ->get('/doctor/agenda?'.http_build_query([
-        'date'       => $weekStart->toDateString(),
+        'date'       => $weekStart->addDays(5)->toDateString(),
         'week_start' => $weekStart->toDateString(),
       ]))
       ->assertOk();
 
     $content = $response->getContent();
 
-    $this->assertSame(5, substr_count($content, '<a class="week-day'));
-    $this->assertStringNotContainsString('date='.$weekStart->addDays(5)->toDateString(), $content);
-    $this->assertStringNotContainsString('date='.$weekStart->addDays(6)->toDateString(), $content);
+    $this->assertStringContainsString('week-strip week-strip--agenda', $content);
+    $this->assertSame(7, substr_count($content, '<a class="week-day'));
+    $this->assertSame(2, substr_count($content, 'week-day--weekend'));
+    $this->assertStringContainsString('week-day week-day--weekend week-day--selected', $content);
+    $this->assertStringContainsString('date='.$weekStart->addDays(5)->toDateString(), $content);
+    $this->assertStringContainsString('date='.$weekStart->addDays(6)->toDateString(), $content);
   }
 
   public function test_doctor_agenda_shows_fatturato_for_selected_day(): void
