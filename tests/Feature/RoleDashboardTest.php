@@ -717,6 +717,25 @@ public function test_doctor_profiles_table_has_contact_and_clinic_fields(): void
       ->assertSee('week-day', false);
   }
 
+  public function test_doctor_agendav2_week_strip_shows_only_weekdays(): void
+  {
+    $doctorUser = $this->makeDoctorUser();
+    $weekStart = CarbonImmutable::parse('2030-04-29')->startOfWeek(CarbonImmutable::MONDAY);
+
+    $response = $this->actingAs($doctorUser)
+      ->get('/doctor/agendav2?'.http_build_query([
+        'date'       => $weekStart->toDateString(),
+        'week_start' => $weekStart->toDateString(),
+      ]))
+      ->assertOk();
+
+    $content = $response->getContent();
+
+    $this->assertSame(5, substr_count($content, '<a class="week-day'));
+    $this->assertStringNotContainsString('date='.$weekStart->addDays(5)->toDateString(), $content);
+    $this->assertStringNotContainsString('date='.$weekStart->addDays(6)->toDateString(), $content);
+  }
+
   public function test_doctor_agendav2_shows_fatturato_for_selected_day(): void
   {
     [$doctorUser] = $this->dashboardContext();

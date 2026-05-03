@@ -41,7 +41,7 @@
       </div>
       <div class="col-4">
         <section class="portal-panel h-100 p-3">
-          <span class="d-block text-body-secondary small fw-bold text-uppercase">Fatturato</span>
+          <span class="d-block text-body-secondary small fw-bold text-uppercase">Fatturato Previsto</span>
           <strong class="d-block fs-2 lh-1 mt-2 text-primary">
             &euro; {{ number_format((float) $fatturato, 2, ',', '.') }}
           </strong>
@@ -51,7 +51,7 @@
 
     {{-- Agenda panel --}}
     <section class="portal-panel doctor-agenda-panel">
-      <div class="week-strip-wrapper">
+      <div class="week-strip-wrapper mb-3">
         <a class="btn btn-outline-secondary week-nav-arrow"
            href="/doctor/agendav2?date={{ $previousWeekStart->toDateString() }}&week_start={{ $previousWeekStart->toDateString() }}"
            aria-label="Settimana precedente">&#8249;</a>
