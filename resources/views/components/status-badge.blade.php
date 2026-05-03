@@ -18,6 +18,6 @@
     'scheduled' => 'Programmato',
   ];
 @endphp
-<span class="badge rounded-pill {{ $variants[$normalized] ?? 'text-bg-secondary' }}">
+<span class="badge rounded-pill {{ $variants[$normalized] ?? 'badge-neutral' }}">
   {{ $content !== '' ? $content : ($labels[$normalized] ?? str_replace('_', ' ', (string) $status)) }}
 </span>

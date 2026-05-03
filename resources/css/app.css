@@ -7,7 +7,7 @@
   --color-muted: #64748b;
   --color-border: #dbe4ee;
   --color-surface: #ffffff;
-  --color-canvas: #f5f7fb;
+  --color-canvas: #ffffff;
   --color-navy: #111827;
   --color-teal: #0f766e;
   --color-blue: #2563eb;
@@ -21,7 +21,7 @@ body {
 
 body {
   margin: 0;
-  background: var(--color-canvas);
+  background: var(--color-surface);
   color: var(--color-ink);
 }
 
@@ -141,6 +141,12 @@ a {
 
 .btn {
   font-weight: 650;
+}
+
+.badge-neutral {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  color: var(--color-ink);
 }
 
 .btn-primary {
@@ -512,7 +518,7 @@ a {
 }
 
 .appointment-card--muted {
-  background: #f8fafc;
+  background: #ffffff;
 }
 
 .appointment-card__title,
@@ -738,7 +744,7 @@ a {
 }
 
 .week-day--disabled {
-  background: #f8fafc;
+  background: #ffffff;
   opacity: 0.5;
 }
 
@@ -800,7 +806,7 @@ a {
 }
 
 .booking-confirm-summary div {
-  background: #f8fafc;
+  background: #ffffff;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   min-height: 100%;
@@ -865,7 +871,7 @@ a {
 }
 
 .profile-readonly-panel {
-  background: #f8fafc;
+  background: #ffffff;
 }
 
 .profile-page .section-heading {
@@ -1000,7 +1006,7 @@ a {
 }
 
 .doctor-agenda-row__content[aria-hidden="true"] {
-  background: linear-gradient(90deg, rgba(148, 163, 184, 0.04), transparent 45%);
+  background: #ffffff;
 }
 
 .doctor-agenda-now-marker {
@@ -1197,7 +1203,7 @@ a {
 }
 
 .availability-preview-card {
-  background: #f8fafc;
+  background: #ffffff;
   border: 1px solid rgba(37, 99, 235, 0.28);
   border-radius: 8px;
   display: grid;
@@ -1380,7 +1386,7 @@ a {
 }
 
 .appointment-info-card--notes {
-  background: #f8fafc;
+  background: #ffffff;
 }
 
 .appointment-info-card__notes {
@@ -1433,7 +1439,7 @@ a {
 }
 
 .treatment-card__facts div {
-  background: #f8fafc;
+  background: #ffffff;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0.75rem;
@@ -1458,7 +1464,7 @@ a {
 }
 
 .operations-summary-grid div {
-  background: var(--color-canvas);
+  background: #ffffff;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   display: grid;
@@ -1489,7 +1495,7 @@ a {
 }
 
 .dashboard-table thead th {
-  background: #f8fafc;
+  background: #ffffff;
   color: var(--color-muted);
   font-size: 0.74rem;
   letter-spacing: 0.08em;

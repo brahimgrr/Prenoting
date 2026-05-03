@@ -153,7 +153,7 @@
                             </div>
                             <div class="doctor-agenda-item__actions">
                               @if ($showPassatoBadge)
-                                <span class="badge text-bg-secondary">Passato</span>
+                                <span class="badge badge-neutral">Passato</span>
                               @elseif ($state === 'blocked' && ! $hasStarted)
                                 <form method="POST" action="/doctor/availability/{{ $slot->id }}/unblock">
                                   @csrf
@@ -165,7 +165,7 @@
                                   <button type="submit" class="btn btn-sm btn-outline-danger">Blocca</button>
                                 </form>
                               @elseif ($state === 'booked')
-                                <span class="badge text-bg-secondary">Prenotato</span>
+                                <span class="badge badge-neutral">Prenotato</span>
                               @endif
                             </div>
                           </div>
