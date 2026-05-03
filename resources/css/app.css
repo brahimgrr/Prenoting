@@ -45,8 +45,7 @@ a {
 .appointment-row,
 .appointment-card,
 .result-item,
-.slot-chip,
-.dashboard-stat {
+.slot-chip {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -597,9 +596,7 @@ a {
 }
 
 .booking-wizard,
-.profile-stack,
-.availability-day-list,
-.availability-slot-list {
+.profile-stack {
   display: grid;
   gap: 1rem;
 }
@@ -645,7 +642,6 @@ a {
 .service-choice-card__meta,
 .week-day__name,
 .week-day__month,
-.availability-slot-row span,
 .profile-lock-note {
   color: var(--color-muted);
 }
@@ -766,33 +762,6 @@ a {
   color: var(--color-muted);
 }
 
-.avail-tabs-wrap {
-  margin-bottom: 1rem;
-  overflow-x: auto;
-  padding-bottom: 0.25rem;
-}
-
-.avail-tabs-wrap .week-strip {
-  display: flex;
-  min-width: max-content;
-}
-
-.avail-tabs-wrap .week-day {
-  flex: 0 0 6.5rem;
-  font: inherit;
-}
-
-.avail-slot-panel {
-  background: #ffffff;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.avail-slot-row + .avail-slot-row {
-  margin-top: 0.5rem;
-}
-
 .booking-confirm-panel {
   border-color: rgba(37, 99, 235, 0.35);
 }
@@ -898,81 +867,6 @@ a {
   margin: 0.85rem 0 0;
 }
 
-.availability-day {
-  background: #f8fafc;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
-}
-
-.availability-day__summary {
-  align-items: center;
-  cursor: pointer;
-  display: flex;
-  font-weight: 800;
-  gap: 1rem;
-  justify-content: space-between;
-  list-style: none;
-}
-
-.availability-day__summary::-webkit-details-marker {
-  display: none;
-}
-
-.availability-day__summary::after {
-  color: var(--color-muted);
-  content: "Apri";
-  font-size: 0.82rem;
-  font-weight: 800;
-}
-
-.availability-day[open] .availability-day__summary::after {
-  content: "Chiudi";
-}
-
-.availability-day__summary small {
-  color: var(--color-muted);
-  font-size: 0.85rem;
-  font-weight: 700;
-  margin-left: auto;
-}
-
-.availability-day h3 {
-  font-size: 1rem;
-  font-weight: 800;
-  margin: 0;
-}
-
-.availability-day[open] .availability-slot-list {
-  margin-top: 0.75rem;
-}
-
-.availability-slot-row {
-  align-items: center;
-  background: #ffffff;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-  padding: 0.85rem;
-}
-
-.availability-slot-row > div:first-child {
-  display: grid;
-  gap: 0.15rem;
-}
-
-.availability-slot-row__actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: flex-end;
-}
-
 .portal-tabs,
 .booking-filters {
   margin-bottom: 1rem;
@@ -1020,73 +914,6 @@ a {
 
 .empty-state {
   padding: 1rem;
-}
-
-.dashboard-date-filter {
-  color: var(--color-muted);
-  display: grid;
-  font-size: 0.78rem;
-  font-weight: 800;
-  gap: 0.35rem;
-  text-transform: uppercase;
-  width: 100%;
-}
-
-.dashboard-day-nav__controls {
-  align-items: center;
-  display: flex;
-  gap: 0.45rem;
-}
-
-.dashboard-day-nav__controls .form-control {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.dashboard-day-nav__arrow {
-  flex: 0 0 auto;
-  font-size: 1.15rem;
-  line-height: 1;
-  min-height: 2.75rem;
-  min-width: 2.75rem;
-  padding-left: 0.6rem;
-  padding-right: 0.6rem;
-}
-
-.dashboard-stat-row {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(3, minmax(160px, 1fr));
-  margin-bottom: 1rem;
-}
-
-.operations-dashboard--wide .dashboard-stat-row {
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
-}
-
-.dashboard-stat {
-  display: grid;
-  gap: 0.25rem;
-  min-height: 8rem;
-  padding: 1.15rem;
-}
-
-.dashboard-stat--day-nav {
-  align-content: space-between;
-  gap: 0.75rem;
-}
-
-.dashboard-stat span,
-.dashboard-stat small,
-.dashboard-readonly {
-  color: var(--color-muted);
-  font-weight: 700;
-}
-
-.dashboard-stat strong {
-  color: var(--color-navy);
-  font-size: 2.75rem;
-  line-height: 1;
 }
 
 .dashboard-filter-panel,
@@ -1276,53 +1103,6 @@ a {
   margin: 0;
 }
 
-.availability-manager {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  box-shadow: var(--shadow-panel);
-  margin-bottom: 1rem;
-  overflow: hidden;
-  padding: 0;
-}
-
-.availability-manager__summary {
-  align-items: center;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-  list-style: none;
-  padding: 1.15rem 1.5rem;
-}
-
-.availability-manager__summary::-webkit-details-marker {
-  display: none;
-}
-
-.availability-manager__summary span {
-  color: var(--color-navy);
-  font-size: 1.05rem;
-  font-weight: 850;
-}
-
-.availability-manager__summary small {
-  color: var(--color-muted);
-  font-weight: 750;
-  margin-left: auto;
-}
-
-.availability-manager__content {
-  border-top: 1px solid var(--color-border);
-  display: grid;
-  gap: 1.25rem;
-  padding: 1.25rem 1.5rem 1.5rem;
-}
-
-.availability-manager__block + .availability-manager__block {
-  border-top: 1px solid var(--color-border);
-  padding-top: 1.25rem;
-}
-
 .dashboard-filter-grid {
   align-items: end;
   display: grid;
@@ -1331,7 +1111,6 @@ a {
 }
 
 .dashboard-filter-grid .form-label,
-.availability-batch-form .form-label,
 .treatment-form-grid .form-label {
   color: var(--color-muted);
   display: grid;
@@ -1347,7 +1126,6 @@ a {
   width: 100%;
 }
 
-.availability-batch-form,
 .treatment-form-grid {
   align-items: end;
   display: grid;
@@ -1355,30 +1133,9 @@ a {
   margin-top: 1rem;
 }
 
-.availability-batch-form {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.availability-weekday-field {
-  grid-column: span 2;
-}
-
-.availability-weekday-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.availability-batch-actions,
 .treatment-form-actions {
   display: grid;
   gap: 0.45rem;
-}
-
-.availability-batch-actions span {
-  color: var(--color-muted);
-  font-size: 0.78rem;
-  font-weight: 750;
 }
 
 .availability-lunch-card {
@@ -1760,16 +1517,13 @@ a {
   .dashboard-grid,
   .booking-layout,
   .service-card-grid,
-    .quick-actions,
-    .dashboard-stat-row,
-    .operations-dashboard--wide .dashboard-stat-row,
-    .operations-summary-grid,
-    .availability-batch-form,
-    .availability-preview-stats,
-    .treatment-form-grid,
-    .treatment-card-grid,
-    .profile-grid,
-    .profile-data-grid {
+  .quick-actions,
+  .operations-summary-grid,
+  .availability-preview-stats,
+  .treatment-form-grid,
+  .treatment-card-grid,
+  .profile-grid,
+  .profile-data-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1800,15 +1554,6 @@ a {
     flex-direction: column;
   }
 
-  .dashboard-date-filter {
-    flex: 0 1 auto;
-    width: 100%;
-  }
-
-  .dashboard-day-nav__controls {
-    width: 100%;
-  }
-
   .appointment-card__header,
   .treatment-card__header {
     align-items: flex-start;
@@ -1825,15 +1570,6 @@ a {
   }
 
   .month-nav {
-    justify-content: flex-start;
-  }
-
-  .availability-slot-row {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .availability-slot-row__actions {
     justify-content: flex-start;
   }
 
@@ -1854,8 +1590,7 @@ a {
     padding: 0.3rem;
   }
 
-  .doctor-agenda-item__main,
-  .availability-manager__summary {
+  .doctor-agenda-item__main {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -1868,10 +1603,6 @@ a {
   .appointment-info-summary,
   .appointment-info-grid {
     grid-template-columns: 1fr;
-  }
-
-  .availability-manager__summary small {
-    margin-left: 0;
   }
 
   .appointment-row__meta {

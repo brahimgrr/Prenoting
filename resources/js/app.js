@@ -319,18 +319,6 @@ document.addEventListener("click", (e) => {
     return;
   }
 
-  const availabilityDayTab = e.target.closest("[data-availability-day-tab]");
-  if (availabilityDayTab) {
-    const tabs = availabilityDayTab
-      .closest(".avail-tabs-wrap")
-      ?.querySelectorAll("[data-availability-day-tab]");
-
-    tabs?.forEach((tab) => {
-      tab.classList.toggle("week-day--selected", tab === availabilityDayTab);
-    });
-    return;
-  }
-
   // Day card selection (show pre-rendered slot block, no page reload)
   const dayCard = e.target.closest(".week-day[data-date]");
   if (dayCard) {

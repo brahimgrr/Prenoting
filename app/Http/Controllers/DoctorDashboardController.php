@@ -14,19 +14,9 @@ use Illuminate\View\View;
 
 class DoctorDashboardController extends Controller
 {
-  public function schedule(Request $request): View
+  public function agenda(Request $request): View
   {
-    return $this->viewSchedule($request);
-  }
-
-  public function availability(Request $request): View
-  {
-    return $this->viewAvailability($request);
-  }
-
-  public function agendaV2(Request $request): View
-  {
-    return $this->viewAgendaV2($request);
+    return $this->viewAgenda($request);
   }
 
   public function updateStatus(Request $request, Appointment $appointment, AppointmentService $appointments): RedirectResponse
@@ -37,44 +27,7 @@ class DoctorDashboardController extends Controller
 
     $appointments->updateByDoctor($appointment, $validated['status'], $request->user());
 
-    return redirect('/doctor/schedule')->with('status', 'Stato appuntamento aggiornato.');
-  }
-
-  public function storeAvailability(Request $request): RedirectResponse
-  {
-    $validated = $request->validate([
-      'date' => ['required', 'date_format:Y-m-d'],
-      'start_time' => ['required', 'date_format:H:i'],
-      'end_time' => ['required', 'date_format:H:i'],
-    ]);
-
-    $start = CarbonImmutable::parse("{$validated['date']} {$validated['start_time']}:00");
-    $end = CarbonImmutable::parse("{$validated['date']} {$validated['end_time']}:00");
-
-    if ($start->isPast()) {
-      throw ValidationException::withMessages([
-        'start_time' => 'La disponibilita deve essere futura.',
-      ]);
-    }
-
-    if ($end->lessThanOrEqualTo($start)) {
-      throw ValidationException::withMessages([
-        'end_time' => "L'orario di fine deve essere successivo all'inizio.",
-      ]);
-    }
-
-    if ($this->slotOverlaps($start, $end)) {
-      throw ValidationException::withMessages([
-        'start_time' => 'Esiste gia una disponibilita sovrapposta.',
-      ]);
-    }
-
-    AvailabilitySlot::create([
-      'start_at' => $start,
-      'end_at' => $end,
-    ]);
-
-    return redirect('/doctor/availability')->with('status', 'Disponibilita aggiunta.');
+    return redirect('/doctor/agenda')->with('status', 'Stato appuntamento aggiornato.');
   }
 
   public function previewAvailability(Request $request): View
@@ -82,11 +35,7 @@ class DoctorDashboardController extends Controller
     $validated = $this->validatedBatchAvailability($request);
     $preview = $this->buildAvailabilityPreview($validated);
 
-    if ($request->query('source') === 'agendav2') {
-      return $this->viewAgendaV2($request, $preview);
-    }
-
-    return $this->viewAvailability($request, $preview);
+    return $this->viewAgenda($request, $preview);
   }
 
   public function storeAvailabilityBatch(Request $request): RedirectResponse
@@ -121,11 +70,7 @@ class DoctorDashboardController extends Controller
       ]);
     }
 
-    $redirectTo = $request->input('_source') === 'agendav2'
-      ? '/doctor/agendav2'
-      : '/doctor/availability';
-
-    return redirect($redirectTo)->with('status', "{$created} slot disponibilita creati.");
+    return redirect('/doctor/agenda')->with('status', "{$created} slot disponibilita creati.");
   }
 
   public function blockAvailability(Request $request, AvailabilitySlot $slot): RedirectResponse
@@ -158,60 +103,7 @@ class DoctorDashboardController extends Controller
     return redirect()->back()->with('status', 'Disponibilita riaperta.');
   }
 
-  private function viewSchedule(Request $request): View
-  {
-    $selectedDate = (string) $request->query('date', now()->toDateString());
-    $selectedDay = CarbonImmutable::parse($selectedDate)->startOfDay();
-    $currentTime = CarbonImmutable::now();
-    $appointments = Appointment::withPortalRelations()
-      ->whereDate('start_at', $selectedDate)
-      ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
-      ->orderBy('start_at')
-      ->get();
-    $daySlots = AvailabilitySlot::query()
-      ->whereDate('start_at', $selectedDate)
-      ->orderBy('start_at')
-      ->get();
-    $timelineItems = $this->buildTimelineItems($appointments, $daySlots);
-
-    return view('doctor.dashboard', [
-      'date' => $selectedDate,
-      'appointments' => $appointments,
-      'daySlots' => $daySlots,
-      'timelineItems' => $timelineItems,
-      'agendaRows' => $this->buildAgendaRows($selectedDay, $timelineItems, $currentTime),
-      'currentTime' => $currentTime,
-      'isSelectedToday' => $selectedDay->toDateString() === $currentTime->toDateString(),
-    ]);
-  }
-
-  private function viewAvailability(Request $request, ?array $availabilityPreview = null): View
-  {
-    $batchForm = $availabilityPreview['input'] ?? [
-      'start_date'          => CarbonImmutable::now()->toDateString(),
-      'end_date'            => CarbonImmutable::now()->addWeeks(2)->toDateString(),
-      'weekdays'            => [1, 2, 3, 4, 5],
-      'start_time'          => '09:00',
-      'end_time'            => '12:00',
-      'slot_duration'       => 30,
-      'lunch_break_enabled' => false,
-      'lunch_break_start'   => '13:00',
-      'lunch_break_end'     => '14:00',
-    ];
-
-    return view('doctor.availability', [
-      'availabilityPreview' => $availabilityPreview,
-      'batchForm'           => $batchForm,
-      'availabilitySlots'   => AvailabilitySlot::query()
-        ->where('start_at', '>=', now())
-        ->with(['appointments.patient.user', 'appointments.service'])
-        ->orderBy('start_at')
-        ->get()
-        ->groupBy(fn (AvailabilitySlot $slot) => $slot->start_at->toDateString()),
-    ]);
-  }
-
-  private function viewAgendaV2(Request $request, ?array $availabilityPreview = null): View
+  private function viewAgenda(Request $request, ?array $availabilityPreview = null): View
   {
     $selectedDate = (string) $request->query('date', now()->toDateString());
     $selectedDay  = CarbonImmutable::parse($selectedDate)->startOfDay();
@@ -260,7 +152,7 @@ class DoctorDashboardController extends Controller
       'lunch_break_end'     => '14:00',
     ];
 
-    return view('doctor.agendav2', [
+    return view('doctor.agenda', [
       'date'                => $selectedDate,
       'appointments'        => $appointments,
       'daySlots'            => $daySlots,

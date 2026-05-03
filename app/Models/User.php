@@ -69,7 +69,7 @@ class User extends Authenticatable
   {
     return match ($this->portalRole()) {
       self::ROLE_ADMIN => '/admin',
-      self::ROLE_DOCTOR => '/doctor/schedule',
+      self::ROLE_DOCTOR => '/doctor/agenda',
       self::ROLE_PATIENT => '/patient',
       default => null,
     };

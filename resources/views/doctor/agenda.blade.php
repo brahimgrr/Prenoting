@@ -53,7 +53,7 @@
     <section class="portal-panel doctor-agenda-panel">
       <div class="week-strip-wrapper mb-3">
         <a class="btn btn-outline-secondary week-nav-arrow"
-           href="/doctor/agendav2?date={{ $previousWeekStart->toDateString() }}&week_start={{ $previousWeekStart->toDateString() }}"
+           href="/doctor/agenda?date={{ $previousWeekStart->toDateString() }}&week_start={{ $previousWeekStart->toDateString() }}"
            aria-label="Settimana precedente">&#8249;</a>
 
         <div class="week-strip">
@@ -64,7 +64,7 @@
               $dayClass   = 'week-day' . ($isSelected ? ' week-day--selected' : '');
             @endphp
             <a class="{{ $dayClass }}"
-               href="/doctor/agendav2?date={{ $dayDateStr }}&week_start={{ $weekStart->toDateString() }}">
+               href="/doctor/agenda?date={{ $dayDateStr }}&week_start={{ $weekStart->toDateString() }}">
               <span class="week-day__name">{{ ucfirst($weekDay['date']->locale('it')->isoFormat('ddd')) }}</span>
               <strong>{{ $weekDay['date']->format('d') }}</strong>
               <span class="week-day__month">{{ ucfirst($weekDay['date']->locale('it')->isoFormat('MMM')) }}</span>
@@ -74,7 +74,7 @@
         </div>
 
         <a class="btn btn-outline-secondary week-nav-arrow"
-           href="/doctor/agendav2?date={{ $nextWeekStart->toDateString() }}&week_start={{ $nextWeekStart->toDateString() }}"
+           href="/doctor/agenda?date={{ $nextWeekStart->toDateString() }}&week_start={{ $nextWeekStart->toDateString() }}"
            aria-label="Settimana successiva">&#8250;</a>
       </div>
 
@@ -198,26 +198,25 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
         </div>
 
-        <form id="av2-preview-form" method="GET" action="/doctor/availability/preview">
-          <input type="hidden" name="source" value="agendav2">
+        <form id="agenda-preview-form" method="GET" action="/doctor/availability/preview">
           <div class="modal-body">
             <div class="availability-step availability-step--form{{ $availabilityPreview ? ' d-none' : '' }}" data-availability-form-step>
               <div class="row g-3">
                 <div class="col-sm-6">
-                  <label class="form-label" for="av2-start-date">Dal</label>
-                  <input class="form-control" id="av2-start-date" type="date" name="start_date" value="{{ old('start_date', $batchForm['start_date']) }}" required>
+                  <label class="form-label" for="agenda-start-date">Dal</label>
+                  <input class="form-control" id="agenda-start-date" type="date" name="start_date" value="{{ old('start_date', $batchForm['start_date']) }}" required>
                 </div>
                 <div class="col-sm-6">
-                  <label class="form-label" for="av2-end-date">Al</label>
-                  <input class="form-control" id="av2-end-date" type="date" name="end_date" value="{{ old('end_date', $batchForm['end_date']) }}" required>
+                  <label class="form-label" for="agenda-end-date">Al</label>
+                  <input class="form-control" id="agenda-end-date" type="date" name="end_date" value="{{ old('end_date', $batchForm['end_date']) }}" required>
                 </div>
                 <div class="col-sm-6">
-                  <label class="form-label" for="av2-start-time">Ora inizio</label>
-                  <input class="form-control" id="av2-start-time" type="time" name="start_time" value="{{ old('start_time', $batchForm['start_time']) }}" required>
+                  <label class="form-label" for="agenda-start-time">Ora inizio</label>
+                  <input class="form-control" id="agenda-start-time" type="time" name="start_time" value="{{ old('start_time', $batchForm['start_time']) }}" required>
                 </div>
                 <div class="col-sm-6">
-                  <label class="form-label" for="av2-end-time">Ora fine</label>
-                  <input class="form-control" id="av2-end-time" type="time" name="end_time" value="{{ old('end_time', $batchForm['end_time']) }}" required>
+                  <label class="form-label" for="agenda-end-time">Ora fine</label>
+                  <input class="form-control" id="agenda-end-time" type="time" name="end_time" value="{{ old('end_time', $batchForm['end_time']) }}" required>
                 </div>
               </div>
 
@@ -229,14 +228,14 @@
                   @foreach ($weekdayOptions as $weekday => $label)
                     <input
                       class="btn-check"
-                      id="av2-weekday-{{ $weekday }}"
+                      id="agenda-weekday-{{ $weekday }}"
                       type="checkbox"
                       name="weekdays[]"
                       value="{{ $weekday }}"
                       autocomplete="off"
                       @checked(in_array($weekday, $selectedWeekdays, true))
                     >
-                    <label class="btn btn-outline-primary" for="av2-weekday-{{ $weekday }}">{{ $label }}</label>
+                    <label class="btn btn-outline-primary" for="agenda-weekday-{{ $weekday }}">{{ $label }}</label>
                   @endforeach
                 </div>
               </fieldset>
@@ -245,23 +244,23 @@
                 <div class="form-check form-switch availability-lunch-card__toggle">
                   <input
                     class="form-check-input"
-                    id="av2-lunch-break"
+                    id="agenda-lunch-break"
                     type="checkbox"
                     name="lunch_break_enabled"
                     value="1"
                     data-availability-lunch-toggle
                     @checked($lunchEnabled)
                   >
-                  <label class="form-check-label" for="av2-lunch-break">Pausa pranzo</label>
+                  <label class="form-check-label" for="agenda-lunch-break">Pausa pranzo</label>
                 </div>
                 <div class="row g-3 availability-lunch-card__fields" data-availability-lunch-fields>
                   <div class="col-sm-6">
-                    <label class="form-label" for="av2-lunch-start">Pausa inizio</label>
-                    <input class="form-control" id="av2-lunch-start" type="time" name="lunch_break_start" value="{{ $lunchStart }}" @disabled(! $lunchEnabled)>
+                    <label class="form-label" for="agenda-lunch-start">Pausa inizio</label>
+                    <input class="form-control" id="agenda-lunch-start" type="time" name="lunch_break_start" value="{{ $lunchStart }}" @disabled(! $lunchEnabled)>
                   </div>
                   <div class="col-sm-6">
-                    <label class="form-label" for="av2-lunch-end">Pausa fine</label>
-                    <input class="form-control" id="av2-lunch-end" type="time" name="lunch_break_end" value="{{ $lunchEnd }}" @disabled(! $lunchEnabled)>
+                    <label class="form-label" for="agenda-lunch-end">Pausa fine</label>
+                    <input class="form-control" id="agenda-lunch-end" type="time" name="lunch_break_end" value="{{ $lunchEnd }}" @disabled(! $lunchEnabled)>
                   </div>
                 </div>
               </fieldset>
@@ -307,7 +306,7 @@
                 <button type="button" class="btn btn-outline-secondary" data-availability-edit-preview>Modifica</button>
                 <button
                   type="submit"
-                  form="av2-create-form"
+                  form="agenda-create-form"
                   class="btn btn-primary"
                   @disabled($availabilityPreview['creatable']->isEmpty())
                 >
@@ -319,9 +318,8 @@
         </form>
 
         @if ($availabilityPreview)
-          <form id="av2-create-form" class="d-none" method="POST" action="/doctor/availability/batch">
+          <form id="agenda-create-form" class="d-none" method="POST" action="/doctor/availability/batch">
             @csrf
-            <input type="hidden" name="_source" value="agendav2">
             <input type="hidden" name="start_date" value="{{ $availabilityPreview['input']['start_date'] }}">
             <input type="hidden" name="end_date" value="{{ $availabilityPreview['input']['end_date'] }}">
             <input type="hidden" name="start_time" value="{{ $availabilityPreview['input']['start_time'] }}">

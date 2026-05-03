@@ -56,7 +56,7 @@ class LandingPageTest extends TestCase
       'role' => User::ROLE_DOCTOR,
     ]);
 
-    $this->actingAs($user)->get('/')->assertRedirect('/doctor/schedule');
+    $this->actingAs($user)->get('/')->assertRedirect('/doctor/agenda');
   }
 
   public function test_landing_page_shows_clean_doctor_intro(): void

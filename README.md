@@ -61,7 +61,7 @@ The Docker setup bind-mounts the project into the PHP and Vite containers, so Bl
 - Patient booking: `/patient/book`
 - Patient appointments: `/patient/appointments`
 - Doctor dashboard: `/doctor`
-- Doctor schedule: `/doctor/schedule`
+- Doctor agenda: `/doctor/agenda`
 - Staff operations: `/staff`
 - Staff appointments: `/staff/appointments`
 

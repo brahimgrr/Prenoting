@@ -57,12 +57,10 @@ Route::middleware('auth')->group(function (): void {
   });
 
   Route::middleware('role:'.User::ROLE_DOCTOR)->group(function (): void {
-    Route::get('/doctor', fn () => redirect('/doctor/schedule'));
-    Route::get('/doctor/schedule', [DoctorDashboardController::class, 'schedule']);
-    Route::get('/doctor/agendav2', [DoctorDashboardController::class, 'agendaV2']);
-    Route::get('/doctor/availability', [DoctorDashboardController::class, 'availability']);
+    Route::get('/doctor', fn () => redirect('/doctor/agenda'));
+    Route::get('/doctor/agenda', [DoctorDashboardController::class, 'agenda']);
+    Route::get('/doctor/agendav2', fn () => redirect('/doctor/agenda'.(request()->getQueryString() ? '?'.request()->getQueryString() : '')));
     Route::get('/doctor/availability/preview', [DoctorDashboardController::class, 'previewAvailability']);
-    Route::post('/doctor/availability', [DoctorDashboardController::class, 'storeAvailability']);
     Route::post('/doctor/availability/batch', [DoctorDashboardController::class, 'storeAvailabilityBatch']);
     Route::post('/doctor/availability/{slot}/block', [DoctorDashboardController::class, 'blockAvailability']);
     Route::post('/doctor/availability/{slot}/unblock', [DoctorDashboardController::class, 'unblockAvailability']);
