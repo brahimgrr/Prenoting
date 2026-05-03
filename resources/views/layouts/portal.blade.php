@@ -11,6 +11,7 @@
     ],
     'doctor' => [
       ['to' => '/doctor/schedule', 'label' => 'Agenda', 'active' => ['doctor/schedule']],
+      ['to' => '/doctor/agendav2', 'label' => 'Agenda v2', 'active' => ['doctor/agendav2']],
       ['to' => '/doctor/availability', 'label' => 'Disponibilita', 'active' => ['doctor/availability', 'doctor/availability/*']],
       ['to' => '/doctor/treatments', 'label' => 'Trattamenti', 'active' => ['doctor/treatments', 'doctor/treatments/*']],
       ['to' => '/doctor/profile', 'label' => 'Profilo', 'active' => ['doctor/profile']],

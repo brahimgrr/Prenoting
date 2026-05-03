@@ -700,4 +700,76 @@ public function test_doctor_profiles_table_has_contact_and_clinic_fields(): void
     $skippedReasons = $view['skipped']->pluck('reason')->all();
     $this->assertContains('pausa pranzo', $skippedReasons);
   }
+
+  public function test_doctor_agendav2_is_accessible(): void
+  {
+    [$doctorUser] = $this->dashboardContext();
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/agendav2')
+      ->assertOk()
+      ->assertSee('Agenda')
+      ->assertSee('Appuntamenti')
+      ->assertSee('Slot disponibili')
+      ->assertSee('Fatturato')
+      ->assertSee('Crea disponibilita')
+      ->assertSee('Agenda del giorno');
+  }
+
+  public function test_doctor_agendav2_shows_fatturato_for_selected_day(): void
+  {
+    [$doctorUser] = $this->dashboardContext();
+
+    $service = MedicalService::create(['name' => 'Visita a pagamento', 'price' => '80.00']);
+    $slot = $this->slot(2);
+    $patientUser = User::create([
+      'username' => 'fatturato.patient',
+      'password' => Hash::make('x'),
+      'role'     => User::ROLE_PATIENT,
+    ]);
+    $patient = PatientProfile::create(['user_id' => $patientUser->id, 'phone' => '555-9999']);
+    $this->appointment($patient, $service, $slot);
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/agendav2?date=' . now()->toDateString())
+      ->assertOk()
+      ->assertSee('80,00');
+  }
+
+  public function test_doctor_agendav2_preview_with_source_renders_agendav2_view(): void
+  {
+    [$doctorUser] = $this->dashboardContext();
+    $targetDate = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/availability/preview?' . http_build_query([
+        'source'        => 'agendav2',
+        'start_date'    => $targetDate->toDateString(),
+        'end_date'      => $targetDate->toDateString(),
+        'weekdays'      => [$targetDate->dayOfWeekIso],
+        'start_time'    => '09:00',
+        'end_time'      => '10:00',
+        'slot_duration' => '30',
+      ]))
+      ->assertOk()
+      ->assertViewIs('doctor.agendav2');
+  }
+
+  public function test_doctor_agendav2_batch_store_redirects_to_agendav2(): void
+  {
+    [$doctorUser] = $this->dashboardContext();
+    $targetDate = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+
+    $this->actingAs($doctorUser)
+      ->post('/doctor/availability/batch', [
+        '_source'       => 'agendav2',
+        'start_date'    => $targetDate->toDateString(),
+        'end_date'      => $targetDate->toDateString(),
+        'weekdays'      => [$targetDate->dayOfWeekIso],
+        'start_time'    => '09:00',
+        'end_time'      => '10:00',
+        'slot_duration' => '30',
+      ])
+      ->assertRedirect('/doctor/agendav2');
+  }
 }
