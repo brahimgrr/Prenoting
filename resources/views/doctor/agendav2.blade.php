@@ -1,11 +1,6 @@
 @extends('layouts.portal', ['title' => 'Agenda - MedPortal'])
 
 @php
-  $selectedDay     = \Carbon\CarbonImmutable::parse($date);
-  $selectedDayLabel = ucfirst($selectedDay->locale('it')->isoFormat('dddd DD/MM/YYYY'));
-  $previousDayUrl  = request()->fullUrlWithQuery(['date' => $selectedDay->subDay()->toDateString()]);
-  $nextDayUrl      = request()->fullUrlWithQuery(['date' => $selectedDay->addDay()->toDateString()]);
-
   $weekdayOptions   = [1 => 'LUN', 2 => 'MAR', 3 => 'MER', 4 => 'GIO', 5 => 'VEN'];
   $selectedWeekdays = old('weekdays', $batchForm['weekdays'] ?? [1, 2, 3, 4, 5]);
   $selectedWeekdays = is_array($selectedWeekdays) ? array_map('intval', $selectedWeekdays) : [1, 2, 3, 4, 5];
@@ -56,27 +51,31 @@
 
     {{-- Agenda panel --}}
     <section class="portal-panel doctor-agenda-panel">
-      <div class="section-heading">
-        <div>
-          <h2>Agenda del giorno</h2>
-          <p>{{ $selectedDayLabel }}</p>
+      <div class="week-strip-wrapper">
+        <a class="btn btn-outline-secondary week-nav-arrow"
+           href="/doctor/agendav2?date={{ $previousWeekStart->toDateString() }}&week_start={{ $previousWeekStart->toDateString() }}"
+           aria-label="Settimana precedente">&#8249;</a>
+
+        <div class="week-strip">
+          @foreach ($weekDays as $weekDay)
+            @php
+              $dayDateStr = $weekDay['date']->toDateString();
+              $isSelected = $dayDateStr === $date;
+              $dayClass   = 'week-day' . ($isSelected ? ' week-day--selected' : '');
+            @endphp
+            <a class="{{ $dayClass }}"
+               href="/doctor/agendav2?date={{ $dayDateStr }}&week_start={{ $weekStart->toDateString() }}">
+              <span class="week-day__name">{{ ucfirst($weekDay['date']->locale('it')->isoFormat('ddd')) }}</span>
+              <strong>{{ $weekDay['date']->format('d') }}</strong>
+              <span class="week-day__month">{{ ucfirst($weekDay['date']->locale('it')->isoFormat('MMM')) }}</span>
+              <span class="availability-dot {{ $weekDay['hasSlots'] ? 'availability-dot--open' : 'availability-dot--closed' }}"></span>
+            </a>
+          @endforeach
         </div>
-        <form method="GET" action="/doctor/agendav2" class="dashboard-date-filter dashboard-day-nav">
-          <div class="dashboard-day-nav__controls">
-            <a class="btn btn-outline-secondary dashboard-day-nav__arrow"
-               href="{{ $previousDayUrl }}"
-               aria-label="Giorno precedente">&#8249;</a>
-            @foreach (request()->except('date') as $queryName => $queryValue)
-              @foreach (\Illuminate\Support\Arr::wrap($queryValue) as $queryItem)
-                <input type="hidden" name="{{ is_array($queryValue) ? "{$queryName}[]" : $queryName }}" value="{{ $queryItem }}">
-              @endforeach
-            @endforeach
-            <input class="form-control" type="date" name="date" value="{{ $date }}" onchange="this.form.submit()">
-            <a class="btn btn-outline-secondary dashboard-day-nav__arrow"
-               href="{{ $nextDayUrl }}"
-               aria-label="Giorno successivo">&#8250;</a>
-          </div>
-        </form>
+
+        <a class="btn btn-outline-secondary week-nav-arrow"
+           href="/doctor/agendav2?date={{ $nextWeekStart->toDateString() }}&week_start={{ $nextWeekStart->toDateString() }}"
+           aria-label="Settimana successiva">&#8250;</a>
       </div>
 
       <div class="doctor-agenda-scroll" data-agenda-scroll-container aria-label="Agenda completa della giornata">

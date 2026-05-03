@@ -230,6 +230,23 @@ class DoctorDashboardController extends Controller
 
     $timelineItems = $this->buildTimelineItems($appointments, $daySlots);
 
+    $weekStartParam = $request->query('week_start');
+    $weekStart = CarbonImmutable::parse(
+      $weekStartParam ?? $selectedDay->toDateString()
+    )->startOfWeek(CarbonImmutable::MONDAY);
+
+    $daysWithSlots = AvailabilitySlot::query()
+      ->whereBetween('start_at', [$weekStart->startOfDay(), $weekStart->addDays(6)->endOfDay()])
+      ->selectRaw('DATE(start_at) as slot_date')
+      ->distinct()
+      ->pluck('slot_date')
+      ->all();
+
+    $weekDays = collect(range(0, 6))->map(fn ($i) => [
+      'date'     => $weekStart->addDays($i),
+      'hasSlots' => in_array($weekStart->addDays($i)->toDateString(), $daysWithSlots),
+    ]);
+
     $batchForm = $availabilityPreview['input'] ?? [
       'start_date'          => CarbonImmutable::now()->toDateString(),
       'end_date'            => CarbonImmutable::now()->addWeeks(2)->toDateString(),
@@ -250,6 +267,10 @@ class DoctorDashboardController extends Controller
       'currentTime'         => $currentTime,
       'isSelectedToday'     => $selectedDay->toDateString() === $currentTime->toDateString(),
       'fatturato'           => $appointments->sum(fn ($a) => $a->service?->price ?? 0),
+      'weekDays'            => $weekDays,
+      'weekStart'           => $weekStart,
+      'previousWeekStart'   => $weekStart->subWeek(),
+      'nextWeekStart'       => $weekStart->addWeek(),
       'availabilityPreview' => $availabilityPreview,
       'batchForm'           => $batchForm,
     ]);

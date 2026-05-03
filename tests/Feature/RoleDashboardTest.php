@@ -713,7 +713,8 @@ public function test_doctor_profiles_table_has_contact_and_clinic_fields(): void
       ->assertSee('Slot disponibili')
       ->assertSee('Fatturato')
       ->assertSee('Crea disponibilita')
-      ->assertSee('Agenda del giorno');
+      ->assertSee('week-strip', false)
+      ->assertSee('week-day', false);
   }
 
   public function test_doctor_agendav2_shows_fatturato_for_selected_day(): void
