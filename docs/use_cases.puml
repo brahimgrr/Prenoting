@@ -1,0 +1,53 @@
+@startuml prenoting-use-cases
+  left to right direction
+  skinparam packageStyle rectangle
+  skinparam shadowing false
+  skinparam usecase {
+    BackgroundColor #FDFEFE
+    BorderColor #1F4E79
+  }
+  actor "Paziente" as P
+  actor "Medico" as D
+
+  rectangle "app gestione appuntamenti" {
+    package "Autenticazione & Account" {
+      usecase "UC01 Registrazione" as UC01
+      usecase "UC02 Effettuare login" as UC02
+      usecase "UC03 Effettuare logout" as UC03
+      usecase "UC04 Modifica password" as UC04
+      usecase "UC05 Eliminare account" as UC05
+    }
+    package "Area Paziente" {
+      usecase "UC06 Visualizzare dashboard paziente" as UC06
+      usecase "UC07 Aggiornare info paziente" as UC07
+      usecase "UC08 Avviare prenotazione guidata" as UC08
+      usecase "UC09 Modificare appuntamento" as UC09
+      usecase "UC10 Annullare appuntamento" as UC10
+    }
+    package "Area Medico" {
+      usecase "UC11 Visualizzare calendario" as UC11
+      usecase "UC12 Visualizzare dettaglio appuntamento\ne dati paziente" as UC12
+      usecase "UC13 Gestione disponibilità" as UC13
+      usecase "UC14 Gestione tipi di visita" as UC14
+    }
+  }
+  ' Paziente
+  P --> UC01
+  P --> UC02
+  P --> UC03
+  P --> UC04
+  P --> UC05
+  P --> UC06
+  P --> UC07
+  P --> UC08
+  P --> UC09
+  P --> UC10
+  ' Medico
+  D --> UC02
+  D --> UC03
+  D --> UC04
+  D --> UC11
+  D --> UC12
+  D --> UC13
+  D --> UC14
+@enduml
