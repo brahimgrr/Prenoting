@@ -176,7 +176,6 @@ Main models:
 - `DoctorService`: relation between doctors and services they can perform.
 - `AvailabilitySlot`: doctor, clinic, start time, end time, compatible services, booked/blocked state.
 - `Appointment`: patient, doctor, service, clinic, start time, end time, status, notes, cancellation reason.
-- `AppointmentStatusHistory`: appointment, previous status, new status, changed by, timestamp.
 
 Core appointment statuses:
 

@@ -25,7 +25,7 @@ class DoctorDashboardController extends Controller
       'status' => ['required', 'string'],
     ]);
 
-    $appointments->updateByDoctor($appointment, $validated['status'], $request->user());
+    $appointments->updateByDoctor($appointment, $validated['status']);
 
     return redirect('/doctor/agenda')->with('status', 'Stato appuntamento aggiornato.');
   }

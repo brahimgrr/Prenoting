@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Appointment extends Model
 {
@@ -60,11 +59,6 @@ class Appointment extends Model
   public function slot(): BelongsTo
   {
     return $this->belongsTo(AvailabilitySlot::class, 'slot_id');
-  }
-
-  public function statusHistory(): HasMany
-  {
-    return $this->hasMany(AppointmentStatusHistory::class);
   }
 
   public function scopeWithPortalRelations(Builder $query): Builder

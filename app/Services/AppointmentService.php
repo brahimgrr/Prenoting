@@ -3,18 +3,14 @@
 namespace App\Services;
 
 use App\Models\Appointment;
-use App\Models\AppointmentStatusHistory;
 use App\Models\AvailabilitySlot;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class AppointmentService
 {
-  public const RESCHEDULED_AUDIT_STATUS = 'rescheduled';
-
   private const DOCTOR_TRANSITIONS = [
     Appointment::STATUS_CONFIRMED => [
       Appointment::STATUS_CHECKED_IN,
@@ -49,13 +45,12 @@ class AppointmentService
     });
   }
 
-  public function cancelByPatient(Appointment $appointment, User $changedBy, string $reason = ''): Appointment
+  public function cancelByPatient(Appointment $appointment, string $reason = ''): Appointment
   {
-    return DB::transaction(function () use ($appointment, $changedBy, $reason): Appointment {
+    return DB::transaction(function () use ($appointment, $reason): Appointment {
       $locked = Appointment::with('slot')->lockForUpdate()->findOrFail($appointment->id);
       $this->validateFutureConfirmed($locked, 'cancelled');
 
-      $previousStatus = $locked->status;
       $locked->forceFill([
         'status' => Appointment::STATUS_CANCELLED,
         'cancellation_reason' => $reason,
@@ -65,15 +60,13 @@ class AppointmentService
         ->forceFill(['is_booked' => false])
         ->save();
 
-      $this->recordHistory($locked, $previousStatus, Appointment::STATUS_CANCELLED, $changedBy);
-
       return $locked->fresh(['patient.user', 'service', 'slot']);
     });
   }
 
-  public function reschedule(Appointment $appointment, int $newSlotId, User $changedBy): Appointment
+  public function reschedule(Appointment $appointment, int $newSlotId): Appointment
   {
-    return DB::transaction(function () use ($appointment, $newSlotId, $changedBy): Appointment {
+    return DB::transaction(function () use ($appointment, $newSlotId): Appointment {
       $locked = Appointment::with('service')->lockForUpdate()->findOrFail($appointment->id);
       $this->validateFutureConfirmed($locked, 'rescheduled');
 
@@ -87,7 +80,6 @@ class AppointmentService
       $newSlot = AvailabilitySlot::lockForUpdate()->findOrFail($newSlotId);
       $this->validateSlotForService($newSlot, $locked->service, $locked);
 
-      $previousStatus = $locked->status;
       $oldSlot->forceFill(['is_booked' => false])->save();
       $newSlot->forceFill(['is_booked' => true])->save();
 
@@ -99,13 +91,11 @@ class AppointmentService
         'cancellation_reason' => null,
       ])->save();
 
-      $this->recordHistory($locked, $previousStatus, self::RESCHEDULED_AUDIT_STATUS, $changedBy);
-
       return $locked->fresh(['patient.user', 'service', 'slot']);
     });
   }
 
-  public function updateByDoctor(Appointment $appointment, string $nextStatus, User $changedBy): Appointment
+  public function updateByDoctor(Appointment $appointment, string $nextStatus): Appointment
   {
     $this->validateChoice($nextStatus, [
       Appointment::STATUS_CHECKED_IN,
@@ -113,7 +103,7 @@ class AppointmentService
       Appointment::STATUS_NO_SHOW,
     ]);
 
-    return $this->updateStatus($appointment, $nextStatus, $changedBy, self::DOCTOR_TRANSITIONS);
+    return $this->updateStatus($appointment, $nextStatus, self::DOCTOR_TRANSITIONS);
   }
 
   public function validateSlotForService(
@@ -145,9 +135,9 @@ class AppointmentService
     }
   }
 
-  private function updateStatus(Appointment $appointment, string $nextStatus, User $changedBy, array $transitions): Appointment
+  private function updateStatus(Appointment $appointment, string $nextStatus, array $transitions): Appointment
   {
-    return DB::transaction(function () use ($appointment, $nextStatus, $changedBy, $transitions): Appointment {
+    return DB::transaction(function () use ($appointment, $nextStatus, $transitions): Appointment {
       $locked = Appointment::with('slot')->lockForUpdate()->findOrFail($appointment->id);
       $this->validateTransition($locked, $nextStatus, $transitions);
 
@@ -155,7 +145,6 @@ class AppointmentService
         return $locked->fresh(['patient.user', 'service', 'slot']);
       }
 
-      $previousStatus = $locked->status;
       if ($nextStatus === Appointment::STATUS_CANCELLED && $locked->start_at->isFuture()) {
         $locked->slot()->lockForUpdate()->firstOrFail()
           ->forceFill(['is_booked' => false])
@@ -163,7 +152,6 @@ class AppointmentService
       }
 
       $locked->forceFill(['status' => $nextStatus])->save();
-      $this->recordHistory($locked, $previousStatus, $nextStatus, $changedBy);
 
       return $locked->fresh(['patient.user', 'service', 'slot']);
     });
@@ -210,15 +198,5 @@ class AppointmentService
         'status' => 'Questa transizione di stato non e consentita.',
       ]);
     }
-  }
-
-  private function recordHistory(Appointment $appointment, string $previousStatus, string $nextStatus, User $changedBy): void
-  {
-    AppointmentStatusHistory::create([
-      'appointment_id' => $appointment->id,
-      'previous_status' => $previousStatus,
-      'new_status' => $nextStatus,
-      'changed_by' => $changedBy->id,
-    ]);
   }
 }

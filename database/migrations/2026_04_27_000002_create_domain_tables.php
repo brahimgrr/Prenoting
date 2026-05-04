@@ -107,19 +107,10 @@ return new class extends Migration
       $table->timestamps();
     });
 
-    Schema::create('appointment_status_history', function (Blueprint $table): void {
-      $table->id();
-      $table->foreignId('appointment_id')->constrained('appointments')->cascadeOnDelete();
-      $table->string('previous_status', 24)->default('');
-      $table->string('new_status', 24);
-      $table->foreignId('changed_by')->nullable()->constrained('users')->nullOnDelete();
-      $table->timestamp('changed_at')->useCurrent();
-    });
   }
 
   public function down(): void
   {
-    Schema::dropIfExists('appointment_status_history');
     Schema::dropIfExists('appointments');
     Schema::dropIfExists('availability_slots');
     Schema::dropIfExists('doctor_services');

@@ -600,14 +600,6 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"{self.service} with {self.doctor} for {self.patient}"
-
-
-class AppointmentStatusHistory(models.Model):
-    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name="status_history")
-    previous_status = models.CharField(max_length=24, blank=True)
-    new_status = models.CharField(max_length=24)
-    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
-    changed_at = models.DateTimeField(auto_now_add=True)
 ```
 
 - [ ] **Step 4: Register models in admin**
@@ -616,7 +608,7 @@ Each app `admin.py` should register its models with searchable list displays. Fo
 
 ```python
 from django.contrib import admin
-from .models import Appointment, AppointmentStatusHistory
+from .models import Appointment
 
 
 @admin.register(Appointment)
@@ -624,12 +616,6 @@ class AppointmentAdmin(admin.ModelAdmin):
     list_display = ("service", "doctor", "patient", "clinic", "start_at", "status")
     list_filter = ("status", "clinic", "doctor", "service")
     search_fields = ("patient__user__username", "doctor__display_name", "service__name")
-
-
-@admin.register(AppointmentStatusHistory)
-class AppointmentStatusHistoryAdmin(admin.ModelAdmin):
-    list_display = ("appointment", "previous_status", "new_status", "changed_by", "changed_at")
-    list_filter = ("new_status",)
 ```
 
 - [ ] **Step 5: Create migrations and verify tests**

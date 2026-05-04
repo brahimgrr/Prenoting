@@ -76,22 +76,11 @@ erDiagram
     timestamp updated_at
   }
 
-  APPOINTMENT_STATUS_HISTORY {
-    bigint id PK
-    bigint appointment_id FK
-    string previous_status
-    string new_status
-    bigint changed_by FK
-    timestamp changed_at
-  }
-
   USERS ||--o| PATIENT_PROFILES : "ha profilo paziente"
   USERS ||--o| DOCTOR_PROFILES : "ha profilo medico"
   PATIENT_PROFILES ||--o{ APPOINTMENTS : "prenota"
   MEDICAL_SERVICES ||--o{ APPOINTMENTS : "prestazione"
   AVAILABILITY_SLOTS ||--o| APPOINTMENTS : "slot prenotato"
-  APPOINTMENTS ||--o{ APPOINTMENT_STATUS_HISTORY : "traccia stato"
-  USERS ||--o{ APPOINTMENT_STATUS_HISTORY : "modifica stato"
 ```
 
 Note dominio attuale:

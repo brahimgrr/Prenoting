@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Appointment;
-use App\Models\AppointmentStatusHistory;
 use App\Models\AvailabilitySlot;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
@@ -248,12 +247,6 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertRedirect('/patient/appointments');
     $this->assertSame(Appointment::STATUS_CANCELLED, $appointment->fresh()->status);
     $this->assertFalse($slot->fresh()->is_booked);
-    $this->assertDatabaseHas('appointment_status_history', [
-      'appointment_id' => $appointment->id,
-      'previous_status' => Appointment::STATUS_CONFIRMED,
-      'new_status' => Appointment::STATUS_CANCELLED,
-      'changed_by' => $patientUser->id,
-    ]);
   }
 
   public function test_patient_can_reschedule_to_different_available_slot(): void
@@ -271,10 +264,6 @@ class AppointmentWorkflowTest extends TestCase
     $this->assertSame($newSlot->id, $appointment->slot_id);
     $this->assertFalse($oldSlot->fresh()->is_booked);
     $this->assertTrue($newSlot->fresh()->is_booked);
-    $this->assertDatabaseHas('appointment_status_history', [
-      'appointment_id' => $appointment->id,
-      'new_status' => 'rescheduled',
-    ]);
   }
 
   public function test_selected_booking_slot_renders_confirmation_before_posting(): void
@@ -412,7 +401,6 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertRedirect('/patient/appointments');
     $response->assertSessionHasErrors('status');
     $this->assertSame(Appointment::STATUS_COMPLETED, $appointment->fresh()->status);
-    $this->assertSame(0, AppointmentStatusHistory::count());
   }
 
   private function bookingContext(): array

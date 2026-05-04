@@ -78,7 +78,7 @@ class PatientAppointmentController extends Controller
       'cancellation_reason' => ['nullable', 'string'],
     ]);
 
-    $appointments->cancelByPatient($appointment, $request->user(), $validated['cancellation_reason'] ?? '');
+    $appointments->cancelByPatient($appointment, $validated['cancellation_reason'] ?? '');
 
     return redirect('/patient/appointments')->with('status', 'Appuntamento annullato.');
   }
@@ -90,7 +90,7 @@ class PatientAppointmentController extends Controller
       'slot_id' => ['required', 'integer', 'exists:availability_slots,id'],
     ]);
 
-    $appointments->reschedule($appointment, (int) $validated['slot_id'], $request->user());
+    $appointments->reschedule($appointment, (int) $validated['slot_id']);
 
     return redirect('/patient/appointments')->with('status', 'Appuntamento spostato.');
   }
