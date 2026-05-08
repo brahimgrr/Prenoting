@@ -870,6 +870,45 @@ a {
   gap: 1rem;
 }
 
+.working-hours-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.working-hours-day {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+}
+
+.working-hours-day__header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.working-hours-day__rows {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.working-hours-row {
+  align-items: end;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
+.working-hours-row .form-label {
+  margin: 0;
+}
+
+.working-hours-row__remove {
+  min-height: 2.4rem;
+}
+
 .profile-readonly-panel {
   background: #ffffff;
 }
@@ -1079,13 +1118,33 @@ a {
 }
 
 .doctor-agenda-item--blocked .doctor-agenda-item__body {
+  background: #fffbeb;
+  border-color: #fde68a;
   border-left-color: #f59e0b;
 }
 
-.doctor-agenda-item--free .doctor-agenda-item__body,
 .doctor-agenda-item--blocked .doctor-agenda-item__body {
+  opacity: 0.78;
+  transition: opacity 0.20s ease;
+}
+
+.doctor-agenda-item--free .doctor-agenda-item__body {
   opacity: 0.50;
   transition: opacity 0.20s ease;
+}
+
+.doctor-agenda-item--spanning {
+  height: calc((var(--agenda-span-rows, 1) * 3.4rem) - 0.7rem);
+  left: 0.5rem;
+  position: absolute;
+  right: 0.5rem;
+  top: 0.35rem;
+  z-index: 2;
+}
+
+.doctor-agenda-item--spanning .doctor-agenda-item__body {
+  align-content: start;
+  height: 100%;
 }
 
 .doctor-agenda-item--free:hover .doctor-agenda-item__body,
@@ -1135,6 +1194,56 @@ a {
   margin: 0;
 }
 
+.schedule-events-panel .section-heading {
+  margin-bottom: 0.75rem;
+}
+
+.schedule-event-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.schedule-event {
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: 8px;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 0.75rem;
+}
+
+.schedule-event--closure {
+  border-left-color: #dc2626;
+}
+
+.schedule-event--special_opening {
+  border-left-color: #16a34a;
+}
+
+.schedule-event strong,
+.schedule-event span {
+  display: block;
+}
+
+.schedule-event span {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.schedule-event__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+.schedule-event__actions form {
+  margin: 0;
+}
+
 .dashboard-filter-grid {
   align-items: end;
   display: grid;
@@ -1168,90 +1277,6 @@ a {
 .treatment-form-actions {
   display: grid;
   gap: 0.45rem;
-}
-
-.availability-lunch-card {
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  border-radius: 8px;
-  margin-top: 1.5rem;
-  padding: 1rem;
-}
-
-.availability-lunch-card__toggle {
-  margin-bottom: 1rem;
-}
-
-.availability-lunch-card--collapsed {
-  padding: 0.8rem 1rem;
-}
-
-.availability-lunch-card--collapsed .availability-lunch-card__toggle {
-  margin-bottom: 0;
-}
-
-.availability-lunch-card--collapsed .availability-lunch-card__fields {
-  display: none;
-}
-
-.availability-modal-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: flex-end;
-  width: 100%;
-}
-
-.availability-preview-card {
-  background: #ffffff;
-  border: 1px solid rgba(37, 99, 235, 0.28);
-  border-radius: 8px;
-  display: grid;
-  gap: 1rem;
-  padding: 1rem;
-}
-
-.availability-preview-stats {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-}
-
-.availability-preview-stats div {
-  background: #ffffff;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  display: grid;
-  gap: 0.2rem;
-  padding: 0.85rem;
-}
-
-.availability-preview-stats strong {
-  color: var(--color-navy);
-  font-size: 1.6rem;
-  line-height: 1;
-}
-
-.availability-preview-stats span,
-.availability-preview-skipped summary {
-  color: var(--color-muted);
-  font-weight: 750;
-}
-
-.availability-preview-list,
-.availability-preview-skipped div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.availability-preview-list span,
-.availability-preview-skipped span {
-  background: #ffffff;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  font-weight: 750;
-  padding: 0.45rem 0.7rem;
 }
 
 .appointment-info-modal__dialog {
@@ -1551,7 +1576,6 @@ a {
   .service-card-grid,
   .quick-actions,
   .operations-summary-grid,
-  .availability-preview-stats,
   .treatment-form-grid,
   .treatment-card-grid,
   .profile-grid,
@@ -1645,6 +1669,19 @@ a {
   .doctor-agenda-item__actions {
     justify-content: flex-start;
     width: 100%;
+  }
+
+  .working-hours-row {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-event {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .schedule-event__actions {
+    justify-content: flex-start;
   }
 
   .appointment-info-summary,

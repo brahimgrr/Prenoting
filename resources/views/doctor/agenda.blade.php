@@ -1,29 +1,23 @@
 @extends('layouts.portal', ['title' => 'Agenda - MedPortal'])
 
-@php
-  $weekdayOptions   = [1 => 'LUN', 2 => 'MAR', 3 => 'MER', 4 => 'GIO', 5 => 'VEN'];
-  $selectedWeekdays = old('weekdays', $batchForm['weekdays'] ?? [1, 2, 3, 4, 5]);
-  $selectedWeekdays = is_array($selectedWeekdays) ? array_map('intval', $selectedWeekdays) : [1, 2, 3, 4, 5];
-  $lunchEnabled     = old('lunch_break_enabled', $batchForm['lunch_break_enabled'] ?? false);
-  $lunchStart       = old('lunch_break_start', $batchForm['lunch_break_start'] ?? '13:00');
-  $lunchEnd         = old('lunch_break_end',   $batchForm['lunch_break_end']   ?? '14:00');
-@endphp
-
 @section('content')
   <section class="portal-section operations-dashboard">
 
-    {{-- Header --}}
     <div class="portal-page-heading portal-heading-row">
       <div>
         <span class="portal-eyebrow">Portale medico</span>
         <h1>Agenda</h1>
       </div>
-      <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#availabilityBatchModal">
-        Crea disponibilita
-      </button>
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#closureCreateModal">
+          Chiusura
+        </button>
+        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#specialOpeningCreateModal">
+          Apertura extra
+        </button>
+      </div>
     </div>
 
-    {{-- 3 Stat cards --}}
     <div class="row g-3 mb-3">
       <div class="col-4">
         <section class="portal-panel h-100 p-3">
@@ -35,7 +29,7 @@
         <section class="portal-panel h-100 p-3">
           <span class="d-block text-body-secondary small fw-bold text-uppercase">Slot disponibili</span>
           <strong class="d-block fs-2 lh-1 mt-2 text-success">
-            {{ $daySlots->filter(fn ($s) => ! $s->is_booked && ! $s->is_blocked)->count() }}
+            {{ $daySlots->count() }}
           </strong>
         </section>
       </div>
@@ -49,7 +43,77 @@
       </div>
     </div>
 
-    {{-- Agenda panel --}}
+    <div class="row g-3 mb-3">
+      <div class="col-lg-6">
+        <section class="portal-panel h-100 p-3 schedule-events-panel">
+          <div class="section-heading">
+            <h2>Eventi del giorno</h2>
+          </div>
+          @if ($dayEvents->isEmpty())
+            <p class="text-body-secondary mb-0">Nessuna chiusura o apertura extra per questa data.</p>
+          @else
+            <div class="schedule-event-list">
+              @foreach ($dayEvents as $event)
+                <article class="schedule-event schedule-event--{{ $event['type'] }}">
+                  <strong>{{ $event['title'] }}</strong>
+                  <span>
+                    {{ $event['date']->format('d/m/Y') }}
+                    @if ($event['start_time'])
+                      &middot; {{ $event['start_time'] }}-{{ $event['end_time'] }}
+                    @else
+                      &middot; Tutto il giorno
+                    @endif
+                  </span>
+                </article>
+              @endforeach
+            </div>
+          @endif
+        </section>
+      </div>
+      <div class="col-lg-6">
+        <section class="portal-panel h-100 p-3 schedule-events-panel">
+          <div class="section-heading">
+            <h2>Prossimi eventi</h2>
+          </div>
+          @if ($upcomingScheduleEvents->isEmpty())
+            <p class="text-body-secondary mb-0">Nessun evento programmato.</p>
+          @else
+            <div class="schedule-event-list">
+              @foreach ($upcomingScheduleEvents as $event)
+                @php
+                  $model = $event['model'];
+                  $modalId = $event['type'].'Modal'.$model->id;
+                @endphp
+                <article class="schedule-event schedule-event--{{ $event['type'] }}">
+                  <div>
+                    <strong>{{ $event['title'] }}</strong>
+                    <span>
+                      {{ $event['date']->format('d/m/Y') }}
+                      @if ($event['start_time'])
+                        &middot; {{ $event['start_time'] }}-{{ $event['end_time'] }}
+                      @else
+                        &middot; Tutto il giorno
+                      @endif
+                    </span>
+                  </div>
+                  <div class="schedule-event__actions">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
+                      Modifica
+                    </button>
+                    <form method="POST" action="{{ $event['type'] === 'closure' ? "/doctor/closures/{$model->id}" : "/doctor/special-openings/{$model->id}" }}">
+                      @csrf
+                      @method('DELETE')
+                      <button class="btn btn-sm btn-outline-danger" type="submit">Elimina</button>
+                    </form>
+                  </div>
+                </article>
+              @endforeach
+            </div>
+          @endif
+        </section>
+      </div>
+    </div>
+
     <section class="portal-panel doctor-agenda-panel">
       <div class="week-strip-wrapper mb-3">
         <a class="btn btn-outline-secondary week-nav-arrow"
@@ -102,16 +166,24 @@
 
                   @foreach ($row['items'] as $item)
                     @php
-                      $appointment     = $item['appointment'];
-                      $slot            = $item['slot'];
-                      $state           = $item['state'];
-                      $start           = $item['start_at'];
-                      $hasStarted      = $start->lessThanOrEqualTo($currentTime);
+                      $appointment      = $item['appointment'];
+                      $slot             = $item['slot'];
+                      $closure          = $item['closure'];
+                      $state            = $item['state'];
+                      $start            = $item['start_at'];
+                      $hasStarted       = $start->lessThanOrEqualTo($currentTime);
                       $showPassatoBadge = $hasStarted && ! $isSelectedToday;
-                      $itemClass       = $item['type'] === 'appointment' ? 'appointment' : $state;
+                      $itemClass        = $item['type'] === 'appointment' ? 'appointment' : $state;
+                      $spanRows         = $item['span_rows'] ?? 1;
+                      $itemClasses      = 'doctor-agenda-item doctor-agenda-item--'.$itemClass.($spanRows > 1 ? ' doctor-agenda-item--spanning' : '');
                     @endphp
 
-                    <article class="doctor-agenda-item doctor-agenda-item--{{ $itemClass }}">
+                    <article class="{{ $itemClasses }}"
+                      @if ($closure)
+                        data-agenda-closure-id="{{ $closure->id }}"
+                        style="--agenda-span-rows: {{ $spanRows }};"
+                      @endif
+                    >
                       @if ($appointment)
                         <div class="doctor-agenda-item__body">
                           <div class="doctor-agenda-item__main">
@@ -129,43 +201,45 @@
                               ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg></button>
                             </div>
                           </div>
-                          @if (! $slot)
-                            <div class="doctor-agenda-item__meta">
-                              <span>Slot non collegato</span>
-                            </div>
-                          @endif
                         </div>
                         @push('modals')
                           @include('doctor.partials.appointment-info-modal', ['appointment' => $appointment])
                         @endpush
                       @else
                         @php
-                          $slotTitle = match ($state) {
-                            'blocked' => 'Slot bloccato',
-                            'booked'  => 'Slot prenotato',
-                            default   => 'Slot libero',
-                          };
+                          $slotTitle = $closure
+                            ? ($closure->reason ?: 'Chiusura')
+                            : 'Slot libero';
+                          $closureRange = null;
+                          if ($closure) {
+                            $closureRange = $closure->start_time
+                              ? ($item['closure_start_at']->format('H:i').' - '.$item['closure_end_at']->format('H:i'))
+                              : 'Tutto il giorno';
+                          }
                         @endphp
                         <div class="doctor-agenda-item__body">
                           <div class="doctor-agenda-item__main">
                             <div>
                               <h3>{{ $slotTitle }}</h3>
+                              @if ($closureRange)
+                                <p>{{ $closureRange }}</p>
+                              @endif
                             </div>
                             <div class="doctor-agenda-item__actions">
                               @if ($showPassatoBadge)
                                 <span class="badge badge-neutral">Passato</span>
-                              @elseif ($state === 'blocked' && ! $hasStarted)
-                                <form method="POST" action="/doctor/availability/{{ $slot->id }}/unblock">
+                              @elseif ($state === 'blocked' && ! $hasStarted && $closure)
+                                <form method="POST" action="/doctor/closures/{{ $closure->id }}">
                                   @csrf
+                                  @method('DELETE')
                                   <button type="submit" class="btn btn-sm btn-outline-primary">Riapri</button>
                                 </form>
                               @elseif ($state === 'free' && ! $hasStarted)
-                                <form method="POST" action="/doctor/availability/{{ $slot->id }}/block">
+                                <form method="POST" action="/doctor/availability/block">
                                   @csrf
+                                  <input type="hidden" name="slot_start" value="{{ $slot->key }}">
                                   <button type="submit" class="btn btn-sm btn-outline-danger">Blocca</button>
                                 </form>
-                              @elseif ($state === 'booked')
-                                <span class="badge badge-neutral">Prenotato</span>
                               @endif
                             </div>
                           </div>
@@ -183,160 +257,177 @@
 
   </section>
 
-  {{-- ════ Crea disponibilita modal ════ --}}
-  <div
-    class="modal fade"
-    id="availabilityBatchModal"
-    tabindex="-1"
-    aria-labelledby="availabilityBatchModalLabel"
-    aria-hidden="true"
-    @if ($availabilityPreview) data-availability-preview-open @endif
-  >
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+  <div class="modal fade" id="closureCreateModal" tabindex="-1" aria-labelledby="closureCreateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header">
-          <h2 class="modal-title h5" id="availabilityBatchModalLabel">Crea disponibilita</h2>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
-        </div>
-
-        <form id="agenda-preview-form" method="GET" action="/doctor/availability/preview">
-          <div class="modal-body">
-            <div class="availability-step availability-step--form{{ $availabilityPreview ? ' d-none' : '' }}" data-availability-form-step>
-              <div class="row g-3">
-                <div class="col-sm-6">
-                  <label class="form-label" for="agenda-start-date">Dal</label>
-                  <input class="form-control" id="agenda-start-date" type="date" name="start_date" value="{{ old('start_date', $batchForm['start_date']) }}" required>
-                </div>
-                <div class="col-sm-6">
-                  <label class="form-label" for="agenda-end-date">Al</label>
-                  <input class="form-control" id="agenda-end-date" type="date" name="end_date" value="{{ old('end_date', $batchForm['end_date']) }}" required>
-                </div>
-                <div class="col-sm-6">
-                  <label class="form-label" for="agenda-start-time">Ora inizio</label>
-                  <input class="form-control" id="agenda-start-time" type="time" name="start_time" value="{{ old('start_time', $batchForm['start_time']) }}" required>
-                </div>
-                <div class="col-sm-6">
-                  <label class="form-label" for="agenda-end-time">Ora fine</label>
-                  <input class="form-control" id="agenda-end-time" type="time" name="end_time" value="{{ old('end_time', $batchForm['end_time']) }}" required>
-                </div>
-              </div>
-
-              <input type="hidden" name="slot_duration" value="30">
-
-              <fieldset class="mt-4">
-                <legend class="form-label">Giorni</legend>
-                <div class="d-flex flex-wrap gap-2">
-                  @foreach ($weekdayOptions as $weekday => $label)
-                    <input
-                      class="btn-check"
-                      id="agenda-weekday-{{ $weekday }}"
-                      type="checkbox"
-                      name="weekdays[]"
-                      value="{{ $weekday }}"
-                      autocomplete="off"
-                      @checked(in_array($weekday, $selectedWeekdays, true))
-                    >
-                    <label class="btn btn-outline-primary" for="agenda-weekday-{{ $weekday }}">{{ $label }}</label>
-                  @endforeach
-                </div>
-              </fieldset>
-
-              <fieldset class="availability-lunch-card{{ $lunchEnabled ? '' : ' availability-lunch-card--collapsed' }}" data-availability-lunch-card>
-                <div class="form-check form-switch availability-lunch-card__toggle">
-                  <input
-                    class="form-check-input"
-                    id="agenda-lunch-break"
-                    type="checkbox"
-                    name="lunch_break_enabled"
-                    value="1"
-                    data-availability-lunch-toggle
-                    @checked($lunchEnabled)
-                  >
-                  <label class="form-check-label" for="agenda-lunch-break">Pausa pranzo</label>
-                </div>
-                <div class="row g-3 availability-lunch-card__fields" data-availability-lunch-fields>
-                  <div class="col-sm-6">
-                    <label class="form-label" for="agenda-lunch-start">Pausa inizio</label>
-                    <input class="form-control" id="agenda-lunch-start" type="time" name="lunch_break_start" value="{{ $lunchStart }}" @disabled(! $lunchEnabled)>
-                  </div>
-                  <div class="col-sm-6">
-                    <label class="form-label" for="agenda-lunch-end">Pausa fine</label>
-                    <input class="form-control" id="agenda-lunch-end" type="time" name="lunch_break_end" value="{{ $lunchEnd }}" @disabled(! $lunchEnabled)>
-                  </div>
-                </div>
-              </fieldset>
-            </div>
-
-            @if ($availabilityPreview)
-              <div class="availability-step availability-step--preview" data-availability-preview-step>
-                <section class="availability-preview-card" aria-live="polite">
-                  <div>
-                    <h3 class="h6 mb-1">Anteprima slot</h3>
-                    <p class="text-body-secondary small mb-0">
-                      {{ $availabilityPreview['weekdayLabels'] }} &middot; {{ $availabilityPreview['input']['start_time'] }}-{{ $availabilityPreview['input']['end_time'] }}
-                    </p>
-                  </div>
-                  <div class="availability-preview-stats">
-                    <div>
-                      <strong>{{ $availabilityPreview['creatable']->count() }}</strong>
-                      <span>Da creare</span>
-                    </div>
-                  </div>
-                  @if ($availabilityPreview['creatable']->isNotEmpty())
-                    <div class="availability-preview-list" aria-label="Slot che verranno creati">
-                      @foreach ($availabilityPreview['creatable']->take(12) as $candidate)
-                        <span>{{ $candidate['start_at']->format('d/m H:i') }}</span>
-                      @endforeach
-                      @if ($availabilityPreview['creatable']->count() > 12)
-                        <span>+{{ $availabilityPreview['creatable']->count() - 12 }} altri</span>
-                      @endif
-                    </div>
-                  @endif
-                </section>
-              </div>
-            @endif
+        <form method="POST" action="/doctor/closures">
+          @csrf
+          <div class="modal-header">
+            <h2 class="modal-title h5" id="closureCreateModalLabel">Chiusura</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
           </div>
-
+          <div class="modal-body">
+            @error('closure') <div class="alert alert-danger">{{ $message }}</div> @enderror
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <label class="form-label" for="closure-date">Dal</label>
+                <input class="form-control" id="closure-date" type="date" name="date" value="{{ old('date', $date) }}" required>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="closure-end-date">Al</label>
+                <input class="form-control" id="closure-end-date" type="date" name="end_date" value="{{ old('end_date', $date) }}">
+              </div>
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" id="closure-all-day" type="checkbox" name="all_day" value="1" checked>
+                  <label class="form-check-label" for="closure-all-day">Tutto il giorno</label>
+                </div>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="closure-start-time">Ora inizio</label>
+                <x-time-select class="form-control" id="closure-start-time" name="start_time" :value="old('start_time')" />
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="closure-end-time">Ora fine</label>
+                <x-time-select class="form-control" id="closure-end-time" name="end_time" :value="old('end_time')" />
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="closure-reason">Motivo</label>
+                <input class="form-control" id="closure-reason" name="reason" value="{{ old('reason') }}" placeholder="Ferie, congresso, riunione">
+              </div>
+            </div>
+          </div>
           <div class="modal-footer">
-            <div class="availability-modal-actions{{ $availabilityPreview ? ' d-none' : '' }}" data-availability-form-actions>
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
-              <button type="submit" class="btn btn-primary">Genera anteprima</button>
-            </div>
-            <div class="availability-modal-actions{{ $availabilityPreview ? '' : ' d-none' }}" data-availability-preview-actions>
-              @if ($availabilityPreview)
-                <button type="button" class="btn btn-outline-secondary" data-availability-edit-preview>Modifica</button>
-                <button
-                  type="submit"
-                  form="agenda-create-form"
-                  class="btn btn-primary"
-                  @disabled($availabilityPreview['creatable']->isEmpty())
-                >
-                  Crea {{ $availabilityPreview['creatable']->count() }} slot
-                </button>
-              @endif
-            </div>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+            <button type="submit" class="btn btn-danger">Salva chiusura</button>
           </div>
         </form>
-
-        @if ($availabilityPreview)
-          <form id="agenda-create-form" class="d-none" method="POST" action="/doctor/availability/batch">
-            @csrf
-            <input type="hidden" name="start_date" value="{{ $availabilityPreview['input']['start_date'] }}">
-            <input type="hidden" name="end_date" value="{{ $availabilityPreview['input']['end_date'] }}">
-            <input type="hidden" name="start_time" value="{{ $availabilityPreview['input']['start_time'] }}">
-            <input type="hidden" name="end_time" value="{{ $availabilityPreview['input']['end_time'] }}">
-            <input type="hidden" name="slot_duration" value="{{ $availabilityPreview['input']['slot_duration'] }}">
-            @if ($availabilityPreview['input']['lunch_break_enabled'])
-              <input type="hidden" name="lunch_break_enabled" value="1">
-              <input type="hidden" name="lunch_break_start" value="{{ $availabilityPreview['input']['lunch_break_start'] }}">
-              <input type="hidden" name="lunch_break_end" value="{{ $availabilityPreview['input']['lunch_break_end'] }}">
-            @endif
-            @foreach ($availabilityPreview['input']['weekdays'] as $weekday)
-              <input type="hidden" name="weekdays[]" value="{{ $weekday }}">
-            @endforeach
-          </form>
-        @endif
       </div>
     </div>
   </div>
+
+  <div class="modal fade" id="specialOpeningCreateModal" tabindex="-1" aria-labelledby="specialOpeningCreateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <form method="POST" action="/doctor/special-openings">
+          @csrf
+          <div class="modal-header">
+            <h2 class="modal-title h5" id="specialOpeningCreateModalLabel">Apertura extra</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+          </div>
+          <div class="modal-body">
+            @error('special_opening') <div class="alert alert-danger">{{ $message }}</div> @enderror
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="special-opening-date">Data</label>
+                <input class="form-control" id="special-opening-date" type="date" name="date" value="{{ old('date', $date) }}" required>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="special-opening-start">Ora inizio</label>
+                <x-time-select class="form-control" id="special-opening-start" name="start_time" :value="old('start_time', '09:00')" required />
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="special-opening-end">Ora fine</label>
+                <x-time-select class="form-control" id="special-opening-end" name="end_time" :value="old('end_time', '12:00')" required />
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="special-opening-note">Nota</label>
+                <input class="form-control" id="special-opening-note" name="note" value="{{ old('note') }}" placeholder="Open day, recupero visite">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+            <button type="submit" class="btn btn-primary">Salva apertura</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  @foreach ($upcomingScheduleEvents as $event)
+    @php
+      $model = $event['model'];
+      $modalId = $event['type'].'Modal'.$model->id;
+    @endphp
+    <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-labelledby="{{ $modalId }}Label" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          @if ($event['type'] === 'closure')
+            <form method="POST" action="/doctor/closures/{{ $model->id }}">
+              @csrf
+              @method('PATCH')
+              <div class="modal-header">
+                <h2 class="modal-title h5" id="{{ $modalId }}Label">Modifica chiusura</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+              </div>
+              <div class="modal-body">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label">Data</label>
+                    <input class="form-control" type="date" name="date" value="{{ $event['date']->toDateString() }}" required>
+                  </div>
+                  <div class="col-12">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" id="{{ $modalId }}AllDay" type="checkbox" name="all_day" value="1" @checked(! $event['start_time'])>
+                      <label class="form-check-label" for="{{ $modalId }}AllDay">Tutto il giorno</label>
+                    </div>
+                  </div>
+                  <div class="col-sm-6">
+                    <label class="form-label">Ora inizio</label>
+                    <x-time-select class="form-control" name="start_time" :value="$event['start_time']" />
+                  </div>
+                  <div class="col-sm-6">
+                    <label class="form-label">Ora fine</label>
+                    <x-time-select class="form-control" name="end_time" :value="$event['end_time']" />
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">Motivo</label>
+                    <input class="form-control" name="reason" value="{{ $model->reason }}">
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="submit" class="btn btn-primary">Salva</button>
+              </div>
+            </form>
+          @else
+            <form method="POST" action="/doctor/special-openings/{{ $model->id }}">
+              @csrf
+              @method('PATCH')
+              <div class="modal-header">
+                <h2 class="modal-title h5" id="{{ $modalId }}Label">Modifica apertura extra</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+              </div>
+              <div class="modal-body">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label">Data</label>
+                    <input class="form-control" type="date" name="date" value="{{ $event['date']->toDateString() }}" required>
+                  </div>
+                  <div class="col-sm-6">
+                    <label class="form-label">Ora inizio</label>
+                    <x-time-select class="form-control" name="start_time" :value="$event['start_time']" required />
+                  </div>
+                  <div class="col-sm-6">
+                    <label class="form-label">Ora fine</label>
+                    <x-time-select class="form-control" name="end_time" :value="$event['end_time']" required />
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">Nota</label>
+                    <input class="form-control" name="note" value="{{ $model->note }}">
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="submit" class="btn btn-primary">Salva</button>
+              </div>
+            </form>
+          @endif
+        </div>
+      </div>
+    </div>
+  @endforeach
 @endsection

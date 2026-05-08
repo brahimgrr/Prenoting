@@ -29,8 +29,8 @@ class Appointment extends Model
 
   protected $fillable = [
     'patient_id',
+    'doctor_profile_id',
     'service_id',
-    'slot_id',
     'start_at',
     'end_at',
     'status',
@@ -56,14 +56,14 @@ class Appointment extends Model
     return $this->belongsTo(MedicalService::class, 'service_id');
   }
 
-  public function slot(): BelongsTo
+  public function doctor(): BelongsTo
   {
-    return $this->belongsTo(AvailabilitySlot::class, 'slot_id');
+    return $this->belongsTo(DoctorProfile::class, 'doctor_profile_id');
   }
 
   public function scopeWithPortalRelations(Builder $query): Builder
   {
-    return $query->with(['patient.user', 'service', 'slot']);
+    return $query->with(['patient.user', 'service', 'doctor']);
   }
 
   public function patientName(): string

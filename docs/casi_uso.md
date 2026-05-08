@@ -75,16 +75,16 @@ UC07 — Aggiornare info paziente
 UC08 — Avviare prenotazione guidata
 
 - Attore: Paziente
-- Precondizione: Login con ruolo `patient`; esistono prestazioni attive e slot di disponibilità futuri.
+- Precondizione: Login con ruolo `patient`; esistono prestazioni attive e regole di disponibilita future.
 - Flusso principale:
   a. Il paziente apre la sezione di prenotazione.
   b. Sceglie una prestazione attiva.
-  c. Sceglie un giorno e uno slot orario disponibili.
+  c. Sceglie un giorno e un orario generato dinamicamente dalle regole di disponibilita.
   d. Aggiunge eventuali note.
   e. Conferma.
-  f. Il sistema, in transazione, blocca lo slot, valida che non sia passato, già prenotato o bloccato, crea l'`Appointment` con stato `confirmed` e marca lo slot come `is_booked`.
+  f. Il sistema, in transazione, blocca il profilo medico, rigenera la disponibilita per l'orario richiesto, valida che non sia passato, chiuso o sovrapposto ad appuntamenti attivi, crea l'`Appointment` con stato `confirmed`.
   g. Redirige alla sezione appuntamenti con messaggio "Appuntamento confermato.".
-- Eccezioni: slot non più disponibile o prestazione disattivata -> errore di validazione.
+- Eccezioni: orario non piu disponibile o prestazione disattivata -> errore di validazione.
 
 UC09 — Modificare appuntamento
 
@@ -92,9 +92,9 @@ UC09 — Modificare appuntamento
 - Precondizione: Appuntamento del paziente, con stato `confirmed` e in data futura, non entro meno di 24 ore.
 - Flusso principale:
   a. Il paziente apre `/appointments/{id}/edit`.
-  b. Visualizza le disponibilità per la stessa prestazione, escludendo lo slot attuale.
-  c. Seleziona un nuovo slot e conferma.
-  d. Il sistema, in transazione, libera il vecchio slot e occupa il nuovo.
+  b. Visualizza le disponibilita generate per la stessa prestazione, escludendo l'appuntamento attuale dal controllo sovrapposizioni.
+  c. Seleziona un nuovo orario e conferma.
+  d. Il sistema, in transazione, aggiorna `inizio_il` e `fine_il` dell'appuntamento dopo aver riverificato l'orario.
 
 UC10 — Annullare appuntamento
 
@@ -103,7 +103,7 @@ UC10 — Annullare appuntamento
 - Flusso principale:
   a. Il paziente avvia l'annullamento.
   b. Inserisce un motivo.
-  c. Il sistema, in transazione, imposta lo stato a `cancelled` e rilascia lo slot.
+  c. Il sistema, in transazione, imposta lo stato a `cancelled`; l'orario torna prenotabile se e ancora coperto dalle regole di apertura.
 - Eccezioni: stato diverso da `confirmed` o appuntamento passato -> errore.
 
 Area Medico
@@ -114,7 +114,7 @@ UC11 — Visualizzare calendario
 - Precondizione: Login con ruolo `doctor`.
 - Flusso principale:
   a. Il medico apre la dashboard.
-  b. Il sistema costruisce una timeline a 30 minuti che integra slot di disponibilità e appuntamenti, evidenziando l'ora corrente.
+  b. Il sistema costruisce una timeline a 30 minuti che integra orari generati, chiusure e appuntamenti, evidenziando l'ora corrente.
   c. Mostra il fatturato della giornata.
 
 UC12 — Visualizzare dettaglio appuntamento e dati paziente
@@ -129,9 +129,10 @@ UC13 — Gestione disponibilità
 - Attore: Medico
 - Precondizione: Login con ruolo `doctor`.
 - Flusso principale:
-  a. Dall'agenda il medico configura un batch di disponibilità: intervallo date, giorni della settimana, orario di inizio/fine, durata slot di 30 minuti, pausa pranzo opzionale.
-  b. Genera un'anteprima con slot creabili e scartati.
-  c. Conferma la creazione.
+  a. Dal profilo il medico configura gli orari ricorrenti dell'ambulatorio per i sette giorni della settimana.
+  b. Ogni giorno puo avere zero, una o piu finestre; eventuali pause pranzo sono rappresentate da finestre separate.
+  c. Il salvataggio sostituisce le righe `working_hours` attive e valide per sempre, salvo conflitti con appuntamenti futuri attivi.
+  d. Dall'agenda il medico gestisce solo eventi non ricorrenti: `closures` per ferie/blocchi/chiusure e `special_openings` per aperture extra.
 
 UC14 — Gestione tipi di visita
 

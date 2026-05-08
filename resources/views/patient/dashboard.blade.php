@@ -19,6 +19,7 @@
       <section class="portal-panel next-appointment-panel">
         <div class="section-heading">
           <h2>Prossimo appuntamento</h2>
+          <a href="/patient/appointments">Vedi tutti</a>
         </div>
         @if ($nextAppointment)
           <div class="next-appointment">
@@ -45,30 +46,6 @@
         <span>I miei appuntamenti</span>
         <strong>Gestisci visite</strong>
       </a>
-    </section>
-
-    <section class="portal-panel patient-upcoming-panel">
-      <div class="section-heading">
-        <h2>Appuntamenti imminenti</h2>
-        <a href="/patient/appointments">Vedi tutti</a>
-      </div>
-      @if ($upcomingAppointments->isNotEmpty())
-        <div class="appointment-list compact">
-          @foreach ($upcomingAppointments->take(4) as $appointment)
-            <article class="appointment-row">
-              <div>
-                <h3>{{ $appointment->service?->name ?? 'Appuntamento' }}</h3>
-                <p>{{ $appointment->start_at->format('d/m/Y H:i') }} - {{ $appointment->end_at->format('H:i') }}</p>
-              </div>
-            </article>
-          @endforeach
-        </div>
-      @else
-        <div class="empty-state">
-          <h3>Nessuna visita programmata</h3>
-          <p>Prenota un appuntamento quando sei pronto.</p>
-        </div>
-      @endif
     </section>
   </section>
 @endsection

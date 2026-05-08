@@ -21,28 +21,85 @@ function positionAgendaScroll() {
   });
 }
 
-function openAvailabilityPreviewModal() {
-  const modal = document.querySelector("[data-availability-preview-open]");
-  if (!modal) return;
+const DEFAULT_WORKING_START = "09:00";
+const DEFAULT_WORKING_END = "12:00";
+const WORKING_HOUR_AUTOFILL_MINUTES = 60;
 
-  bootstrap.Modal.getOrCreateInstance(modal).show();
+function halfHourTimeOptions(selectedValue = "") {
+  let options = selectedValue
+    ? `<option value="${selectedValue}" selected>${selectedValue}</option><option value="">--:--</option>`
+    : '<option value="">--:--</option>';
+
+  for (let hour = 0; hour < 24; hour += 1) {
+    for (const minute of [0, 30]) {
+      const value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+      if (value !== selectedValue) {
+        options += `<option value="${value}">${value}</option>`;
+      }
+    }
+  }
+
+  return options;
 }
 
-function setAvailabilityLunchCardState(toggle) {
-  const card = toggle.closest("[data-availability-lunch-card]");
-  if (!card) return;
-
-  const collapsed = !toggle.checked;
-  card.classList.toggle("availability-lunch-card--collapsed", collapsed);
-  card.querySelectorAll("[data-availability-lunch-fields] input").forEach((input) => {
-    input.disabled = collapsed;
-  });
+function timeSelectTemplate(name, selectedValue = "") {
+  return `<select class="form-control" name="${name}">${halfHourTimeOptions(selectedValue)}</select>`;
 }
 
-function syncAvailabilityLunchCards() {
-  document
-    .querySelectorAll("[data-availability-lunch-toggle]")
-    .forEach(setAvailabilityLunchCardState);
+function timeToMinutes(value) {
+  const match = /^(\d{2}):(\d{2})$/.exec(value);
+  if (!match) return null;
+
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function minutesToTime(minutes) {
+  const lastOptionMinutes = (23 * 60) + 30;
+  if (minutes < 0 || minutes > lastOptionMinutes) return "";
+
+  const hour = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function addMinutesToTime(value, minutesToAdd) {
+  const minutes = timeToMinutes(value);
+  if (minutes === null) return "";
+
+  return minutesToTime(minutes + minutesToAdd);
+}
+
+function suggestedWorkingHoursEnd(startValue) {
+  return addMinutesToTime(startValue, WORKING_HOUR_AUTOFILL_MINUTES);
+}
+
+function previousWorkingHoursEnd(rows) {
+  return Array.from(rows.querySelectorAll('[data-working-hours-row] select[name$="[end_time]"]'))
+    .reverse()
+    .find((select) => select.value)?.value || "";
+}
+
+function workingHoursDefaultsForNewRow(rows) {
+  const start = addMinutesToTime(previousWorkingHoursEnd(rows), WORKING_HOUR_AUTOFILL_MINUTES) || DEFAULT_WORKING_START;
+  const end = suggestedWorkingHoursEnd(start) || DEFAULT_WORKING_END;
+
+  return { start, end };
+}
+
+function workingHoursRowTemplate(weekday, index, startValue = "", endValue = "") {
+  return `
+    <div class="working-hours-row" data-working-hours-row>
+      <label class="form-label">
+        Inizio
+        ${timeSelectTemplate(`working_hours[${weekday}][${index}][start_time]`, startValue)}
+      </label>
+      <label class="form-label">
+        Fine
+        ${timeSelectTemplate(`working_hours[${weekday}][${index}][end_time]`, endValue)}
+      </label>
+      <button class="btn btn-outline-secondary working-hours-row__remove" type="button" data-working-hours-remove aria-label="Rimuovi fascia">Rimuovi</button>
+    </div>
+  `;
 }
 
 const COMUNE_SUGGESTION_LIMIT = 8;
@@ -164,8 +221,6 @@ function tickAgendaNowMarker() {
 
 document.addEventListener("DOMContentLoaded", () => {
   positionAgendaScroll();
-  openAvailabilityPreviewModal();
-  syncAvailabilityLunchCards();
   tickAgendaNowMarker();
   setInterval(tickAgendaNowMarker, 30_000);
 });
@@ -182,6 +237,19 @@ document.addEventListener("focusin", (e) => {
   if (!comuneInput || suppressComuneFocusUpdate) return;
 
   updateComuneSuggestions(comuneInput);
+});
+
+document.addEventListener("change", (e) => {
+  const startSelect = e.target.matches?.('[data-working-hours-row] select[name$="[start_time]"]')
+    ? e.target
+    : null;
+  if (!startSelect) return;
+
+  const row = startSelect.closest("[data-working-hours-row]");
+  const endSelect = row?.querySelector('select[name$="[end_time]"]');
+  if (!endSelect) return;
+
+  endSelect.value = suggestedWorkingHoursEnd(startSelect.value);
 });
 
 document.addEventListener("keydown", (e) => {
@@ -228,13 +296,6 @@ document.addEventListener("keydown", (e) => {
     hideComuneSuggestions(combobox);
     combobox.querySelector("[data-comune-input]")?.focus();
   }
-});
-
-document.addEventListener("change", (e) => {
-  const lunchToggle = e.target.closest("[data-availability-lunch-toggle]");
-  if (!lunchToggle) return;
-
-  setAvailabilityLunchCardState(lunchToggle);
 });
 
 document.addEventListener("click", (e) => {
@@ -306,16 +367,36 @@ document.addEventListener("click", (e) => {
     return;
   }
 
-  const editAvailabilityPreview = e.target.closest("[data-availability-edit-preview]");
-  if (editAvailabilityPreview) {
-    const modal = editAvailabilityPreview.closest(".modal");
-    if (!modal) return;
+  const addWorkingHoursRow = e.target.closest("[data-working-hours-add]");
+  if (addWorkingHoursRow) {
+    const day = addWorkingHoursRow.closest("[data-working-hours-day]");
+    const rows = day?.querySelector("[data-working-hours-rows]");
+    if (!day || !rows) return;
 
-    modal.querySelector("[data-availability-form-step]")?.classList.remove("d-none");
-    modal.querySelector("[data-availability-preview-step]")?.classList.add("d-none");
-    modal.querySelector("[data-availability-form-actions]")?.classList.remove("d-none");
-    modal.querySelector("[data-availability-preview-actions]")?.classList.add("d-none");
-    modal.querySelector("[data-availability-form-step] input:not([type='hidden'])")?.focus();
+    const weekday = day.getAttribute("data-weekday");
+    const index = Number(day.getAttribute("data-next-index") || "0");
+    const defaults = workingHoursDefaultsForNewRow(rows);
+    rows.insertAdjacentHTML("beforeend", workingHoursRowTemplate(weekday, index, defaults.start, defaults.end));
+    day.setAttribute("data-next-index", String(index + 1));
+    rows.querySelector("[data-working-hours-row]:last-child select")?.focus();
+    return;
+  }
+
+  const removeWorkingHoursRow = e.target.closest("[data-working-hours-remove]");
+  if (removeWorkingHoursRow) {
+    const row = removeWorkingHoursRow.closest("[data-working-hours-row]");
+    const rows = row?.parentElement;
+    if (!row || !rows) return;
+
+    if (rows.querySelectorAll("[data-working-hours-row]").length <= 1) {
+      row.querySelectorAll("select").forEach((select) => {
+        select.value = "";
+      });
+      row.querySelector("select")?.focus();
+      return;
+    }
+
+    row.remove();
     return;
   }
 

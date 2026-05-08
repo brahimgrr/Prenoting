@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\Appointment;
-use App\Models\AvailabilitySlot;
+use App\Models\DoctorProfile;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +11,10 @@ use Illuminate\Validation\ValidationException;
 
 class AppointmentService
 {
+  public function __construct(private readonly AvailabilityService $availability)
+  {
+  }
+
   private const DOCTOR_TRANSITIONS = [
     Appointment::STATUS_CONFIRMED => [
       Appointment::STATUS_CHECKED_IN,
@@ -21,34 +25,31 @@ class AppointmentService
     ],
   ];
 
-  public function book(PatientProfile $patient, int $slotId, int $serviceId, string $notes = ''): Appointment
+  public function book(PatientProfile $patient, string $slotStart, int $serviceId, string $notes = ''): Appointment
   {
-    return DB::transaction(function () use ($patient, $slotId, $serviceId, $notes): Appointment {
-      $slot = AvailabilitySlot::lockForUpdate()->findOrFail($slotId);
+    return DB::transaction(function () use ($patient, $slotStart, $serviceId, $notes): Appointment {
+      $doctor = $this->lockPrimaryDoctor();
       $service = MedicalService::findOrFail($serviceId);
-
-      $this->validateSlotForService($slot, $service);
+      $slot = $this->validateSlotForService($doctor, $service, $slotStart);
 
       $appointment = Appointment::create([
         'patient_id' => $patient->id,
+        'doctor_profile_id' => $doctor->id,
         'service_id' => $service->id,
-        'slot_id' => $slot->id,
         'start_at' => $slot->start_at,
         'end_at' => $slot->end_at,
         'status' => Appointment::STATUS_CONFIRMED,
         'notes' => $notes,
       ]);
 
-      $slot->forceFill(['is_booked' => true])->save();
-
-      return $appointment->load(['patient.user', 'service', 'slot']);
+      return $appointment->load(['patient.user', 'service', 'doctor']);
     });
   }
 
   public function cancelByPatient(Appointment $appointment, string $reason = ''): Appointment
   {
     return DB::transaction(function () use ($appointment, $reason): Appointment {
-      $locked = Appointment::with('slot')->lockForUpdate()->findOrFail($appointment->id);
+      $locked = Appointment::query()->lockForUpdate()->findOrFail($appointment->id);
       $this->validateFutureConfirmed($locked, 'cancelled');
 
       $locked->forceFill([
@@ -56,42 +57,35 @@ class AppointmentService
         'cancellation_reason' => $reason,
       ])->save();
 
-      $locked->slot()->lockForUpdate()->firstOrFail()
-        ->forceFill(['is_booked' => false])
-        ->save();
-
-      return $locked->fresh(['patient.user', 'service', 'slot']);
+      return $locked->fresh(['patient.user', 'service', 'doctor']);
     });
   }
 
-  public function reschedule(Appointment $appointment, int $newSlotId): Appointment
+  public function reschedule(Appointment $appointment, string $newSlotStart): Appointment
   {
-    return DB::transaction(function () use ($appointment, $newSlotId): Appointment {
+    return DB::transaction(function () use ($appointment, $newSlotStart): Appointment {
       $locked = Appointment::with('service')->lockForUpdate()->findOrFail($appointment->id);
       $this->validateFutureConfirmed($locked, 'rescheduled');
 
-      if ($locked->slot_id === $newSlotId) {
+      $doctor = DoctorProfile::query()->lockForUpdate()->findOrFail($locked->doctor_profile_id);
+      $parsedStart = $this->availability->parseSlotStart($newSlotStart);
+
+      if ($parsedStart && $locked->start_at->format('Y-m-d\TH:i') === $parsedStart->format('Y-m-d\TH:i')) {
         throw ValidationException::withMessages([
-          'slot_id' => 'Seleziona un orario diverso.',
+          'slot_start' => 'Seleziona un orario diverso.',
         ]);
       }
 
-      $oldSlot = AvailabilitySlot::lockForUpdate()->findOrFail($locked->slot_id);
-      $newSlot = AvailabilitySlot::lockForUpdate()->findOrFail($newSlotId);
-      $this->validateSlotForService($newSlot, $locked->service, $locked);
-
-      $oldSlot->forceFill(['is_booked' => false])->save();
-      $newSlot->forceFill(['is_booked' => true])->save();
+      $newSlot = $this->validateSlotForService($doctor, $locked->service, $newSlotStart, $locked);
 
       $locked->forceFill([
-        'slot_id' => $newSlot->id,
         'start_at' => $newSlot->start_at,
         'end_at' => $newSlot->end_at,
         'status' => Appointment::STATUS_CONFIRMED,
         'cancellation_reason' => null,
       ])->save();
 
-      return $locked->fresh(['patient.user', 'service', 'slot']);
+      return $locked->fresh(['patient.user', 'service', 'doctor']);
     });
   }
 
@@ -107,53 +101,52 @@ class AppointmentService
   }
 
   public function validateSlotForService(
-    AvailabilitySlot $slot,
+    DoctorProfile $doctor,
     MedicalService $service,
+    string $slotStart,
     ?Appointment $excludingAppointment = null,
-  ): void {
+  ): \App\Support\VirtualAvailabilitySlot {
     $errors = [];
 
     if (! $service->is_active) {
       $errors['service_id'] = 'Questa prestazione non e attiva.';
     }
-    if ($slot->is_blocked || $slot->is_booked || $slot->start_at->isPast()) {
-      $errors['slot_id'] = 'Questo orario non e piu disponibile.';
-    }
 
-    $activeAppointmentQuery = Appointment::query()
-      ->where('slot_id', $slot->id)
-      ->whereIn('status', Appointment::ACTIVE_SLOT_STATUSES);
-    if ($excludingAppointment) {
-      $activeAppointmentQuery->whereKeyNot($excludingAppointment->id);
-    }
-    if ($activeAppointmentQuery->exists()) {
-      $errors['slot_id'] = 'Questo orario non e piu disponibile.';
+    $slot = $errors === []
+      ? $this->availability->availableSlotByKey($doctor, $service, $slotStart, $excludingAppointment)
+      : null;
+
+    if (! $slot) {
+      $errors['slot_start'] = 'Questo orario non e piu disponibile.';
     }
 
     if ($errors !== []) {
       throw ValidationException::withMessages($errors);
     }
+
+    return $slot;
+  }
+
+  private function lockPrimaryDoctor(): DoctorProfile
+  {
+    $doctorId = $this->availability->primaryDoctor()->id;
+
+    return DoctorProfile::query()->lockForUpdate()->findOrFail($doctorId);
   }
 
   private function updateStatus(Appointment $appointment, string $nextStatus, array $transitions): Appointment
   {
     return DB::transaction(function () use ($appointment, $nextStatus, $transitions): Appointment {
-      $locked = Appointment::with('slot')->lockForUpdate()->findOrFail($appointment->id);
+      $locked = Appointment::query()->lockForUpdate()->findOrFail($appointment->id);
       $this->validateTransition($locked, $nextStatus, $transitions);
 
       if ($locked->status === $nextStatus) {
-        return $locked->fresh(['patient.user', 'service', 'slot']);
-      }
-
-      if ($nextStatus === Appointment::STATUS_CANCELLED && $locked->start_at->isFuture()) {
-        $locked->slot()->lockForUpdate()->firstOrFail()
-          ->forceFill(['is_booked' => false])
-          ->save();
+        return $locked->fresh(['patient.user', 'service', 'doctor']);
       }
 
       $locked->forceFill(['status' => $nextStatus])->save();
 
-      return $locked->fresh(['patient.user', 'service', 'slot']);
+      return $locked->fresh(['patient.user', 'service', 'doctor']);
     });
   }
 

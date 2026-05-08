@@ -3,17 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
-use App\Models\AvailabilitySlot;
+use App\Models\DoctorProfile;
+use App\Models\ScheduleClosure;
+use App\Models\SpecialOpening;
+use App\Services\AvailabilityService;
 use App\Services\AppointmentService;
+use App\Services\DoctorScheduleService;
+use App\Support\VirtualAvailabilitySlot;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class DoctorDashboardController extends Controller
 {
+  public function __construct(
+    private readonly AvailabilityService $availability,
+    private readonly DoctorScheduleService $schedule,
+  )
+  {
+  }
+
   public function agenda(Request $request): View
   {
     return $this->viewAgenda($request);
@@ -30,109 +40,144 @@ class DoctorDashboardController extends Controller
     return redirect('/doctor/agenda')->with('status', 'Stato appuntamento aggiornato.');
   }
 
-  public function previewAvailability(Request $request): View
+  public function blockAvailability(Request $request): RedirectResponse
   {
-    $validated = $this->validatedBatchAvailability($request);
-    $preview = $this->buildAvailabilityPreview($validated);
+    $doctor = $this->doctorFor($request);
+    $validated = $request->validate([
+      'slot_start' => ['required', 'date_format:Y-m-d\TH:i'],
+    ]);
+    $slotStart = $this->availability->parseSlotStart($validated['slot_start']);
 
-    return $this->viewAgenda($request, $preview);
-  }
-
-  public function storeAvailabilityBatch(Request $request): RedirectResponse
-  {
-    $validated = $this->validatedBatchAvailability($request);
-    $preview = $this->buildAvailabilityPreview($validated);
-
-    if ($preview['creatable']->isEmpty()) {
-      throw ValidationException::withMessages([
-        'availability' => 'Nessuno slot disponibile da creare: prova un intervallo futuro senza sovrapposizioni.',
+    if (! $slotStart || $slotStart->isPast()) {
+      throw \Illuminate\Validation\ValidationException::withMessages([
+        'slot_start' => 'Le disponibilita passate non possono essere bloccate.',
       ]);
     }
 
-    $created = 0;
-    DB::transaction(function () use ($preview, &$created): void {
-      foreach ($preview['creatable'] as $candidate) {
-        if ($this->slotOverlaps($candidate['start_at'], $candidate['end_at'])) {
-          continue;
-        }
-
-        AvailabilitySlot::create([
-          'start_at' => $candidate['start_at'],
-          'end_at' => $candidate['end_at'],
-        ]);
-        $created++;
-      }
-    });
-
-    if ($created === 0) {
-      throw ValidationException::withMessages([
-        'availability' => 'Gli slot selezionati risultano gia occupati. Ricalcola una nuova anteprima.',
-      ]);
-    }
-
-    return redirect('/doctor/agenda')->with('status', "{$created} slot disponibilita creati.");
-  }
-
-  public function blockAvailability(Request $request, AvailabilitySlot $slot): RedirectResponse
-  {
-    $this->authorizeDoctorArea($request);
-
-    if ($slot->start_at->isPast()) {
-      throw ValidationException::withMessages([
-        'slot' => 'Le disponibilita passate non possono essere bloccate.',
-      ]);
-    }
-
-    $slot->forceFill(['is_blocked' => true])->save();
+    $this->schedule->createClosure($doctor, [
+      'date' => $slotStart->toDateString(),
+      'start_time' => $slotStart->format('H:i'),
+      'end_time' => $slotStart->addMinutes(AvailabilityService::SLOT_STEP_MINUTES)->format('H:i'),
+      'reason' => 'Disponibilita bloccata',
+    ]);
 
     return redirect()->back()->with('status', 'Disponibilita bloccata.');
   }
 
-  public function unblockAvailability(Request $request, AvailabilitySlot $slot): RedirectResponse
+  public function storeClosure(Request $request): RedirectResponse
   {
-    $this->authorizeDoctorArea($request);
+    $doctor = $this->doctorFor($request);
+    $validated = $request->validate([
+      'date' => ['required', 'date_format:Y-m-d'],
+      'end_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date'],
+      'all_day' => ['nullable', 'string'],
+      'start_time' => ['nullable', 'date_format:H:i'],
+      'end_time' => ['nullable', 'date_format:H:i'],
+      'reason' => ['nullable', 'string', 'max:255'],
+    ]);
 
-    if ($slot->start_at->isPast()) {
-      throw ValidationException::withMessages([
-        'slot' => 'Le disponibilita passate non possono essere riaperte.',
-      ]);
-    }
+    $this->schedule->createClosure($doctor, $validated);
 
-    $slot->forceFill(['is_blocked' => false])->save();
-
-    return redirect()->back()->with('status', 'Disponibilita riaperta.');
+    return redirect('/doctor/agenda?date='.$validated['date'])->with('status', 'Chiusura creata.');
   }
 
-  private function viewAgenda(Request $request, ?array $availabilityPreview = null): View
+  public function updateClosure(Request $request, ScheduleClosure $closure): RedirectResponse
   {
+    $doctor = $this->doctorFor($request);
+    $validated = $request->validate([
+      'date' => ['required', 'date_format:Y-m-d'],
+      'end_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date'],
+      'all_day' => ['nullable', 'string'],
+      'start_time' => ['nullable', 'date_format:H:i'],
+      'end_time' => ['nullable', 'date_format:H:i'],
+      'reason' => ['nullable', 'string', 'max:255'],
+    ]);
+
+    $this->schedule->updateClosure($doctor, $closure, $validated);
+
+    return redirect('/doctor/agenda?date='.$validated['date'])->with('status', 'Chiusura aggiornata.');
+  }
+
+  public function destroyClosure(Request $request, ScheduleClosure $closure): RedirectResponse
+  {
+    $doctor = $this->doctorFor($request);
+    $date = CarbonImmutable::parse($closure->date)->toDateString();
+
+    $this->schedule->deleteClosure($doctor, $closure);
+
+    return redirect('/doctor/agenda?date='.$date)->with('status', 'Chiusura rimossa.');
+  }
+
+  public function storeSpecialOpening(Request $request): RedirectResponse
+  {
+    $doctor = $this->doctorFor($request);
+    $validated = $request->validate([
+      'date' => ['required', 'date_format:Y-m-d'],
+      'start_time' => ['required', 'date_format:H:i'],
+      'end_time' => ['required', 'date_format:H:i'],
+      'note' => ['nullable', 'string', 'max:255'],
+    ]);
+
+    $this->schedule->createSpecialOpening($doctor, $validated);
+
+    return redirect('/doctor/agenda?date='.$validated['date'])->with('status', 'Apertura extra creata.');
+  }
+
+  public function updateSpecialOpening(Request $request, SpecialOpening $specialOpening): RedirectResponse
+  {
+    $doctor = $this->doctorFor($request);
+    $validated = $request->validate([
+      'date' => ['required', 'date_format:Y-m-d'],
+      'start_time' => ['required', 'date_format:H:i'],
+      'end_time' => ['required', 'date_format:H:i'],
+      'note' => ['nullable', 'string', 'max:255'],
+    ]);
+
+    $this->schedule->updateSpecialOpening($doctor, $specialOpening, $validated);
+
+    return redirect('/doctor/agenda?date='.$validated['date'])->with('status', 'Apertura extra aggiornata.');
+  }
+
+  public function destroySpecialOpening(Request $request, SpecialOpening $specialOpening): RedirectResponse
+  {
+    $doctor = $this->doctorFor($request);
+    $date = CarbonImmutable::parse($specialOpening->date)->toDateString();
+
+    $this->schedule->deleteSpecialOpening($doctor, $specialOpening);
+
+    return redirect('/doctor/agenda?date='.$date)->with('status', 'Apertura extra rimossa.');
+  }
+
+  private function viewAgenda(Request $request): View
+  {
+    $doctor = $this->doctorFor($request);
     $selectedDate = (string) $request->query('date', now()->toDateString());
     $selectedDay  = CarbonImmutable::parse($selectedDate)->startOfDay();
     $currentTime  = CarbonImmutable::now();
 
     $appointments = Appointment::withPortalRelations()
+      ->where('doctor_profile_id', $doctor->id)
       ->whereDate('start_at', $selectedDate)
       ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
       ->orderBy('start_at')
       ->get();
 
-    $daySlots = AvailabilitySlot::query()
-      ->whereDate('start_at', $selectedDate)
-      ->orderBy('start_at')
-      ->get();
+    $daySlots = $this->availability->agendaSlotsForDate($doctor, $selectedDay);
+    $dayClosures = $this->availability->closuresForDate($doctor, $selectedDay);
+    $dayEvents = $this->schedule->eventsForDate($doctor, $selectedDay);
+    $upcomingScheduleEvents = $this->schedule->upcomingEvents($doctor, $selectedDay);
 
-    $timelineItems = $this->buildTimelineItems($appointments, $daySlots);
+    $timelineItems = $this->buildTimelineItems($appointments, $daySlots, $dayClosures);
 
     $weekStartParam = $request->query('week_start');
     $weekStart = CarbonImmutable::parse(
       $weekStartParam ?? $selectedDay->toDateString()
     )->startOfWeek(CarbonImmutable::MONDAY);
-    $weekEnd = $weekStart->addDays(6);
 
-    $daysWithSlots = AvailabilitySlot::query()
-      ->whereBetween('start_at', [$weekStart->startOfDay(), $weekEnd->endOfDay()])
-      ->selectRaw('DATE(start_at) as slot_date')
-      ->distinct()
-      ->pluck('slot_date')
+    $daysWithSlots = collect(range(0, 6))
+      ->map(fn ($i) => $weekStart->addDays($i))
+      ->filter(fn (CarbonImmutable $date) => $this->availability->agendaSlotsForDate($doctor, $date)->isNotEmpty())
+      ->map(fn (CarbonImmutable $date) => $date->toDateString())
       ->all();
 
     $weekDays = collect(range(0, 6))->map(fn ($i) => [
@@ -140,22 +185,13 @@ class DoctorDashboardController extends Controller
       'hasSlots' => in_array($weekStart->addDays($i)->toDateString(), $daysWithSlots),
     ]);
 
-    $batchForm = $availabilityPreview['input'] ?? [
-      'start_date'          => CarbonImmutable::now()->toDateString(),
-      'end_date'            => CarbonImmutable::now()->addWeeks(2)->toDateString(),
-      'weekdays'            => [1, 2, 3, 4, 5],
-      'start_time'          => '09:00',
-      'end_time'            => '12:00',
-      'slot_duration'       => 30,
-      'lunch_break_enabled' => false,
-      'lunch_break_start'   => '13:00',
-      'lunch_break_end'     => '14:00',
-    ];
-
     return view('doctor.agenda', [
       'date'                => $selectedDate,
       'appointments'        => $appointments,
       'daySlots'            => $daySlots,
+      'dayClosures'         => $dayClosures,
+      'dayEvents'           => $dayEvents,
+      'upcomingScheduleEvents' => $upcomingScheduleEvents,
       'agendaRows'          => $this->buildAgendaRows($selectedDay, $timelineItems, $currentTime),
       'currentTime'         => $currentTime,
       'isSelectedToday'     => $selectedDay->toDateString() === $currentTime->toDateString(),
@@ -164,59 +200,62 @@ class DoctorDashboardController extends Controller
       'weekStart'           => $weekStart,
       'previousWeekStart'   => $weekStart->subWeek(),
       'nextWeekStart'       => $weekStart->addWeek(),
-      'availabilityPreview' => $availabilityPreview,
-      'batchForm'           => $batchForm,
     ]);
   }
 
-  private function buildTimelineItems($appointments, $daySlots)
+  private function buildTimelineItems($appointments, $daySlots, $dayClosures)
   {
-    $appointmentsBySlot = $appointments
-      ->filter(fn (Appointment $appointment) => $appointment->slot_id !== null)
-      ->keyBy('slot_id');
-    $coveredAppointmentIds = collect();
-
-    $slotItems = $daySlots->map(function (AvailabilitySlot $slot) use ($appointmentsBySlot, $coveredAppointmentIds) {
-      $appointment = $appointmentsBySlot->get($slot->id);
-
-      if ($appointment) {
-        $coveredAppointmentIds->push($appointment->id);
-
-        return [
-          'type' => 'appointment',
-          'state' => 'booked',
-          'start_at' => $appointment->start_at,
-          'end_at' => $appointment->end_at,
-          'slot' => $slot,
-          'appointment' => $appointment,
-        ];
-      }
-
-      return [
+    $slotItems = $daySlots->map(fn (VirtualAvailabilitySlot $slot): array => [
         'type' => 'slot',
-        'state' => $this->slotTimelineState($slot),
+        'state' => 'free',
         'start_at' => $slot->start_at,
         'end_at' => $slot->end_at,
         'slot' => $slot,
         'appointment' => null,
-      ];
-    });
+        'closure' => null,
+      ]);
 
-    $fallbackAppointmentItems = $appointments
-      ->reject(fn (Appointment $appointment) => $coveredAppointmentIds->contains($appointment->id))
+    $closureItems = $dayClosures->map(fn (array $closure): array => $this->buildClosureTimelineItem($closure));
+
+    $appointmentItems = $appointments
       ->map(fn (Appointment $appointment) => [
         'type' => 'appointment',
         'state' => 'booked',
         'start_at' => $appointment->start_at,
         'end_at' => $appointment->end_at,
-        'slot' => $appointment->slot,
+        'slot' => null,
         'appointment' => $appointment,
+        'closure' => null,
       ]);
 
     return $slotItems
-      ->concat($fallbackAppointmentItems)
+      ->concat($closureItems)
+      ->concat($appointmentItems)
       ->sortBy(fn (array $item) => $item['start_at']->getTimestamp())
       ->values();
+  }
+
+  private function buildClosureTimelineItem(array $closure): array
+  {
+    $start = $closure['start_at'];
+    $end = $closure['end_at'];
+    $durationSeconds = $end->greaterThan($start)
+      ? $start->diffInSeconds($end)
+      : AvailabilityService::SLOT_STEP_MINUTES * 60;
+    $spanRows = max(1, (int) ceil($durationSeconds / (AvailabilityService::SLOT_STEP_MINUTES * 60)));
+
+    return [
+      'type' => 'closure',
+      'state' => 'blocked',
+      'start_at' => $start,
+      'end_at' => $end,
+      'slot' => null,
+      'appointment' => null,
+      'closure' => $closure['closure'],
+      'closure_start_at' => $start,
+      'closure_end_at' => $end,
+      'span_rows' => $spanRows,
+    ];
   }
 
   private function buildAgendaRows(CarbonImmutable $selectedDay, $timelineItems, CarbonImmutable $currentTime)
@@ -258,147 +297,11 @@ class DoctorDashboardController extends Controller
     });
   }
 
-  private function slotTimelineState(AvailabilitySlot $slot): string
+  private function doctorFor(Request $request): DoctorProfile
   {
-    if ($slot->is_blocked) {
-      return 'blocked';
-    }
+    $doctor = $request->user()->doctorProfile;
+    abort_unless($doctor, 404);
 
-    if ($slot->is_booked) {
-      return 'booked';
-    }
-
-    return 'free';
-  }
-
-  private function authorizeDoctorArea(Request $request): void
-  {
-    abort_unless($request->user()->doctorProfile, 404);
-  }
-
-  private function validatedBatchAvailability(Request $request): array
-  {
-    $validated = $request->validate([
-      'start_date'          => ['required', 'date_format:Y-m-d'],
-      'end_date'            => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
-      'weekdays'            => ['required', 'array', 'min:1'],
-      'weekdays.*'          => ['integer', 'between:1,5'],
-      'start_time'          => ['required', 'date_format:H:i'],
-      'end_time'            => ['required', 'date_format:H:i'],
-      'slot_duration'       => ['required', 'integer', 'in:15,20,30,45,60'],
-      'lunch_break_enabled' => ['nullable', 'string'],
-      'lunch_break_start'   => ['nullable', 'required_if:lunch_break_enabled,1', 'date_format:H:i'],
-      'lunch_break_end'     => ['nullable', 'required_if:lunch_break_enabled,1', 'date_format:H:i'],
-    ]);
-
-    $startTime = CarbonImmutable::parse("2000-01-01 {$validated['start_time']}:00");
-    $endTime   = CarbonImmutable::parse("2000-01-01 {$validated['end_time']}:00");
-    if ($endTime->lessThanOrEqualTo($startTime)) {
-      throw ValidationException::withMessages([
-        'end_time' => "L'orario di fine deve essere successivo all'inizio.",
-      ]);
-    }
-
-    $validated['lunch_break_enabled'] = ($validated['lunch_break_enabled'] ?? null) === '1';
-
-    if ($validated['lunch_break_enabled']) {
-      $lbStart = CarbonImmutable::parse("2000-01-01 {$validated['lunch_break_start']}:00");
-      $lbEnd   = CarbonImmutable::parse("2000-01-01 {$validated['lunch_break_end']}:00");
-      if ($lbEnd->lessThanOrEqualTo($lbStart)) {
-        throw ValidationException::withMessages([
-          'lunch_break_end' => "La fine della pausa deve essere successiva all'inizio.",
-        ]);
-      }
-    }
-
-    $validated['weekdays'] = collect($validated['weekdays'])
-      ->map(fn ($w) => (int) $w)
-      ->unique()->sort()->values()->all();
-    $validated['slot_duration'] = (int) $validated['slot_duration'];
-
-    return $validated;
-  }
-
-  private function buildAvailabilityPreview(array $input): array
-  {
-    $creatable = collect();
-    $skipped = collect();
-    $startDate = CarbonImmutable::parse($input['start_date'])->startOfDay();
-    $endDate = CarbonImmutable::parse($input['end_date'])->startOfDay();
-    [$startHour, $startMinute] = array_map('intval', explode(':', $input['start_time']));
-    [$endHour, $endMinute] = array_map('intval', explode(':', $input['end_time']));
-
-    $lunchBreakEnabled = $input['lunch_break_enabled'] ?? false;
-    $lunchStart = $lunchBreakEnabled && isset($input['lunch_break_start'])
-      ? CarbonImmutable::parse("2000-01-01 {$input['lunch_break_start']}:00")
-      : null;
-    $lunchEnd = $lunchBreakEnabled && isset($input['lunch_break_end'])
-      ? CarbonImmutable::parse("2000-01-01 {$input['lunch_break_end']}:00")
-      : null;
-
-    for ($date = $startDate; $date->lessThanOrEqualTo($endDate); $date = $date->addDay()) {
-      if (! in_array($date->dayOfWeekIso, $input['weekdays'], true)) {
-        continue;
-      }
-
-      $windowStart = $date->setTime($startHour, $startMinute);
-      $windowEnd = $date->setTime($endHour, $endMinute);
-      for ($slotStart = $windowStart; $slotStart->addMinutes($input['slot_duration'])->lessThanOrEqualTo($windowEnd); $slotStart = $slotStart->addMinutes($input['slot_duration'])) {
-        $slotEnd = $slotStart->addMinutes($input['slot_duration']);
-        $candidate = [
-          'start_at' => $slotStart,
-          'end_at' => $slotEnd,
-        ];
-
-        if ($lunchStart && $lunchEnd) {
-          $slotStartTime = CarbonImmutable::parse("2000-01-01 {$slotStart->format('H:i')}:00");
-          $slotEndTime   = CarbonImmutable::parse("2000-01-01 {$slotEnd->format('H:i')}:00");
-          if ($slotStartTime->lessThan($lunchEnd) && $slotEndTime->greaterThan($lunchStart)) {
-            $skipped->push($candidate + ['reason' => 'pausa pranzo']);
-            continue;
-          }
-        }
-
-        if ($slotStart->isPast()) {
-          $skipped->push($candidate + ['reason' => 'passato']);
-          continue;
-        }
-
-        if ($this->slotOverlaps($slotStart, $slotEnd)) {
-          $skipped->push($candidate + ['reason' => 'sovrapposto']);
-          continue;
-        }
-
-        $creatable->push($candidate);
-      }
-    }
-
-    return [
-      'input' => $input,
-      'creatable' => $creatable,
-      'skipped' => $skipped,
-      'weekdayLabels' => collect($input['weekdays'])
-        ->map(fn (int $weekday) => $this->weekdayLabel($weekday))
-        ->implode(', '),
-    ];
-  }
-
-  private function slotOverlaps(CarbonImmutable $start, CarbonImmutable $end): bool
-  {
-    return AvailabilitySlot::query()
-      ->where('start_at', '<', $end)
-      ->where('end_at', '>', $start)
-      ->exists();
-  }
-
-  private function weekdayLabel(int $weekday): string
-  {
-    return [
-      1 => 'Lun',
-      2 => 'Mar',
-      3 => 'Mer',
-      4 => 'Gio',
-      5 => 'Ven',
-    ][$weekday] ?? (string) $weekday;
+    return $doctor;
   }
 }

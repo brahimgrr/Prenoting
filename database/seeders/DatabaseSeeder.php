@@ -2,12 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\AvailabilitySlot;
 use App\Models\DoctorProfile;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
 use App\Models\User;
-use Carbon\CarbonImmutable;
+use App\Models\WorkingHour;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -85,19 +84,21 @@ class DatabaseSeeder extends Seeder
       );
     }
 
-    $base = CarbonImmutable::now()->setTime(9, 0, 0);
-    foreach (range(1, 7) as $dayOffset) {
-      foreach (range(0, 2) as $hourOffset) {
-        $startAt = $base->addDays($dayOffset)->addHours($hourOffset);
-        AvailabilitySlot::updateOrCreate(
-          ['start_at' => $startAt],
-          [
-            'end_at' => $startAt->addMinutes(30),
-            'is_blocked' => false,
-            'is_booked' => false,
-          ],
-        );
-      }
+    $doctor = DoctorProfile::first();
+    foreach ([1, 2, 3, 4, 5] as $weekday) {
+      WorkingHour::updateOrCreate(
+        [
+          'doctor_profile_id' => $doctor->id,
+          'weekday' => $weekday,
+          'start_time' => '09:00:00',
+          'end_time' => '12:00:00',
+        ],
+        [
+          'effective_from' => null,
+          'effective_until' => null,
+          'is_active' => true,
+        ],
+      );
     }
   }
 }

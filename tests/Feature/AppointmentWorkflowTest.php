@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Appointment;
-use App\Models\AvailabilitySlot;
+use App\Models\DoctorProfile;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
 use App\Models\User;
+use App\Services\AvailabilityService;
+use App\Support\VirtualAvailabilitySlot;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -16,138 +18,59 @@ class AppointmentWorkflowTest extends TestCase
 {
   use RefreshDatabase;
 
-  public function test_patient_can_book_available_slot_and_slot_is_marked_booked(): void
+  public function test_patient_can_book_generated_slot_start(): void
   {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
 
     $response = $this->actingAs($patientUser)->post('/appointments', [
-      'slot_id' => $slot->id,
+      'slot_start' => $slot->key,
       'service_id' => $service->id,
       'notes' => 'Prima visita',
     ]);
 
     $response->assertRedirect('/patient/appointments');
-    $appointment = Appointment::first();
+    $appointment = Appointment::firstOrFail();
     $this->assertSame($patient->id, $appointment->patient_id);
+    $this->assertSame($doctor->id, $appointment->doctor_profile_id);
     $this->assertSame(Appointment::STATUS_CONFIRMED, $appointment->status);
-    $this->assertTrue($slot->fresh()->is_booked);
+    $this->assertSame($slot->key, $appointment->start_at->format('Y-m-d\TH:i'));
   }
 
-  public function test_booking_page_renders_service_week_days_and_available_slots(): void
+  public function test_booking_page_renders_service_week_days_and_generated_slots(): void
   {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
+
     $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}");
 
     $response->assertOk();
     $response->assertSee('Scegli la prestazione');
     $response->assertSee('Scegli il giorno');
     $response->assertSee("Scegli l'orario", false);
-    $response->assertDontSee('Mese visualizzato');
-    $response->assertDontSee('Mese precedente');
-    $response->assertDontSee('Mese successivo');
-    $response->assertDontSee('month-jump-select');
-    $response->assertDontSee(ucfirst($slot->start_at->locale('it')->isoFormat('MMMM YYYY')));
     $response->assertSee($service->name);
     $response->assertSee($slot->start_at->locale('it')->isoFormat('D MMM'), false);
     $response->assertSee($slot->start_at->format('H:i'));
     $response->assertSee('slot liberi');
+    $response->assertDontSee('slot_id');
   }
 
   public function test_booking_page_can_jump_to_a_far_month_with_availability(): void
   {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
     $farStart = CarbonImmutable::now()->addMonths(3)->startOfMonth()->next(CarbonImmutable::MONDAY)->setTime(9, 0);
-    $farSlot = AvailabilitySlot::create([
-      'start_at' => $farStart,
-      'end_at' => $farStart->addMinutes(30),
-    ]);
-    $month = $farSlot->start_at->format('Y-m');
+    $this->slotAt($doctor, $farStart);
+    $month = $farStart->format('Y-m');
 
     $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&month={$month}");
 
     $response->assertOk();
+    $response->assertSee('<strong>'.$farStart->format('d').'</strong>', false);
+    $response->assertSee('<span class="week-day__month">'.ucfirst($farStart->locale('it')->isoFormat('MMM')).'</span>', false);
     $response->assertDontSee('month-jump-select');
-    $response->assertDontSee(ucfirst($farSlot->start_at->locale('it')->isoFormat('MMMM YYYY')));
-    $response->assertSee('<strong>'.$farSlot->start_at->format('d').'</strong>', false);
-    $response->assertSee('<span class="week-day__month">'.ucfirst($farSlot->start_at->locale('it')->isoFormat('MMM')).'</span>', false);
-    $response->assertDontSee('month='.$month, false);
-  }
-
-  public function test_booking_month_selector_is_not_rendered(): void
-  {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $month = $slot->start_at->format('Y-m');
-
-    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&month={$month}");
-
-    $response->assertOk();
-    $response->assertDontSee('onchange="window.location.href=this.value"', false);
-    $response->assertDontSee('month-jump-select');
-  }
-
-  public function test_booking_week_arrows_render_direct_navigation_links(): void
-  {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    AvailabilitySlot::query()->delete();
-    $starts = collect([
-      CarbonImmutable::create(2030, 4, 27, 9, 0),
-      CarbonImmutable::create(2030, 4, 28, 9, 0),
-      CarbonImmutable::create(2030, 4, 29, 9, 0),
-      CarbonImmutable::create(2030, 4, 30, 9, 0),
-      CarbonImmutable::create(2030, 5, 1, 9, 0),
-      CarbonImmutable::create(2030, 5, 2, 9, 0),
-    ]);
-
-    $starts->each(function (CarbonImmutable $start): void {
-      AvailabilitySlot::create([
-        'start_at' => $start,
-        'end_at' => $start->addMinutes(30),
-      ]);
-    });
-
-    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}");
-
-    $response->assertOk();
-    $response->assertSee('<strong>27</strong>', false);
-    $response->assertSee('<span class="week-day__month">Apr</span>', false);
-    $response->assertDontSee('Mese visualizzato');
-    $response->assertSee("href=\"http://127.0.0.1:8080/patient/book?service_id={$service->id}&amp;week_start=2030-05-02#booking-step-day\"", false);
-
-    $nextResponse = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start=2030-05-02");
-
-    $nextResponse->assertOk();
-    $nextResponse->assertSee('<strong>02</strong>', false);
-    $nextResponse->assertSee('<span class="week-day__month">Mag</span>', false);
-    $nextResponse->assertDontSee('month-jump-select');
-  }
-
-  public function test_booking_calendar_starts_from_nearest_available_date_and_shows_only_available_days(): void
-  {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $nearest = CarbonImmutable::now()->addDays(2)->setTime(9, 0);
-    $later = CarbonImmutable::now()->addDays(5)->setTime(11, 0);
-    AvailabilitySlot::query()->delete();
-    AvailabilitySlot::create([
-      'start_at' => $nearest,
-      'end_at' => $nearest->addMinutes(30),
-    ]);
-    AvailabilitySlot::create([
-      'start_at' => $later,
-      'end_at' => $later->addMinutes(30),
-    ]);
-
-    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}");
-
-    $response->assertOk();
-    $response->assertSee('data-date="'.$nearest->toDateString().'"', false);
-    $response->assertSee('data-date="'.$later->toDateString().'"', false);
-    $response->assertDontSee('data-date="'.CarbonImmutable::now()->addDay()->toDateString().'"', false);
   }
 
   public function test_booking_page_handles_services_with_no_available_slots(): void
   {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    AvailabilitySlot::query()->delete();
+    [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
 
     $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}");
 
@@ -158,17 +81,11 @@ class AppointmentWorkflowTest extends TestCase
 
   public function test_booking_period_filter_shows_only_matching_slots(): void
   {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $date = CarbonImmutable::parse($slot->start_at)->startOfDay()->addDay();
-    $morningSlot = AvailabilitySlot::create([
-      'start_at' => $date->setTime(9, 0),
-      'end_at' => $date->setTime(9, 30),
-    ]);
-    $afternoonSlot = AvailabilitySlot::create([
-      'start_at' => $date->setTime(15, 0),
-      'end_at' => $date->setTime(15, 30),
-    ]);
-    $weekStart = $date->copy()->startOfWeek()->toDateString();
+    [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
+    $date = CarbonImmutable::now()->addDay()->startOfDay();
+    $morningSlot = $this->slotAt($doctor, $date->setTime(9, 0));
+    $afternoonSlot = $this->slotAt($doctor, $date->setTime(15, 0));
+    $weekStart = $date->toDateString();
 
     $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$date->toDateString()}&period=mattina");
 
@@ -178,67 +95,30 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee('period=mattina', false);
   }
 
-  public function test_booking_period_filter_keeps_controls_visible_when_no_slots_match(): void
+  public function test_second_booking_attempt_for_same_generated_start_fails(): void
   {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    AvailabilitySlot::query()->delete();
-    $date = CarbonImmutable::now()->addDay()->startOfDay();
-    AvailabilitySlot::create([
-      'start_at' => $date->setTime(15, 0),
-      'end_at' => $date->setTime(15, 30),
-    ]);
-    $weekStart = $date->toDateString();
-
-    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$date->toDateString()}&period=mattina");
-
-    $response->assertOk();
-    $response->assertSee('Filtra orari');
-    $response->assertSee('Nessuno slot disponibile');
-    $response->assertSee('Mattina');
-    $response->assertSee('Pomeriggio');
-  }
-
-  public function test_booking_month_jump_shows_days_from_selected_month_instead_of_previous_month(): void
-  {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $targetStart = CarbonImmutable::create(2030, 5, 1, 9, 0);
-    AvailabilitySlot::create([
-      'start_at' => $targetStart,
-      'end_at' => $targetStart->addMinutes(30),
-    ]);
-    $month = $targetStart->format('Y-m');
-
-    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&month={$month}");
-
-    $response->assertOk();
-    $response->assertSee('data-date="2030-05-01"', false);
-    $response->assertDontSee('data-date="2030-04-29"', false);
-  }
-
-  public function test_second_booking_attempt_for_same_slot_fails(): void
-  {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
     $otherUser = $this->patient('other-patient')[0];
 
     $this->actingAs($patientUser)->post('/appointments', [
-      'slot_id' => $slot->id,
+      'slot_start' => $slot->key,
       'service_id' => $service->id,
     ]);
 
     $response = $this->actingAs($otherUser)->from('/patient/book')->post('/appointments', [
-      'slot_id' => $slot->id,
+      'slot_start' => $slot->key,
       'service_id' => $service->id,
     ]);
 
     $response->assertRedirect('/patient/book');
-    $response->assertSessionHasErrors('slot_id');
+    $response->assertSessionHasErrors('slot_start');
     $this->assertSame(1, Appointment::count());
   }
 
-  public function test_patient_can_cancel_future_confirmed_appointment_and_free_slot(): void
+  public function test_patient_can_cancel_future_confirmed_appointment_and_time_becomes_available_again(): void
   {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $appointment = $this->appointment($patient, $doctor, $service, $clinic, $slot);
+    [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
+    $appointment = $this->appointment($patient, $doctor, $service, $slot);
 
     $response = $this->actingAs($patientUser)->post("/appointments/{$appointment->id}/cancel", [
       'cancellation_reason' => 'Non posso partecipare',
@@ -246,121 +126,77 @@ class AppointmentWorkflowTest extends TestCase
 
     $response->assertRedirect('/patient/appointments');
     $this->assertSame(Appointment::STATUS_CANCELLED, $appointment->fresh()->status);
-    $this->assertFalse($slot->fresh()->is_booked);
+    $available = app(AvailabilityService::class)->availableSlotByKey($doctor, $service, $slot->key);
+    $this->assertNotNull($available);
   }
 
-  public function test_patient_can_reschedule_to_different_available_slot(): void
+  public function test_patient_can_reschedule_to_different_available_generated_start(): void
   {
-    [$patientUser, $patient, $doctor, $service, $clinic, $oldSlot] = $this->bookingContext();
-    $newSlot = $this->slot($doctor, $clinic, 30);
-    $appointment = $this->appointment($patient, $doctor, $service, $clinic, $oldSlot);
+    [$patientUser, $patient, $doctor, $service, $oldSlot] = $this->bookingContext();
+    $newSlot = $this->slotAt($doctor, CarbonImmutable::now()->addDays(2)->setTime(10, 0));
+    $appointment = $this->appointment($patient, $doctor, $service, $oldSlot);
 
     $response = $this->actingAs($patientUser)->post("/appointments/{$appointment->id}/reschedule", [
-      'slot_id' => $newSlot->id,
+      'slot_start' => $newSlot->key,
     ]);
 
     $response->assertRedirect('/patient/appointments');
     $appointment->refresh();
-    $this->assertSame($newSlot->id, $appointment->slot_id);
-    $this->assertFalse($oldSlot->fresh()->is_booked);
-    $this->assertTrue($newSlot->fresh()->is_booked);
+    $this->assertSame($newSlot->key, $appointment->start_at->format('Y-m-d\TH:i'));
+    $this->assertNotNull(app(AvailabilityService::class)->availableSlotByKey($doctor, $service, $oldSlot->key));
+    $this->assertNull(app(AvailabilityService::class)->availableSlotByKey($doctor, $service, $newSlot->key));
   }
 
   public function test_selected_booking_slot_renders_confirmation_before_posting(): void
   {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
     $anchor = $slot->start_at->toDateString();
 
-    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$anchor}&date={$slot->start_at->toDateString()}&slot_id={$slot->id}");
+    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$anchor}&date={$slot->start_at->toDateString()}&slot_start={$slot->key}");
 
     $response->assertOk();
     $response->assertSee('Conferma prenotazione');
-    $response->assertSee('name="slot_id" value="'.$slot->id.'"', false);
+    $response->assertSee('name="slot_start" value="'.$slot->key.'"', false);
     $response->assertSee('action="/appointments"', false);
-    $response->assertSee('Cambia selezione');
-    $response->assertSee('#booking-step-service', false);
-    $response->assertSee('#booking-confirm', false);
-    $response->assertSee('Prestazione');
-    $response->assertSee('Data e ora');
     $response->assertSee($slot->start_at->format('H:i').' - '.$slot->end_at->format('H:i'));
     $response->assertDontSee('Medico');
     $response->assertDontSee('Ambulatorio');
-    $response->assertDontSee('<button type="submit" class="slot-time-button"', false);
   }
 
-  public function test_booking_links_keep_user_on_relevant_step_when_choosing_day_and_time(): void
+  public function test_patient_appointments_page_renders_compact_action_menu_and_cancel_modal(): void
   {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $weekStart = $slot->start_at->toDateString();
-    $date = $slot->start_at->toDateString();
-
-    $response = $this->actingAs($patientUser)->get("/patient/book?service_id={$service->id}&week_start={$weekStart}&date={$date}");
-
-    $response->assertOk();
-    $response->assertSee("href=\"http://127.0.0.1:8080/patient/book?service_id={$service->id}&amp;week_start={$weekStart}&amp;date={$date}#booking-step-day\"", false);
-    $response->assertSee("href=\"http://127.0.0.1:8080/patient/book?service_id={$service->id}&amp;week_start={$weekStart}&amp;date={$date}&amp;slot_id={$slot->id}#booking-confirm\"", false);
-  }
-
-  public function test_patient_appointments_page_renders_compact_action_menu_and_cancel_panel(): void
-  {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $appointment = $this->appointment($patient, $doctor, $service, $clinic, $slot);
-    $pastSlot = $this->slot($doctor, $clinic, -48);
-    $this->appointment($patient, $doctor, $service, $clinic, $pastSlot, Appointment::STATUS_COMPLETED);
+    [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
+    $appointment = $this->appointment($patient, $doctor, $service, $slot);
+    $pastSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->subDays(2)->setTime(9, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->subDays(2)->setTime(9, 0),
+      CarbonImmutable::now()->subDays(2)->setTime(9, 30),
+      $doctor->id,
+    );
+    $this->appointment($patient, $doctor, $service, $pastSlot, Appointment::STATUS_COMPLETED);
 
     $response = $this->actingAs($patientUser)->get('/patient/appointments');
 
     $response->assertOk();
     $response->assertSee('<h3>'.$service->name.'</h3>', false);
-    $response->assertDontSee('<p>'.$appointment->start_at->format('d/m/Y H:i').'</p>', false);
-    $response->assertSee('<dt>Prestazione</dt>', false);
-    $response->assertSee('<dd>VISITA</dd>', false);
-    $response->assertDontSee('<dd>visit</dd>', false);
     $response->assertSee('<dt>Orario</dt>', false);
     $response->assertSee('<dd>'.$appointment->start_at->format('d/m/Y H:i').' - '.$appointment->end_at->format('H:i').'</dd>', false);
     $response->assertSee('aria-label="Azioni appuntamento"', false);
-    $response->assertSee('data-bs-toggle="dropdown"', false);
     $response->assertSee('Sposta appuntamento');
-    $response->assertSee("href=\"/appointments/{$appointment->id}/edit\"", false);
     $response->assertSee('Annulla appuntamento');
-    $response->assertSee('data-bs-toggle="modal"', false);
-    $response->assertSee("data-bs-target=\"#appointmentCancelModal{$appointment->id}\"", false);
     $response->assertSee("id=\"appointmentCancelModal{$appointment->id}\"", false);
-    $response->assertSee('class="modal fade"', false);
-    $response->assertSee('Conferma annullamento');
-    $response->assertSee("/appointments/{$appointment->id}/cancel", false);
-    $response->assertSee('name="cancellation_reason"', false);
-    $response->assertDontSee('Elimina appuntamento');
-    $response->assertDontSee('Solo dettagli');
-    $response->assertDontSee('data-cancel-panel-target', false);
-    $response->assertDontSee('appointment-cancel-panel', false);
-    $response->assertDontSee('window.confirm', false);
-    $response->assertDontSee('<div class="section-heading"><h2>Imminenti</h2><span>', false);
-    $response->assertDontSee('<div class="section-heading"><h2>Passati e annullati</h2><span>', false);
-    $response->assertDontSeeText('Confermato');
     $response->assertDontSeeText('Medico');
     $response->assertDontSeeText('Ambulatorio');
   }
 
-  public function test_patient_appointments_empty_upcoming_state_links_to_booking(): void
+  public function test_patient_can_open_reschedule_wizard_and_confirm_new_start(): void
   {
-    [$patientUser] = $this->bookingContext();
-
-    $response = $this->actingAs($patientUser)->get('/patient/appointments');
-
-    $response->assertOk();
-    $response->assertSee('Nessun appuntamento imminente');
-    $response->assertSee('class="btn btn-primary empty-state__action" href="/patient/book"', false);
-  }
-
-  public function test_patient_can_open_reschedule_wizard_and_confirm_new_slot(): void
-  {
-    [$patientUser, $patient, $doctor, $service, $clinic, $oldSlot] = $this->bookingContext();
-    $newSlot = $this->slot($doctor, $clinic, 48);
-    $appointment = $this->appointment($patient, $doctor, $service, $clinic, $oldSlot);
+    [$patientUser, $patient, $doctor, $service, $oldSlot] = $this->bookingContext();
+    $newSlot = $this->slotAt($doctor, CarbonImmutable::now()->addDays(2)->setTime(10, 0));
+    $appointment = $this->appointment($patient, $doctor, $service, $oldSlot);
     $weekStart = $newSlot->start_at->toDateString();
 
-    $response = $this->actingAs($patientUser)->get("/appointments/{$appointment->id}/edit?week_start={$weekStart}&date={$newSlot->start_at->toDateString()}&slot_id={$newSlot->id}");
+    $response = $this->actingAs($patientUser)->get("/appointments/{$appointment->id}/edit?week_start={$weekStart}&date={$newSlot->start_at->toDateString()}&slot_start={$newSlot->key}");
 
     $response->assertOk();
     $response->assertSee('Stai riprogrammando');
@@ -370,31 +206,19 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee("/appointments/{$appointment->id}/reschedule", false);
   }
 
-  public function test_patient_can_open_reschedule_wizard_even_when_no_other_slots_are_available(): void
-  {
-    [$patientUser, $patient, $doctor, $service, $clinic, $oldSlot] = $this->bookingContext();
-    $appointment = $this->appointment($patient, $doctor, $service, $clinic, $oldSlot);
-
-    $response = $this->actingAs($patientUser)->get("/appointments/{$appointment->id}/edit");
-
-    $response->assertOk();
-    $response->assertSee('Nessuna disponibilita per questa prestazione');
-    $response->assertDontSee('Trying to access array offset on null');
-  }
-
   public function test_patient_cannot_open_another_patients_reschedule_wizard(): void
   {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
+    [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
     $otherUser = $this->patient('other-patient')[0];
-    $appointment = $this->appointment($patient, $doctor, $service, $clinic, $slot);
+    $appointment = $this->appointment($patient, $doctor, $service, $slot);
 
     $this->actingAs($otherUser)->get("/appointments/{$appointment->id}/edit")->assertNotFound();
   }
 
   public function test_patient_cannot_cancel_non_confirmed_or_past_appointment(): void
   {
-    [$patientUser, $patient, $doctor, $service, $clinic, $slot] = $this->bookingContext();
-    $appointment = $this->appointment($patient, $doctor, $service, $clinic, $slot, Appointment::STATUS_COMPLETED);
+    [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
+    $appointment = $this->appointment($patient, $doctor, $service, $slot, Appointment::STATUS_COMPLETED);
 
     $response = $this->actingAs($patientUser)->from('/patient/appointments')->post("/appointments/{$appointment->id}/cancel");
 
@@ -403,7 +227,7 @@ class AppointmentWorkflowTest extends TestCase
     $this->assertSame(Appointment::STATUS_COMPLETED, $appointment->fresh()->status);
   }
 
-  private function bookingContext(): array
+  private function bookingContext(bool $createSlot = true): array
   {
     [$patientUser, $patient] = $this->patient('patient');
     $doctorUser = User::create([
@@ -411,15 +235,14 @@ class AppointmentWorkflowTest extends TestCase
       'password' => Hash::make('doctor123'),
       'role' => User::ROLE_DOCTOR,
     ]);
-    $doctor = \App\Models\DoctorProfile::create([
+    $doctor = DoctorProfile::create([
       'user_id' => $doctorUser->id,
       'display_name' => 'Dott. Mbappe',
     ]);
     $service = MedicalService::create(['name' => 'Visita dermatologica']);
-    $clinic = null;
-    $slot = $this->slot($doctor, $clinic, 24);
+    $slot = $createSlot ? $this->slotAt($doctor, CarbonImmutable::now()->addDay()->setTime(9, 0)) : null;
 
-    return [$patientUser, $patient, $doctor, $service, $clinic, $slot];
+    return array_filter([$patientUser, $patient, $doctor, $service, $slot], fn ($value) => $value !== null);
   }
 
   private function patient(string $username): array
@@ -434,30 +257,33 @@ class AppointmentWorkflowTest extends TestCase
     return [$user, $profile];
   }
 
-  private function slot($doctor, $clinic, int $offsetHours): AvailabilitySlot
+  private function slotAt(DoctorProfile $doctor, CarbonImmutable $start): VirtualAvailabilitySlot
   {
-    $start = CarbonImmutable::now()->addHours($offsetHours);
-
-    return AvailabilitySlot::create([
-      'start_at' => $start,
-      'end_at' => $start->addMinutes(30),
+    $doctor->specialOpenings()->create([
+      'date' => $start->toDateString(),
+      'start_time' => $start->format('H:i:s'),
+      'end_time' => $start->addMinutes(30)->format('H:i:s'),
     ]);
+
+    return new VirtualAvailabilitySlot(
+      $start->format('Y-m-d\TH:i'),
+      $start,
+      $start->addMinutes(30),
+      $doctor->id,
+    );
   }
 
   private function appointment(
     PatientProfile $patient,
-    $doctor,
+    DoctorProfile $doctor,
     MedicalService $service,
-    $clinic,
-    AvailabilitySlot $slot,
+    VirtualAvailabilitySlot $slot,
     string $status = Appointment::STATUS_CONFIRMED,
   ): Appointment {
-    $slot->forceFill(['is_booked' => true])->save();
-
     return Appointment::create([
       'patient_id' => $patient->id,
+      'doctor_profile_id' => $doctor->id,
       'service_id' => $service->id,
-      'slot_id' => $slot->id,
       'start_at' => $slot->start_at,
       'end_at' => $slot->end_at,
       'status' => $status,

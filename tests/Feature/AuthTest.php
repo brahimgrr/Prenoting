@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Appointment;
-use App\Models\AvailabilitySlot;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
 use App\Models\User;
@@ -299,7 +298,7 @@ class AuthTest extends TestCase
       'password' => Hash::make('doctor123'),
       'role' => User::ROLE_DOCTOR,
     ]);
-    \App\Models\DoctorProfile::create([
+    $doctor = \App\Models\DoctorProfile::create([
       'user_id' => $doctorUser->id,
       'display_name' => 'Dott. Mbappe',
     ]);
@@ -307,15 +306,10 @@ class AuthTest extends TestCase
       'name' => 'Visita dermatologica',
     ]);
     $start = CarbonImmutable::now()->addDay()->setTime(10, 0);
-    $slot = AvailabilitySlot::create([
-      'start_at' => $start,
-      'end_at' => $start->addMinutes(30),
-      'is_booked' => true,
-    ]);
     $appointment = Appointment::create([
       'patient_id' => $patient->id,
+      'doctor_profile_id' => $doctor->id,
       'service_id' => $service->id,
-      'slot_id' => $slot->id,
       'start_at' => $start,
       'end_at' => $start->addMinutes(30),
       'status' => Appointment::STATUS_CONFIRMED,
@@ -325,7 +319,7 @@ class AuthTest extends TestCase
     $appointmentTime = $appointment->start_at->format('d/m/Y H:i').' - '.$appointment->end_at->format('H:i');
 
     $response->assertOk();
-    $this->assertSame(2, substr_count($response->getContent(), $appointmentTime));
+    $this->assertSame(1, substr_count($response->getContent(), $appointmentTime));
     $response->assertDontSeeText('Confermato');
     $response->assertDontSeeText('Medico');
     $response->assertDontSeeText('Ambulatorio');

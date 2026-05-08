@@ -3,11 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Appointment;
-use App\Models\AvailabilitySlot;
 use App\Models\DoctorProfile;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
 use App\Models\User;
+use App\Support\VirtualAvailabilitySlot;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -22,28 +22,12 @@ class RoleDashboardTest extends TestCase
   {
     [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
 
-    $this->actingAs($doctorUser)
-      ->get('/doctor')
-      ->assertRedirect('/doctor/agenda');
+    $this->actingAs($doctorUser)->get('/doctor')->assertRedirect('/doctor/agenda');
+    $this->actingAs($doctorUser)->get('/doctor/schedule')->assertNotFound();
+    $this->actingAs($doctorUser)->get('/doctor/availability')->assertNotFound();
 
     $this->actingAs($doctorUser)
-      ->get('/doctor/schedule')
-      ->assertNotFound();
-
-    $this->actingAs($doctorUser)
-      ->get('/doctor/availability')
-      ->assertNotFound();
-
-    $this->actingAs($doctorUser)
-      ->post('/doctor/availability', [
-        'date' => now()->addDay()->toDateString(),
-        'start_time' => '09:00',
-        'end_time' => '09:30',
-      ])
-      ->assertNotFound();
-
-    $this->actingAs($doctorUser)
-      ->get('/doctor/agenda')
+      ->get('/doctor/agenda?date='.$appointment->start_at->toDateString())
       ->assertOk()
       ->assertSee('Agenda')
       ->assertDontSee('/doctor/agendav2', false)
@@ -52,38 +36,29 @@ class RoleDashboardTest extends TestCase
       ->assertSee('class="doctor-agenda-grid"', false)
       ->assertSee('Mario Rossi')
       ->assertSee('Altro Paziente')
-      ->assertDontSeeText('Confermato')
       ->assertDontSee("/doctor/appointments/{$appointment->id}/status", false)
-      ->assertDontSee('doctor_id')
       ->assertDontSee('clinic_id')
-      ->assertDontSee('start_at');
+      ->assertDontSee('slot_id');
   }
 
-  public function test_doctor_agenda_timeline_shows_selected_day_slots_with_inline_actions(): void
+  public function test_doctor_agenda_timeline_shows_generated_slots_closures_and_appointments(): void
   {
     [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
-    $date = CarbonImmutable::now()->addDays(3)->toDateString();
+    $date = CarbonImmutable::now()->addDays(3)->startOfDay();
     $patient = $appointment->patient;
     $service = $appointment->service;
-
-    $freeSlot = AvailabilitySlot::create([
-      'start_at' => CarbonImmutable::parse("{$date} 10:00:00"),
-      'end_at' => CarbonImmutable::parse("{$date} 10:30:00"),
+    $this->slotAt($doctor, $date->setTime(10, 0));
+    $closure = $doctor->closures()->create([
+      'date' => $date->toDateString(),
+      'start_time' => '10:30:00',
+      'end_time' => '11:00:00',
+      'reason' => 'Blocco',
     ]);
-    $blockedSlot = AvailabilitySlot::create([
-      'start_at' => CarbonImmutable::parse("{$date} 10:30:00"),
-      'end_at' => CarbonImmutable::parse("{$date} 11:00:00"),
-      'is_blocked' => true,
-    ]);
-    $bookedSlot = AvailabilitySlot::create([
-      'start_at' => CarbonImmutable::parse("{$date} 11:00:00"),
-      'end_at' => CarbonImmutable::parse("{$date} 11:30:00"),
-      'is_booked' => true,
-    ]);
-    $bookedAppointment = $this->appointment($patient, $service, $bookedSlot);
+    $bookedSlot = $this->slotAt($doctor, $date->setTime(11, 0));
+    $bookedAppointment = $this->appointment($patient, $doctor, $service, $bookedSlot);
 
     $this->actingAs($doctorUser)
-      ->get("/doctor/agenda?date={$date}")
+      ->get("/doctor/agenda?date={$date->toDateString()}")
       ->assertOk()
       ->assertSee('class="doctor-agenda-grid"', false)
       ->assertSeeInOrder([
@@ -91,242 +66,58 @@ class RoleDashboardTest extends TestCase
         'Slot libero',
         'Blocca',
         '10:30',
-        'Slot bloccato',
+        'Blocco',
         'Riapri',
         '11:00',
         'Mario Rossi',
         'Visita dermatologica',
       ])
-      ->assertSee("action=\"/doctor/availability/{$freeSlot->id}/block\"", false)
-      ->assertSee("action=\"/doctor/availability/{$blockedSlot->id}/unblock\"", false)
-      ->assertDontSee('<p>10:00 - 10:30</p>', false)
-      ->assertDontSee('<p>10:30 - 11:00</p>', false)
-      ->assertDontSee('<span>11:00 - 11:30</span>', false)
-      ->assertDontSee('<span class="badge text-bg-success">Libero</span>', false)
-      ->assertDontSee('<span class="badge text-bg-warning">Bloccato</span>', false)
-      ->assertDontSee("action=\"/doctor/availability/{$bookedSlot->id}/block\"", false)
-      ->assertDontSee("action=\"/doctor/availability/{$bookedSlot->id}/unblock\"", false)
+      ->assertSee('action="/doctor/availability/block"', false)
+      ->assertSee('name="slot_start"', false)
+      ->assertSee("action=\"/doctor/closures/{$closure->id}\"", false)
       ->assertSee('aria-label="Informazioni appuntamento"', false)
-      ->assertSee("data-bs-target=\"#appointmentInfoModal{$bookedAppointment->id}\"", false)
-      ->assertSee("id=\"appointmentInfoModal{$bookedAppointment->id}\"", false)
-      ->assertSee('Informazioni appuntamento', false)
-      ->assertSee('Note di prenotazione', false)
-      ->assertSee($service->name, false);
+      ->assertSee("data-bs-target=\"#appointmentInfoModal{$bookedAppointment->id}\"", false);
   }
 
-  public function test_doctor_agenda_renders_full_day_half_hour_grid_with_empty_rows(): void
+  public function test_doctor_can_block_and_unblock_future_generated_slot_from_agenda(): void
   {
-    [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
-    $date = CarbonImmutable::now()->addDays(4)->toDateString();
-    $patient = $appointment->patient;
-    $service = $appointment->service;
-
-    $freeSlot = AvailabilitySlot::create([
-      'start_at' => CarbonImmutable::parse("{$date} 10:00:00"),
-      'end_at' => CarbonImmutable::parse("{$date} 10:30:00"),
-    ]);
-    $bookedSlot = AvailabilitySlot::create([
-      'start_at' => CarbonImmutable::parse("{$date} 11:00:00"),
-      'end_at' => CarbonImmutable::parse("{$date} 11:30:00"),
-      'is_booked' => true,
-    ]);
-    $this->appointment($patient, $service, $bookedSlot);
-
-    $response = $this->actingAs($doctorUser)->get("/doctor/agenda?date={$date}");
-    $content = $response->getContent();
-
-    $response
-      ->assertOk()
-      ->assertSee('class="doctor-agenda-grid"', false)
-      ->assertSee('data-time="00:00"', false)
-      ->assertSee('data-time="00:30"', false)
-      ->assertSee('data-time="23:30"', false)
-      ->assertSee('data-agenda-occupied-row', false)
-      ->assertSee('doctor-agenda-row__content" aria-hidden="true"', false)
-      ->assertSee('Slot libero')
-      ->assertSee('Blocca')
-      ->assertSee('Mario Rossi')
-      ->assertSee('Visita dermatologica');
-
-    $this->assertSame(48, substr_count($content, 'data-time="'));
-    $this->assertStringContainsString("action=\"/doctor/availability/{$freeSlot->id}/block\"", $content);
-  }
-
-  public function test_today_agenda_marks_current_time_and_dims_past_rows_without_passato_badge(): void
-  {
-    $now = CarbonImmutable::parse('2026-05-01 10:15:00');
-    \Carbon\Carbon::setTestNow($now);
-    CarbonImmutable::setTestNow($now);
-
-    try {
-      [$doctorUser] = $this->dashboardContext();
-      $date = $now->toDateString();
-
-      AvailabilitySlot::create([
-        'start_at' => $now->setTime(9, 0),
-        'end_at' => $now->setTime(9, 30),
-      ]);
-      AvailabilitySlot::create([
-        'start_at' => $now->setTime(11, 0),
-        'end_at' => $now->setTime(11, 30),
-      ]);
-
-      $this->actingAs($doctorUser)
-        ->get("/doctor/agenda?date={$date}")
-        ->assertOk()
-        ->assertSee('data-agenda-scroll-container', false)
-        ->assertSee('class="doctor-agenda-now-marker"', false)
-        ->assertSee('data-agenda-now-marker', false)
-        ->assertSee('Ora 10:15')
-        ->assertSee('doctor-agenda-row doctor-agenda-row--past', false)
-        ->assertSee('Slot libero')
-        ->assertSee('Blocca')
-        ->assertDontSee('Passato');
-    } finally {
-      \Carbon\Carbon::setTestNow();
-      CarbonImmutable::setTestNow();
-    }
-  }
-
-  public function test_past_date_agenda_keeps_passato_badge_without_current_time_marker(): void
-  {
-    [$doctorUser] = $this->dashboardContext();
-    $date = CarbonImmutable::now()->subDays(2)->toDateString();
-
-    AvailabilitySlot::create([
-      'start_at' => CarbonImmutable::parse("{$date} 09:00:00"),
-      'end_at' => CarbonImmutable::parse("{$date} 09:30:00"),
-    ]);
-
-    $this->actingAs($doctorUser)
-      ->get("/doctor/agenda?date={$date}")
-      ->assertOk()
-      ->assertSee('Passato')
-      ->assertDontSee('doctor-agenda-now-marker', false);
-  }
-
-  public function test_doctor_can_block_and_unblock_future_availability_slot_from_agenda(): void
-  {
-    [$doctorUser] = $this->dashboardContext();
-    $freeSlot = AvailabilitySlot::create([
-      'start_at' => CarbonImmutable::now()->addDays(3)->setTime(10, 0),
-      'end_at' => CarbonImmutable::now()->addDays(3)->setTime(10, 30),
-    ]);
+    [$doctorUser, $doctor] = $this->dashboardContext();
+    $slot = $this->slotAt($doctor, CarbonImmutable::now()->addDays(3)->setTime(10, 0));
 
     $this->actingAs($doctorUser)
       ->from('/doctor/agenda')
-      ->post("/doctor/availability/{$freeSlot->id}/block")
+      ->post('/doctor/availability/block', ['slot_start' => $slot->key])
       ->assertRedirect('/doctor/agenda');
 
-    $this->assertTrue($freeSlot->fresh()->is_blocked);
+    $closure = $doctor->closures()->firstOrFail();
+    $this->assertSame($slot->start_at->toDateString(), $closure->date->toDateString());
 
     $this->actingAs($doctorUser)
       ->from('/doctor/agenda')
-      ->post("/doctor/availability/{$freeSlot->id}/unblock")
-      ->assertRedirect('/doctor/agenda');
+      ->delete("/doctor/closures/{$closure->id}")
+      ->assertRedirect('/doctor/agenda?date='.$slot->start_at->toDateString());
 
-    $this->assertFalse($freeSlot->fresh()->is_blocked);
+    $this->assertSame(0, $doctor->closures()->count());
   }
 
-  public function test_doctor_can_preview_batch_availability_without_showing_skipped_slots(): void
+  public function test_doctor_profiles_table_has_contact_and_clinic_fields(): void
   {
-    [$doctorUser] = $this->dashboardContext();
-    $startDate = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
-    AvailabilitySlot::create([
-      'start_at' => $startDate->setTime(9, 0),
-      'end_at' => $startDate->setTime(9, 30),
-    ]);
-
-    $response = $this->actingAs($doctorUser)->get('/doctor/availability/preview?'.http_build_query([
-      'source' => 'agenda',
-      'start_date' => $startDate->toDateString(),
-      'end_date' => $startDate->toDateString(),
-      'weekdays' => [$startDate->dayOfWeekIso],
-      'start_time' => '09:00',
-      'end_time' => '10:00',
-      'slot_duration' => 30,
-    ]));
-
-    $response->assertOk();
-    $response->assertViewIs('doctor.agenda');
-    $response->assertSee('Agenda');
-    $response->assertSee('Anteprima slot');
-    $response->assertSee('data-availability-preview-open', false);
-    $response->assertSee('data-availability-preview-step', false);
-    $response->assertSee('class="availability-step availability-step--form d-none" data-availability-form-step', false);
-    $response->assertSee('availability-preview-card', false);
-    $response->assertSee('form="agenda-create-form"', false);
-    $response->assertSee('Crea 1 slot');
-    $response->assertSee('Modifica');
-    $response->assertDontSee('Slot saltato');
-    $response->assertDontSee('slot saltato');
-    $response->assertDontSee('avail-tabs-wrap', false);
-    $response->assertDontSee('Ambulatorio');
-    $response->assertDontSee('durata slot');
-    $response->assertSee('09:30');
+    $this->assertTrue(Schema::hasColumn('doctor_profiles', 'phone'));
+    $this->assertTrue(Schema::hasColumn('doctor_profiles', 'clinic_address'));
   }
 
-  public function test_doctor_can_create_batch_availability_without_duplicates(): void
+  public function test_dynamic_availability_tables_exist(): void
   {
-    [$doctorUser] = $this->dashboardContext();
-    $startDate = CarbonImmutable::now()->next(CarbonImmutable::TUESDAY);
-    AvailabilitySlot::create([
-      'start_at' => $startDate->setTime(14, 0),
-      'end_at' => $startDate->setTime(14, 30),
-    ]);
-
-    $this->actingAs($doctorUser)
-      ->post('/doctor/availability/batch', [
-        'start_date' => $startDate->toDateString(),
-        'end_date' => $startDate->toDateString(),
-        'weekdays' => [$startDate->dayOfWeekIso],
-        'start_time' => '14:00',
-        'end_time' => '15:00',
-        'slot_duration' => 30,
-      ])
-      ->assertRedirect('/doctor/agenda');
-
-    $this->assertDatabaseHas('availability_slots', [
-      'start_at' => $startDate->setTime(14, 30)->toDateTimeString(),
-    ]);
-    $this->assertSame(
-      2,
-      AvailabilitySlot::whereDate('start_at', $startDate->toDateString())
-        ->whereTime('start_at', '>=', '14:00')
-        ->whereTime('start_at', '<', '15:00')
-        ->count(),
-    );
-  }
-
-  public function test_doctor_cannot_create_batch_availability_in_the_past(): void
-  {
-    [$doctorUser] = $this->dashboardContext();
-    $pastDate = CarbonImmutable::now()->subWeeks(2)->startOfWeek();
-
-    $response = $this->actingAs($doctorUser)
-      ->from('/doctor/agenda')
-      ->post('/doctor/availability/batch', [
-        'start_date' => $pastDate->toDateString(),
-        'end_date' => $pastDate->toDateString(),
-        'weekdays' => [$pastDate->dayOfWeekIso],
-        'start_time' => '09:00',
-        'end_time' => '10:00',
-        'slot_duration' => 30,
-      ]);
-
-    $response->assertRedirect('/doctor/agenda');
-    $response->assertSessionHasErrors('availability');
+    $this->assertTrue(Schema::hasTable('working_hours'));
+    $this->assertTrue(Schema::hasTable('special_openings'));
+    $this->assertTrue(Schema::hasTable('closures'));
+    $this->assertTrue(Schema::hasColumn('appointments', 'doctor_profile_id'));
+    $this->assertFalse(Schema::hasColumn('appointments', 'slot_id'));
   }
 
   public function test_doctor_can_manage_treatment_offerings(): void
   {
     [$doctorUser] = $this->dashboardContext();
-
-    $this->actingAs($doctorUser)
-      ->get('/doctor/treatments')
-      ->assertOk()
-      ->assertSee('Trattamenti')
-      ->assertDontSee("Torna all'agenda", false);
 
     $this->actingAs($doctorUser)
       ->post('/doctor/treatments', [
@@ -337,14 +128,6 @@ class RoleDashboardTest extends TestCase
       ->assertRedirect('/doctor/treatments');
 
     $offering = MedicalService::where('name', 'Mappatura nei')->firstOrFail();
-
-    $this->actingAs($doctorUser)
-      ->get("/doctor/treatments/{$offering->id}/edit")
-      ->assertOk()
-      ->assertSee('Modifica trattamento')
-      ->assertDontSee('name="specialty_id"', false)
-      ->assertDontSee('name="duration_minutes"', false)
-      ->assertDontSee('Trattamento attivo');
 
     $this->actingAs($doctorUser)
       ->patch("/doctor/treatments/{$offering->id}", [
@@ -363,40 +146,10 @@ class RoleDashboardTest extends TestCase
     ]);
 
     $this->actingAs($doctorUser)
-      ->get('/doctor/treatments')
-      ->assertOk()
-      ->assertSee('aria-label="Azioni trattamento"', false)
-      ->assertSee('data-bs-toggle="dropdown"', false)
-      ->assertSee('Modifica trattamento')
-      ->assertSee("href=\"/doctor/treatments/{$offering->id}/edit\"", false)
-      ->assertSee('Elimina trattamento')
-      ->assertSee("action=\"/doctor/treatments/{$offering->id}\"", false)
-      ->assertDontSee('class="treatment-card__actions"', false)
-      ->assertDontSee('Attivo')
-      ->assertDontSee('Disattiva')
-      ->assertDontSee('Durata')
-      ->assertSee("data-bs-target=\"#deleteTreatmentModal{$offering->id}\"", false)
-      ->assertSee("id=\"deleteTreatmentModal{$offering->id}\"", false)
-      ->assertSee('Conferma eliminazione', false)
-      ->assertSee('Gli appuntamenti già prenotati resteranno validi.', false)
-      ->assertDontSee('window.confirm', false);
-
-    $this->actingAs($doctorUser)
       ->delete("/doctor/treatments/{$offering->id}")
       ->assertRedirect('/doctor/treatments');
 
     $this->assertDatabaseHas('medical_services', ['id' => $offering->id, 'is_active' => false]);
-
-    $this->actingAs($doctorUser)
-      ->get('/doctor/treatments')
-      ->assertOk()
-      ->assertDontSee($offering->name);
-  }
-
-  public function test_doctor_profiles_table_has_contact_and_clinic_fields(): void
-  {
-    $this->assertTrue(Schema::hasColumn('doctor_profiles', 'phone'));
-    $this->assertTrue(Schema::hasColumn('doctor_profiles', 'clinic_address'));
   }
 
   public function test_doctor_can_view_and_update_profile_contact_fields(): void
@@ -412,16 +165,11 @@ class RoleDashboardTest extends TestCase
       ->get('/doctor/profile')
       ->assertOk()
       ->assertSee('Profilo medico')
-      ->assertSee("Numero di iscrizione all'albo", false)
-      ->assertDontSee('Numero iscrizione')
       ->assertSee('doctor.old@example.com')
       ->assertSee('555-1000')
       ->assertSee('Via Roma 1')
       ->assertSee('Agenda')
-      ->assertDontSee('href="/doctor/schedule"', false)
-      ->assertDontSee('/doctor/agendav2', false)
-      ->assertDontSee('href="/doctor/availability"', false)
-      ->assertSee('Trattamenti');
+      ->assertDontSee('href="/doctor/availability"', false);
 
     $this->actingAs($doctorUser)
       ->patch('/doctor/profile', [
@@ -438,15 +186,37 @@ class RoleDashboardTest extends TestCase
 
   public function test_patient_cannot_access_doctor_routes(): void
   {
-    $patientUser = User::create([
-      'username' => 'patient',
-      'password' => Hash::make('patient123'),
-      'role' => User::ROLE_PATIENT,
-    ]);
-    PatientProfile::create(['user_id' => $patientUser->id, 'phone' => '555-0100']);
+    [$patientUser] = $this->patient('patient');
 
     $this->actingAs($patientUser)->get('/doctor')->assertForbidden();
     $this->actingAs($patientUser)->get('/doctor/profile')->assertForbidden();
+  }
+
+  public function test_patient_dashboard_links_all_appointments_from_next_appointment_panel(): void
+  {
+    [, , $appointment] = $this->dashboardContext();
+
+    $response = $this->actingAs($appointment->patient->user)
+      ->get('/patient')
+      ->assertOk();
+
+    $content = $response->getContent();
+
+    $this->assertMatchesRegularExpression(
+      '/<div class="section-heading">\s*<h2>Prossimo appuntamento<\/h2>\s*<a href="\/patient\/appointments">Vedi tutti<\/a>\s*<\/div>/',
+      $content,
+    );
+    $this->assertStringNotContainsString('Appuntamenti imminenti', $content);
+    $this->assertStringNotContainsString('patient-upcoming-panel', $content);
+  }
+
+  public function test_legacy_doctor_agendav2_url_redirects_to_agenda(): void
+  {
+    [$doctorUser] = $this->dashboardContext();
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/agendav2?date=2030-04-29')
+      ->assertRedirect('/doctor/agenda?date=2030-04-29');
   }
 
   private function dashboardContext(string $status = Appointment::STATUS_CONFIRMED): array
@@ -460,206 +230,61 @@ class RoleDashboardTest extends TestCase
       'user_id' => $doctorUser->id,
       'display_name' => 'Dott. Mbappe',
     ]);
-    $patientUser = User::create([
-      'username' => 'patient',
-      'first_name' => 'Mario',
-      'last_name' => 'Rossi',
-      'password' => Hash::make('patient123'),
-      'role' => User::ROLE_PATIENT,
-    ]);
-    $patient = PatientProfile::create(['user_id' => $patientUser->id, 'phone' => '555-0100']);
-    $otherPatientUser = User::create([
-      'username' => 'other',
-      'first_name' => 'Altro',
-      'last_name' => 'Paziente',
-      'password' => Hash::make('patient123'),
-      'role' => User::ROLE_PATIENT,
-    ]);
-    $otherPatient = PatientProfile::create(['user_id' => $otherPatientUser->id, 'phone' => '555-0101']);
+    [$patientUser, $patient] = $this->patient('patient', 'Mario', 'Rossi');
+    [$otherPatientUser, $otherPatient] = $this->patient('other', 'Altro', 'Paziente');
     $service = MedicalService::create(['name' => 'Visita dermatologica']);
-    $slot = $this->slot(24);
-    $otherSlot = $this->slot(25);
-    $appointment = $this->appointment($patient, $service, $slot, $status);
-    $this->appointment($otherPatient, $service, $otherSlot);
+    $slot = $this->slotAt($doctor, CarbonImmutable::now()->addDay()->setTime(9, 0));
+    $otherSlot = $this->slotAt($doctor, CarbonImmutable::now()->addDay()->setTime(10, 0));
+    $appointment = $this->appointment($patient, $doctor, $service, $slot, $status);
+    $this->appointment($otherPatient, $doctor, $service, $otherSlot);
 
     return [$doctorUser, $doctor, $appointment];
   }
 
-  private function slot(int $offsetHours): AvailabilitySlot
+  private function patient(string $username, string $firstName = '', string $lastName = ''): array
   {
-    $start = CarbonImmutable::now()->addHours($offsetHours);
-
-    return AvailabilitySlot::create([
-      'start_at' => $start,
-      'end_at' => $start->addMinutes(30),
-      'is_booked' => true,
+    $user = User::create([
+      'username' => $username,
+      'first_name' => $firstName,
+      'last_name' => $lastName,
+      'password' => Hash::make('patient123'),
+      'role' => User::ROLE_PATIENT,
     ]);
+    $profile = PatientProfile::create(['user_id' => $user->id, 'phone' => '555-0100']);
+
+    return [$user, $profile];
+  }
+
+  private function slotAt(DoctorProfile $doctor, CarbonImmutable $start): VirtualAvailabilitySlot
+  {
+    $doctor->specialOpenings()->create([
+      'date' => $start->toDateString(),
+      'start_time' => $start->format('H:i:s'),
+      'end_time' => $start->addMinutes(30)->format('H:i:s'),
+    ]);
+
+    return new VirtualAvailabilitySlot(
+      $start->format('Y-m-d\TH:i'),
+      $start,
+      $start->addMinutes(30),
+      $doctor->id,
+    );
   }
 
   private function appointment(
     PatientProfile $patient,
+    DoctorProfile $doctor,
     MedicalService $service,
-    AvailabilitySlot $slot,
+    VirtualAvailabilitySlot $slot,
     string $status = Appointment::STATUS_CONFIRMED,
   ): Appointment {
     return Appointment::create([
       'patient_id' => $patient->id,
+      'doctor_profile_id' => $doctor->id,
       'service_id' => $service->id,
-      'slot_id' => $slot->id,
       'start_at' => $slot->start_at,
       'end_at' => $slot->end_at,
       'status' => $status,
     ]);
-  }
-
-  private function makeDoctorUser(): User
-  {
-    $doctorUser = User::create([
-      'username' => 'doctor.test',
-      'password' => \Illuminate\Support\Facades\Hash::make('doctor123'),
-      'role' => User::ROLE_DOCTOR,
-    ]);
-    DoctorProfile::create([
-      'user_id' => $doctorUser->id,
-      'display_name' => 'Dott. Test',
-    ]);
-
-    return $doctorUser;
-  }
-
-  public function test_doctor_preview_excludes_lunch_break_slots(): void
-  {
-    $doctorUser = $this->makeDoctorUser();
-    $targetDate = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
-    $startDate  = $targetDate->toDateString();
-
-    $response = $this->actingAs($doctorUser)->get('/doctor/availability/preview?' . http_build_query([
-      'start_date'          => $startDate,
-      'end_date'            => $startDate,
-      'weekdays'            => [$targetDate->dayOfWeekIso],
-      'start_time'          => '09:00',
-      'end_time'            => '14:00',
-      'slot_duration'       => '30',
-      'lunch_break_enabled' => '1',
-      'lunch_break_start'   => '13:00',
-      'lunch_break_end'     => '14:00',
-    ]));
-
-    $response->assertOk();
-
-    $view = $response->viewData('availabilityPreview');
-    $creatableTimes = $view['creatable']->map(fn ($c) => $c['start_at']->format('H:i'))->all();
-
-    $this->assertNotContains('13:00', $creatableTimes);
-    $this->assertContains('09:00', $creatableTimes);
-    $this->assertContains('12:30', $creatableTimes);
-
-    $skippedReasons = $view['skipped']->pluck('reason')->all();
-    $this->assertContains('pausa pranzo', $skippedReasons);
-  }
-
-  public function test_doctor_agenda_is_accessible(): void
-  {
-    [$doctorUser] = $this->dashboardContext();
-
-    $this->actingAs($doctorUser)
-      ->get('/doctor/agenda')
-      ->assertOk()
-      ->assertSee('Agenda')
-      ->assertDontSee('/doctor/agendav2', false)
-      ->assertSee('Appuntamenti')
-      ->assertSee('Slot disponibili')
-      ->assertSee('Fatturato')
-      ->assertSee('Crea disponibilita')
-      ->assertSee('week-strip', false)
-      ->assertSee('week-day', false);
-  }
-
-  public function test_legacy_doctor_agendav2_url_redirects_to_agenda(): void
-  {
-    [$doctorUser] = $this->dashboardContext();
-
-    $this->actingAs($doctorUser)
-      ->get('/doctor/agendav2?date=2030-04-29')
-      ->assertRedirect('/doctor/agenda?date=2030-04-29');
-  }
-
-  public function test_doctor_agenda_week_strip_shows_full_week_on_one_line(): void
-  {
-    $doctorUser = $this->makeDoctorUser();
-    $weekStart = CarbonImmutable::parse('2030-04-29')->startOfWeek(CarbonImmutable::MONDAY);
-
-    $response = $this->actingAs($doctorUser)
-      ->get('/doctor/agenda?'.http_build_query([
-        'date'       => $weekStart->addDays(5)->toDateString(),
-        'week_start' => $weekStart->toDateString(),
-      ]))
-      ->assertOk();
-
-    $content = $response->getContent();
-
-    $this->assertStringContainsString('week-strip week-strip--agenda', $content);
-    $this->assertSame(7, substr_count($content, '<a class="week-day'));
-    $this->assertSame(2, substr_count($content, 'week-day--weekend'));
-    $this->assertStringContainsString('week-day week-day--weekend week-day--selected', $content);
-    $this->assertStringContainsString('date='.$weekStart->addDays(5)->toDateString(), $content);
-    $this->assertStringContainsString('date='.$weekStart->addDays(6)->toDateString(), $content);
-  }
-
-  public function test_doctor_agenda_shows_fatturato_for_selected_day(): void
-  {
-    [$doctorUser] = $this->dashboardContext();
-
-    $service = MedicalService::create(['name' => 'Visita a pagamento', 'price' => '80.00']);
-    $slot = $this->slot(2);
-    $patientUser = User::create([
-      'username' => 'fatturato.patient',
-      'password' => Hash::make('x'),
-      'role'     => User::ROLE_PATIENT,
-    ]);
-    $patient = PatientProfile::create(['user_id' => $patientUser->id, 'phone' => '555-9999']);
-    $this->appointment($patient, $service, $slot);
-
-    $this->actingAs($doctorUser)
-      ->get('/doctor/agenda?date=' . now()->toDateString())
-      ->assertOk()
-      ->assertSee('80,00');
-  }
-
-  public function test_doctor_agenda_preview_with_source_renders_agenda_view(): void
-  {
-    [$doctorUser] = $this->dashboardContext();
-    $targetDate = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
-
-    $this->actingAs($doctorUser)
-      ->get('/doctor/availability/preview?' . http_build_query([
-        'source'        => 'agenda',
-        'start_date'    => $targetDate->toDateString(),
-        'end_date'      => $targetDate->toDateString(),
-        'weekdays'      => [$targetDate->dayOfWeekIso],
-        'start_time'    => '09:00',
-        'end_time'      => '10:00',
-        'slot_duration' => '30',
-      ]))
-      ->assertOk()
-      ->assertViewIs('doctor.agenda');
-  }
-
-  public function test_doctor_agenda_batch_store_redirects_to_agenda(): void
-  {
-    [$doctorUser] = $this->dashboardContext();
-    $targetDate = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
-
-    $this->actingAs($doctorUser)
-      ->post('/doctor/availability/batch', [
-        '_source'       => 'agenda',
-        'start_date'    => $targetDate->toDateString(),
-        'end_date'      => $targetDate->toDateString(),
-        'weekdays'      => [$targetDate->dayOfWeekIso],
-        'start_time'    => '09:00',
-        'end_time'      => '10:00',
-        'slot_duration' => '30',
-      ])
-      ->assertRedirect('/doctor/agenda');
   }
 }

@@ -1,6 +1,6 @@
 # ER Diagram
 
-Schema aggiornato dopo la semplificazione a singolo medico. Il diagramma include solo le tabelle applicative attuali e omette le tabelle tecniche Laravel come `cache`, `sessions`, `password_reset_tokens` e `migrations`.
+Schema aggiornato dopo il passaggio dalle disponibilita salvate come slot fisici alla disponibilita dinamica basata su regole. Il diagramma include solo le tabelle applicative attuali e omette le tabelle tecniche Laravel come `cache`, `sessions`, `password_reset_tokens` e `migrations`.
 
 > Nota: tutte le tabelle includono i timestamp standard `creato_il` (`created_at`) e `aggiornato_il` (`updated_at`), gestiti automaticamente da Eloquent. Sono omessi dal diagramma per leggibilita.
 
@@ -33,6 +33,8 @@ erDiagram
     string nome_visualizzato
     text biografia
     string numero_albo
+    string telefono
+    string indirizzo_studio
     boolean attivo
   }
 
@@ -45,19 +47,40 @@ erDiagram
     boolean attivo
   }
 
-  AVAILABILITY_SLOTS {
+  WORKING_HOURS {
     bigint id PK
-    datetime inizio_il UK
-    datetime fine_il
-    boolean bloccato
-    boolean prenotato
+    bigint id_medico FK
+    tinyint giorno_settimana
+    time ora_inizio
+    time ora_fine
+    date valido_dal
+    date valido_al
+    boolean attivo
+  }
+
+  SPECIAL_OPENINGS {
+    bigint id PK
+    bigint id_medico FK
+    date data
+    time ora_inizio
+    time ora_fine
+    string nota
+  }
+
+  CLOSURES {
+    bigint id PK
+    bigint id_medico FK
+    date data
+    time ora_inizio
+    time ora_fine
+    string motivo
   }
 
   APPOINTMENTS {
     bigint id PK
     bigint id_paziente FK
+    bigint id_medico FK
     bigint id_prestazione FK
-    bigint id_slot FK
     datetime inizio_il
     datetime fine_il
     string stato
@@ -66,19 +89,22 @@ erDiagram
   }
 
   USERS ||--o| PATIENT_PROFILES : "ha profilo paziente"
-  USERS ||--|| DOCTOR_PROFILES : "ha profilo medico (unico)"
+  USERS ||--|| DOCTOR_PROFILES : "ha profilo medico"
+  DOCTOR_PROFILES ||--o{ WORKING_HOURS : "configura orari ricorrenti"
+  DOCTOR_PROFILES ||--o{ SPECIAL_OPENINGS : "aggiunge aperture straordinarie"
+  DOCTOR_PROFILES ||--o{ CLOSURES : "blocca chiusure"
+  DOCTOR_PROFILES ||--o{ APPOINTMENTS : "riceve"
   PATIENT_PROFILES ||--o{ APPOINTMENTS : "prenota"
   MEDICAL_SERVICES ||--o{ APPOINTMENTS : "prestazione"
-  AVAILABILITY_SLOTS ||--o| APPOINTMENTS : "slot prenotato"
 ```
 
 Note dominio attuale:
 
-- L'applicazione e pensata per un solo medico: la relazione `USERS — DOCTOR_PROFILES` e modellata come **1 a 1 obbligatoria** (esiste sempre uno e un solo utente con `role='doctor'`, creato via seeder, con il corrispondente record in `doctor_profiles`). `DOCTOR_PROFILES` resta per autenticazione/profilo dell'area medico ma non viene piu collegata a slot o appuntamenti.
-- La specialita e fissa a livello applicativo, ad esempio dermatologia.
-- Gli appuntamenti non salvano piu medico o ambulatorio, perche il sistema lavora con un solo medico e senza scelta ambulatorio.
-- Le disponibilita sono globali del medico unico: `availability_slots.start_at` e univoco.
-- I trattamenti dell'area medico coincidono con le prestazioni prenotabili e vengono salvati in `medical_services`.
+- L'applicazione resta pensata per un solo medico e un solo studio fisico. Le regole di disponibilita sono comunque collegate a `doctor_profiles` per mantenere chiara la proprieta del calendario.
+- Non esiste piu una tabella di slot fisici futuri. Gli orari prenotabili vengono generati dinamicamente a partire da `working_hours`, `special_openings`, `closures` e dagli appuntamenti attivi.
+- La griglia di inizio appuntamento resta fissa a 30 minuti. La durata effettiva viene presa da `medical_services.durata_minuti` e deve entrare interamente in una finestra aperta.
+- `closures` ha precedenza su aperture ordinarie e straordinarie. Se `ora_inizio` e `ora_fine` sono nulle, la chiusura vale per l'intera giornata.
+- Gli appuntamenti copiano `inizio_il` e `fine_il` per conservare lo storico anche se le regole di disponibilita cambiano in seguito.
 
 Vincoli principali:
 
@@ -86,4 +112,4 @@ Vincoli principali:
 - `patient_profiles.id_utente` e univoco.
 - `doctor_profiles.id_utente` e univoco.
 - `medical_services.nome` e univoco.
-- `availability_slots.inizio_il` e univoco.
+- Le prenotazioni non dipendono da uno slot persistito: la disponibilita viene riverificata in transazione bloccando il profilo medico e controllando sovrapposizioni con appuntamenti attivi.

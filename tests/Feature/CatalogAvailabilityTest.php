@@ -2,8 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\AvailabilitySlot;
+use App\Models\DoctorProfile;
 use App\Models\MedicalService;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -28,23 +29,27 @@ class CatalogAvailabilityTest extends TestCase
 
   public function test_availability_filters_available_future_slots_by_service(): void
   {
+    $doctorUser = User::create(['username' => 'doctor', 'password' => 'x', 'role' => User::ROLE_DOCTOR]);
+    $doctor = DoctorProfile::create(['user_id' => $doctorUser->id, 'display_name' => 'Dott. Test']);
     $service = MedicalService::create(['name' => 'Visita dermatologica']);
     $start = CarbonImmutable::now()->addDay()->setTime(9, 0);
-    $visible = AvailabilitySlot::create([
-      'start_at' => $start,
-      'end_at' => $start->addMinutes(30),
+    $doctor->specialOpenings()->create([
+      'date' => $start->toDateString(),
+      'start_time' => $start->format('H:i:s'),
+      'end_time' => $start->addHour()->format('H:i:s'),
     ]);
-    AvailabilitySlot::create([
-      'start_at' => $start->addHour(),
-      'end_at' => $start->addMinutes(90),
-      'is_blocked' => true,
+    $doctor->closures()->create([
+      'date' => $start->toDateString(),
+      'start_time' => $start->addMinutes(30)->format('H:i:s'),
+      'end_time' => $start->addHour()->format('H:i:s'),
+      'reason' => 'Blocco',
     ]);
 
     $response = $this->getJson('/availability?service='.$service->id);
 
     $response->assertOk();
     $response->assertJsonCount(1);
-    $response->assertJsonPath('0.id', $visible->id);
+    $response->assertJsonPath('0.slot_key', $start->format('Y-m-d\TH:i'));
     $response->assertJsonMissingPath('0.doctor_name');
     $response->assertJsonMissingPath('0.clinic_name');
   }

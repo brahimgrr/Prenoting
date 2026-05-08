@@ -60,10 +60,13 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/doctor', fn () => redirect('/doctor/agenda'));
     Route::get('/doctor/agenda', [DoctorDashboardController::class, 'agenda']);
     Route::get('/doctor/agendav2', fn () => redirect('/doctor/agenda'.(request()->getQueryString() ? '?'.request()->getQueryString() : '')));
-    Route::get('/doctor/availability/preview', [DoctorDashboardController::class, 'previewAvailability']);
-    Route::post('/doctor/availability/batch', [DoctorDashboardController::class, 'storeAvailabilityBatch']);
-    Route::post('/doctor/availability/{slot}/block', [DoctorDashboardController::class, 'blockAvailability']);
-    Route::post('/doctor/availability/{slot}/unblock', [DoctorDashboardController::class, 'unblockAvailability']);
+    Route::post('/doctor/availability/block', [DoctorDashboardController::class, 'blockAvailability']);
+    Route::post('/doctor/closures', [DoctorDashboardController::class, 'storeClosure']);
+    Route::patch('/doctor/closures/{closure}', [DoctorDashboardController::class, 'updateClosure']);
+    Route::delete('/doctor/closures/{closure}', [DoctorDashboardController::class, 'destroyClosure']);
+    Route::post('/doctor/special-openings', [DoctorDashboardController::class, 'storeSpecialOpening']);
+    Route::patch('/doctor/special-openings/{specialOpening}', [DoctorDashboardController::class, 'updateSpecialOpening']);
+    Route::delete('/doctor/special-openings/{specialOpening}', [DoctorDashboardController::class, 'destroySpecialOpening']);
     Route::get('/doctor/treatments', [DoctorTreatmentController::class, 'index']);
     Route::post('/doctor/treatments', [DoctorTreatmentController::class, 'store']);
     Route::get('/doctor/treatments/{service}/edit', [DoctorTreatmentController::class, 'edit']);
@@ -71,6 +74,7 @@ Route::middleware('auth')->group(function (): void {
     Route::delete('/doctor/treatments/{service}', [DoctorTreatmentController::class, 'destroy']);
     Route::get('/doctor/profile', [DoctorProfileController::class, 'edit']);
     Route::patch('/doctor/profile', [DoctorProfileController::class, 'update']);
+    Route::patch('/doctor/profile/working-hours', [DoctorProfileController::class, 'updateWorkingHours']);
     Route::post('/doctor/appointments/{appointment}/status', [DoctorDashboardController::class, 'updateStatus']);
   });
 });

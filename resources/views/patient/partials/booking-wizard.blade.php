@@ -52,8 +52,8 @@
   @if ($selectedService && $selectedSlot)
     @php
       $cancelSelectionUrl = $isReschedule
-        ? $queryUrl(['date' => null, 'slot_id' => null], 'booking-step-service')
-        : $queryUrl(['service_id' => null, 'date' => null, 'slot_id' => null], 'booking-step-service');
+        ? $queryUrl(['date' => null, 'slot_start' => null], 'booking-step-service')
+        : $queryUrl(['service_id' => null, 'date' => null, 'slot_start' => null], 'booking-step-service');
     @endphp
     <section id="booking-confirm" class="portal-panel booking-step booking-confirm-panel">
       <div class="section-heading">
@@ -83,7 +83,7 @@
             <textarea class="form-control" name="notes" rows="3" placeholder="Aggiungi indicazioni utili per il medico"></textarea>
           </label>
         @endif
-        <input type="hidden" name="slot_id" value="{{ $selectedSlot->id }}">
+        <input type="hidden" name="slot_start" value="{{ $selectedSlot->key }}">
         <button type="submit" class="btn btn-primary">
           {{ $isReschedule ? 'Conferma spostamento' : 'Conferma prenotazione' }}
         </button>

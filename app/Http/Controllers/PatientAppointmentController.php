@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
-use App\Models\AvailabilitySlot;
+use App\Models\DoctorProfile;
 use App\Models\MedicalService;
+use App\Services\AvailabilityService;
 use App\Services\AppointmentService;
+use App\Support\VirtualAvailabilitySlot;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +17,10 @@ use Illuminate\View\View;
 class PatientAppointmentController extends Controller
 {
   private const AVAILABLE_DAYS_PAGE_SIZE = 5;
+
+  public function __construct(private readonly AvailabilityService $availability)
+  {
+  }
 
   public function index(Request $request): View
   {
@@ -38,11 +44,12 @@ class PatientAppointmentController extends Controller
   {
     $this->authorizePatientAppointment($request, $appointment);
     $appointment->loadMissing(['service']);
+    $doctor = $appointment->doctor ?? $this->availability->primaryDoctor();
     $service = $appointment->service;
-    $selectedSlot = $service ? $this->selectedSlotFor($service, $request->integer('slot_id'), $appointment) : null;
+    $selectedSlot = $service ? $this->selectedSlotFor($doctor, $service, (string) $request->query('slot_start', ''), $appointment) : null;
     $selectedPeriod = $this->resolveSelectedPeriod($request);
-    $allAvailableDates = $service ? $this->availableDatesFor($service, $appointment) : collect();
-    $filteredAvailableDates = $service ? $this->availableDatesFor($service, $appointment, $selectedPeriod) : collect();
+    $allAvailableDates = $service ? $this->availableDatesFor($doctor, $service, $appointment) : collect();
+    $filteredAvailableDates = $service ? $this->availableDatesFor($doctor, $service, $appointment, $selectedPeriod) : collect();
     $visibleDates = $filteredAvailableDates->isNotEmpty() ? $filteredAvailableDates : $allAvailableDates;
     $weekStart = $this->resolveWeekStart($request, $service, $selectedSlot, $appointment, $visibleDates);
     $weekDays = $service ? $this->weekDaysFor($visibleDates, $weekStart) : collect();
@@ -62,7 +69,7 @@ class PatientAppointmentController extends Controller
       'visibleMonth' => $visibleMonth,
       'availableMonths' => $service ? $this->availableMonthsFor($allAvailableDates) : collect(),
       'weekDays' => $weekDays,
-      'weekSlots' => $this->allWeekSlotsFor($weekDays, $service, $appointment, $selectedPeriod),
+      'weekSlots' => $this->allWeekSlotsFor($doctor, $weekDays, $service, $appointment, $selectedPeriod),
       'weekPartialUrl' => null,
       'baseUrl' => url("/appointments/{$appointment->id}/edit"),
       'formAction' => "/appointments/{$appointment->id}/reschedule",
@@ -87,10 +94,10 @@ class PatientAppointmentController extends Controller
   {
     $this->authorizePatientAppointment($request, $appointment);
     $validated = $request->validate([
-      'slot_id' => ['required', 'integer', 'exists:availability_slots,id'],
+      'slot_start' => ['required', 'date_format:Y-m-d\TH:i'],
     ]);
 
-    $appointments->reschedule($appointment, (int) $validated['slot_id']);
+    $appointments->reschedule($appointment, (string) $validated['slot_start']);
 
     return redirect('/patient/appointments')->with('status', 'Appuntamento spostato.');
   }
@@ -100,7 +107,7 @@ class PatientAppointmentController extends Controller
     abort_unless($appointment->patient_id === $request->user()->patientProfile->id, 404);
   }
 
-  private function resolveWeekStart(Request $request, ?MedicalService $service, ?AvailabilitySlot $selectedSlot, Appointment $appointment, Collection $availableDates): CarbonImmutable
+  private function resolveWeekStart(Request $request, ?MedicalService $service, ?VirtualAvailabilitySlot $selectedSlot, Appointment $appointment, Collection $availableDates): CarbonImmutable
   {
     if ($request->filled('week_start')) {
       $requested = CarbonImmutable::parse((string) $request->string('week_start'))->startOfDay();
@@ -126,7 +133,7 @@ class PatientAppointmentController extends Controller
     return $availableDates->first() ?? CarbonImmutable::now()->startOfDay();
   }
 
-  private function resolveVisibleMonth(Request $request, Collection $weekDays, ?AvailabilitySlot $selectedSlot): CarbonImmutable
+  private function resolveVisibleMonth(Request $request, Collection $weekDays, ?VirtualAvailabilitySlot $selectedSlot): CarbonImmutable
   {
     if ($request->filled('month')) {
       return CarbonImmutable::createFromFormat('Y-m-d', $request->query('month').'-01')->startOfMonth();
@@ -192,42 +199,37 @@ class PatientAppointmentController extends Controller
     return $index === false ? 0 : $index;
   }
 
-  private function allWeekSlotsFor(Collection $weekDays, ?MedicalService $service, Appointment $appointment, string $selectedPeriod): Collection
+  private function allWeekSlotsFor(DoctorProfile $doctor, Collection $weekDays, ?MedicalService $service, Appointment $appointment, string $selectedPeriod): Collection
   {
-    return $weekDays->mapWithKeys(function (array $day) use ($service, $appointment, $selectedPeriod): array {
+    return $weekDays->mapWithKeys(function (array $day) use ($doctor, $service, $appointment, $selectedPeriod): array {
       $dateStr = $day['date']->toDateString();
 
-      return [$dateStr => $service ? $this->availableSlotsFor($service, $dateStr, $appointment, $selectedPeriod) : collect()];
+      return [$dateStr => $service ? $this->availableSlotsFor($doctor, $service, $dateStr, $appointment, $selectedPeriod) : collect()];
     });
   }
 
-  private function availableSlotsFor(MedicalService $service, string $date, Appointment $appointment, string $selectedPeriod = 'all'): Collection
+  private function availableSlotsFor(DoctorProfile $doctor, MedicalService $service, string $date, Appointment $appointment, string $selectedPeriod = 'all'): Collection
   {
-    $slots = $this->availableSlotQuery($service, $appointment)
-      ->whereDate('start_at', $date)
-      ->orderBy('start_at')
-      ->get();
+    $slots = $this->availability->availableSlotsForDate($doctor, $service, $date, $appointment);
 
     if ($selectedPeriod === 'mattina') {
-      return $slots->filter(fn (AvailabilitySlot $slot) => $slot->start_at->hour < 13)->values();
+      return $slots->filter(fn (VirtualAvailabilitySlot $slot) => $slot->start_at->hour < 13)->values();
     }
 
     if ($selectedPeriod === 'pomeriggio') {
-      return $slots->filter(fn (AvailabilitySlot $slot) => $slot->start_at->hour >= 13)->values();
+      return $slots->filter(fn (VirtualAvailabilitySlot $slot) => $slot->start_at->hour >= 13)->values();
     }
 
     return $slots;
   }
 
-  private function selectedSlotFor(MedicalService $service, int $slotId, Appointment $appointment): ?AvailabilitySlot
+  private function selectedSlotFor(DoctorProfile $doctor, MedicalService $service, string $slotStart, Appointment $appointment): ?VirtualAvailabilitySlot
   {
-    if (! $slotId) {
+    if ($slotStart === '') {
       return null;
     }
 
-    return $this->availableSlotQuery($service, $appointment)
-      ->whereKey($slotId)
-      ->first();
+    return $this->availability->availableSlotByKey($doctor, $service, $slotStart, $appointment);
   }
 
   private function availableMonthsFor(Collection $availableDates): Collection
@@ -238,7 +240,7 @@ class PatientAppointmentController extends Controller
       ->values();
   }
 
-  private function resolveSelectedDate(Request $request, ?AvailabilitySlot $selectedSlot, Collection $weekDays): ?string
+  private function resolveSelectedDate(Request $request, ?VirtualAvailabilitySlot $selectedSlot, Collection $weekDays): ?string
   {
     $requestedDate = $request->query('date');
 
@@ -256,32 +258,8 @@ class PatientAppointmentController extends Controller
     return $firstVisibleDate?->toDateString();
   }
 
-  private function availableDatesFor(MedicalService $service, Appointment $appointment, string $selectedPeriod = 'all'): Collection
+  private function availableDatesFor(DoctorProfile $doctor, MedicalService $service, Appointment $appointment, string $selectedPeriod = 'all'): Collection
   {
-    return $this->availableSlotQuery($service, $appointment)
-      ->orderBy('start_at')
-      ->get(['start_at'])
-      ->map(fn (AvailabilitySlot $slot) => CarbonImmutable::parse($slot->start_at))
-      ->filter(function (CarbonImmutable $slot) use ($selectedPeriod): bool {
-        if ($selectedPeriod === 'mattina') {
-          return $slot->hour < 13;
-        }
-
-        if ($selectedPeriod === 'pomeriggio') {
-          return $slot->hour >= 13;
-        }
-
-        return true;
-      })
-      ->map(fn (CarbonImmutable $slot) => $slot->startOfDay())
-      ->unique(fn (CarbonImmutable $date) => $date->toDateString())
-      ->values();
-  }
-
-  private function availableSlotQuery(MedicalService $service, Appointment $appointment)
-  {
-    return AvailabilitySlot::query()
-      ->publicAvailable()
-      ->whereKeyNot($appointment->slot_id);
+    return $this->availability->availableDates($doctor, $service, $selectedPeriod, $appointment);
   }
 }

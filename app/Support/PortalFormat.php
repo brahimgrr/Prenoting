@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Models\Appointment;
-use App\Models\AvailabilitySlot;
 use App\Models\MedicalService;
 
 class PortalFormat
@@ -19,10 +18,11 @@ class PortalFormat
     ];
   }
 
-  public static function slot(AvailabilitySlot $slot): array
+  public static function slot(VirtualAvailabilitySlot $slot): array
   {
     return [
-      'id' => $slot->id,
+      'slot_key' => $slot->key,
+      'slot_start' => $slot->key,
       'start_at' => $slot->start_at?->toISOString(),
       'end_at' => $slot->end_at?->toISOString(),
     ];
@@ -36,7 +36,7 @@ class PortalFormat
       'patient_name' => $appointment->patientName(),
       'service' => $appointment->service_id,
       'service_name' => $appointment->service?->name,
-      'slot' => $appointment->slot_id,
+      'doctor' => $appointment->doctor_profile_id,
       'start_at' => $appointment->start_at?->toISOString(),
       'end_at' => $appointment->end_at?->toISOString(),
       'status' => $appointment->status,

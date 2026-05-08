@@ -1,0 +1,140 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Appointment;
+use App\Models\DoctorProfile;
+use App\Models\MedicalService;
+use App\Models\PatientProfile;
+use App\Models\User;
+use App\Models\WorkingHour;
+use App\Models\ScheduleClosure;
+use App\Services\AvailabilityService;
+use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
+
+class DynamicAvailabilityTest extends TestCase
+{
+  use RefreshDatabase;
+
+  public function test_generates_virtual_slots_from_doctor_working_hours(): void
+  {
+    [$patientUser, $patient, $doctor, $service] = $this->bookingContext();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    $this->workingHour($doctor, $date->dayOfWeekIso, '09:00', '10:30');
+
+    $slots = app(AvailabilityService::class)->availableSlotsForDate($doctor, $service, $date);
+
+    $this->assertSame(['09:00', '09:30', '10:00'], $slots->map(fn ($slot) => $slot->start_at->format('H:i'))->all());
+    $this->assertSame($date->setTime(9, 0)->format('Y-m-d\TH:i'), $slots->first()->key);
+  }
+
+  public function test_closures_override_working_hours_and_special_openings(): void
+  {
+    [$patientUser, $patient, $doctor, $service] = $this->bookingContext();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    $this->workingHour($doctor, $date->dayOfWeekIso, '09:00', '11:00');
+    $doctor->specialOpenings()->create([
+      'date' => $date->toDateString(),
+      'start_time' => '11:00',
+      'end_time' => '12:00',
+      'note' => 'Apertura extra',
+    ]);
+    $doctor->closures()->create([
+      'date' => $date->toDateString(),
+      'start_time' => '09:30',
+      'end_time' => '11:30',
+      'reason' => 'Riunione',
+    ]);
+
+    $slots = app(AvailabilityService::class)->availableSlotsForDate($doctor, $service, $date);
+
+    $this->assertSame(['09:00', '11:30'], $slots->map(fn ($slot) => $slot->start_at->format('H:i'))->all());
+  }
+
+  public function test_service_duration_must_fit_inside_open_window(): void
+  {
+    [$patientUser, $patient, $doctor, $service] = $this->bookingContext();
+    $service->forceFill(['duration_minutes' => 60])->save();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    $this->workingHour($doctor, $date->dayOfWeekIso, '09:00', '10:30');
+
+    $slots = app(AvailabilityService::class)->availableSlotsForDate($doctor, $service, $date);
+
+    $this->assertSame(['09:00', '09:30'], $slots->map(fn ($slot) => $slot->start_at->format('H:i'))->all());
+  }
+
+  public function test_patient_books_generated_slot_start_and_second_attempt_fails(): void
+  {
+    [$patientUser, $patient, $doctor, $service] = $this->bookingContext();
+    $otherUser = $this->patient('other-patient')[0];
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    $this->workingHour($doctor, $date->dayOfWeekIso, '09:00', '10:00');
+    $slotStart = $date->setTime(9, 0)->format('Y-m-d\TH:i');
+
+    $response = $this->actingAs($patientUser)->post('/appointments', [
+      'slot_start' => $slotStart,
+      'service_id' => $service->id,
+      'notes' => 'Prima visita',
+    ]);
+
+    $response->assertRedirect('/patient/appointments');
+    $appointment = Appointment::firstOrFail();
+    $this->assertSame($doctor->id, $appointment->doctor_profile_id);
+    $this->assertSame($slotStart, $appointment->start_at->format('Y-m-d\TH:i'));
+
+    $second = $this->actingAs($otherUser)->from('/patient/book')->post('/appointments', [
+      'slot_start' => $slotStart,
+      'service_id' => $service->id,
+    ]);
+
+    $second->assertRedirect('/patient/book');
+    $second->assertSessionHasErrors('slot_start');
+    $this->assertSame(1, Appointment::count());
+  }
+
+  private function bookingContext(): array
+  {
+    [$patientUser, $patient] = $this->patient('patient');
+    $doctorUser = User::create([
+      'username' => 'doctor.derm',
+      'password' => Hash::make('doctor123'),
+      'role' => User::ROLE_DOCTOR,
+    ]);
+    $doctor = DoctorProfile::create([
+      'user_id' => $doctorUser->id,
+      'display_name' => 'Dott. Mbappe',
+    ]);
+    $service = MedicalService::create([
+      'name' => 'Visita dermatologica',
+      'duration_minutes' => 30,
+    ]);
+
+    return [$patientUser, $patient, $doctor, $service];
+  }
+
+  private function patient(string $username): array
+  {
+    $user = User::create([
+      'username' => $username,
+      'password' => Hash::make('patient123'),
+      'role' => User::ROLE_PATIENT,
+    ]);
+    $profile = PatientProfile::create(['user_id' => $user->id, 'phone' => '555-0100']);
+
+    return [$user, $profile];
+  }
+
+  private function workingHour(DoctorProfile $doctor, int $weekday, string $start, string $end): WorkingHour
+  {
+    return WorkingHour::create([
+      'doctor_profile_id' => $doctor->id,
+      'weekday' => $weekday,
+      'start_time' => $start,
+      'end_time' => $end,
+      'is_active' => true,
+    ]);
+  }
+}

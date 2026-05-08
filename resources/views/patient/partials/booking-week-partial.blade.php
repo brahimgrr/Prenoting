@@ -121,7 +121,7 @@
                 'period' => $period === 'all' ? null : $period,
                 'week_start' => $weekStart->toDateString(),
                 'date' => $currentDate,
-                'slot_id' => null,
+                'slot_start' => null,
               ], 'booking-step-day');
             @endphp
             <a
@@ -139,11 +139,11 @@
             @foreach ($daySlots as $slot)
               @php
                 $slotPeriod = $slot->start_at->hour < 13 ? 'mattina' : 'pomeriggio';
-                $isSelectedSlot = ($selectedSlot ?? null)?->id === $slot->id;
+                $isSelectedSlot = ($selectedSlot ?? null)?->key === $slot->key;
                 $slotPageUrl = $buildUrl($baseUrl, [
                   'week_start' => $weekStart->toDateString(),
                   'date' => $dateStr,
-                  'slot_id' => $slot->id,
+                  'slot_start' => $slot->key,
                 ], 'booking-confirm');
               @endphp
               <div class="col-4 col-md-3 col-xl-2 slot-choice-col" data-period="{{ $slotPeriod }}">
