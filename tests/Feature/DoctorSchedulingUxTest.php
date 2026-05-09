@@ -177,7 +177,7 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertSessionHasErrors('working_hours');
   }
 
-  public function test_working_hours_template_rejects_changes_that_exclude_active_appointments(): void
+  public function test_working_hours_template_requires_confirmation_to_cancel_unsupported_appointments(): void
   {
     [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
     $appointmentStart = CarbonImmutable::now()->next(CarbonImmutable::MONDAY)->setTime(10, 0);
@@ -188,7 +188,7 @@ class DoctorSchedulingUxTest extends TestCase
       'end_time' => '12:00',
       'is_active' => true,
     ]);
-    $this->appointment($patient, $doctor, $service, $appointmentStart);
+    $appointment = $this->appointment($patient, $doctor, $service, $appointmentStart);
 
     $this->actingAs($doctorUser)
       ->from('/doctor/profile')
@@ -200,11 +200,50 @@ class DoctorSchedulingUxTest extends TestCase
         ],
       ])
       ->assertRedirect('/doctor/profile')
-      ->assertSessionHasErrors('working_hours');
+      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool =>
+        $confirmation['reason'] === 'Cambio orario lavoro medico'
+        && $confirmation['action'] === '/doctor/profile/working-hours'
+        && count($confirmation['appointments']) === 1
+        && $confirmation['appointments'][0]['id'] === $appointment->id
+      );
 
     $this->assertDatabaseHas('working_hours', [
       'doctor_profile_id' => $doctor->id,
       'weekday' => $appointmentStart->dayOfWeekIso,
+      'start_time' => '09:00',
+    ]);
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CONFIRMED,
+      'cancellation_reason' => null,
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/profile')
+      ->patch('/doctor/profile/working-hours', [
+        'confirm_appointment_cancellations' => '1',
+        'working_hours' => [
+          2 => [
+            ['start_time' => '09:00', 'end_time' => '12:00'],
+          ],
+        ],
+      ])
+      ->assertRedirect('/doctor/profile')
+      ->assertSessionHas('status', 'Orari ambulatorio aggiornati.');
+
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CANCELLED,
+      'cancellation_reason' => 'Cambio orario lavoro medico',
+    ]);
+    $this->assertDatabaseMissing('working_hours', [
+      'doctor_profile_id' => $doctor->id,
+      'weekday' => $appointmentStart->dayOfWeekIso,
+      'start_time' => '09:00',
+    ]);
+    $this->assertDatabaseHas('working_hours', [
+      'doctor_profile_id' => $doctor->id,
+      'weekday' => 2,
       'start_time' => '09:00',
     ]);
   }
@@ -283,11 +322,59 @@ class DoctorSchedulingUxTest extends TestCase
     $this->assertStringNotContainsString('data-agenda-closure-segment="1"', $content);
   }
 
-  public function test_closure_overlapping_active_appointment_is_rejected(): void
+  public function test_agenda_week_strip_treats_saturday_and_sunday_like_regular_days(): void
+  {
+    [$doctorUser] = $this->doctorContext();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+
+    $response = $this->actingAs($doctorUser)
+      ->get('/doctor/agenda?date='.$date->toDateString())
+      ->assertOk()
+      ->assertSee('week-day--selected', false);
+
+    $this->assertStringNotContainsString('week-day--weekend', $response->getContent());
+  }
+
+  public function test_past_agenda_days_render_only_appointments_without_slots_or_closures(): void
+  {
+    [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
+    $date = CarbonImmutable::now()->subWeek()->startOfDay();
+    WorkingHour::create([
+      'doctor_profile_id' => $doctor->id,
+      'weekday' => $date->dayOfWeekIso,
+      'start_time' => '09:00',
+      'end_time' => '11:00',
+      'is_active' => true,
+    ]);
+    $closure = $doctor->closures()->create([
+      'date' => $date->toDateString(),
+      'start_time' => '09:30',
+      'end_time' => '10:00',
+      'reason' => 'Riunione passata',
+    ]);
+    $this->appointment($patient, $doctor, $service, $date->setTime(10, 0));
+
+    $response = $this->actingAs($doctorUser)
+      ->get('/doctor/agenda?date='.$date->toDateString())
+      ->assertOk()
+      ->assertViewHas('daySlots', fn ($slots): bool => $slots->isEmpty())
+      ->assertViewHas('dayClosures', fn ($closures): bool => $closures->isEmpty())
+      ->assertViewHas('dayEvents', fn ($events): bool => $events->isEmpty())
+      ->assertViewHas('upcomingScheduleEvents', fn ($events): bool => $events->isEmpty())
+      ->assertSee('patient')
+      ->assertSee('Visita dermatologica')
+      ->assertDontSee('Slot libero')
+      ->assertDontSee('Riunione passata')
+      ->assertDontSee('data-agenda-closure-id="'.$closure->id.'"', false);
+
+    $this->assertStringNotContainsString('doctor-agenda-item--free', $response->getContent());
+  }
+
+  public function test_closure_overlapping_active_appointment_requires_confirmation_to_cancel_it(): void
   {
     [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
     $start = CarbonImmutable::now()->next(CarbonImmutable::MONDAY)->setTime(9, 0);
-    $this->appointment($patient, $doctor, $service, $start);
+    $appointment = $this->appointment($patient, $doctor, $service, $start);
 
     $this->actingAs($doctorUser)
       ->from('/doctor/agenda?date='.$start->toDateString())
@@ -297,7 +384,145 @@ class DoctorSchedulingUxTest extends TestCase
         'reason' => 'Ferie',
       ])
       ->assertRedirect('/doctor/agenda?date='.$start->toDateString())
-      ->assertSessionHasErrors('closure');
+      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool =>
+        $confirmation['reason'] === 'Chiusura straordinaria studio'
+        && $confirmation['action'] === '/doctor/closures'
+        && count($confirmation['appointments']) === 1
+        && $confirmation['appointments'][0]['id'] === $appointment->id
+      );
+
+    $this->assertSame(0, $doctor->closures()->count());
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CONFIRMED,
+      'cancellation_reason' => null,
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->post('/doctor/closures', [
+        'confirm_appointment_cancellations' => '1',
+        'date' => $start->toDateString(),
+        'all_day' => '1',
+        'reason' => 'Ferie',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$start->toDateString())
+      ->assertSessionHas('status', 'Chiusura creata.');
+
+    $this->assertSame(1, $doctor->closures()->count());
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CANCELLED,
+      'cancellation_reason' => 'Chiusura straordinaria studio',
+    ]);
+  }
+
+  public function test_schedule_confirmation_modal_renders_affected_appointments_and_replays_operation(): void
+  {
+    [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
+    $start = CarbonImmutable::now()->next(CarbonImmutable::MONDAY)->setTime(9, 0);
+    $this->appointment($patient, $doctor, $service, $start);
+
+    $this->actingAs($doctorUser)
+      ->followingRedirects()
+      ->from('/doctor/agenda?date='.$start->toDateString())
+      ->post('/doctor/closures', [
+        'date' => $start->toDateString(),
+        'all_day' => '1',
+        'reason' => 'Ferie',
+      ])
+      ->assertOk()
+      ->assertSee('id="scheduleConfirmationModal"', false)
+      ->assertSee('Conferma chiusura')
+      ->assertSee('patient')
+      ->assertSee('Visita dermatologica')
+      ->assertSee('name="confirm_appointment_cancellations" value="1"', false)
+      ->assertSee('action="/doctor/closures"', false)
+      ->assertSee('name="date" value="'.$start->toDateString().'"', false)
+      ->assertSee('name="all_day" value="1"', false)
+      ->assertSee('Chiusura straordinaria studio');
+  }
+
+  public function test_creating_larger_closure_replaces_contained_closures(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    $first = $doctor->closures()->create([
+      'date' => $date->toDateString(),
+      'start_time' => '09:30',
+      'end_time' => '10:00',
+      'reason' => 'Telefonata',
+    ]);
+    $second = $doctor->closures()->create([
+      'date' => $date->toDateString(),
+      'start_time' => '11:00',
+      'end_time' => '11:30',
+      'reason' => 'Pausa',
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->post('/doctor/closures', [
+        'date' => $date->toDateString(),
+        'start_time' => '09:00',
+        'end_time' => '12:00',
+        'reason' => 'Riunione lunga',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$date->toDateString())
+      ->assertSessionHas('status', 'Chiusura creata.');
+
+    $this->assertDatabaseMissing('closures', ['id' => $first->id]);
+    $this->assertDatabaseMissing('closures', ['id' => $second->id]);
+    $this->assertSame(1, $doctor->closures()->whereDate('date', $date->toDateString())->count());
+
+    $closure = $doctor->closures()->whereDate('date', $date->toDateString())->firstOrFail();
+    $this->assertSame('09:00', substr((string) $closure->start_time, 0, 5));
+    $this->assertSame('12:00', substr((string) $closure->end_time, 0, 5));
+    $this->assertSame('Riunione lunga', $closure->reason);
+  }
+
+  public function test_creating_closure_inside_existing_larger_closure_is_rejected(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    $existing = $doctor->closures()->create([
+      'date' => $date->toDateString(),
+      'start_time' => '09:00',
+      'end_time' => '12:00',
+      'reason' => 'Riunione lunga',
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/agenda?date='.$date->toDateString())
+      ->post('/doctor/closures', [
+        'date' => $date->toDateString(),
+        'start_time' => '10:00',
+        'end_time' => '11:00',
+        'reason' => 'Pausa',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$date->toDateString())
+      ->assertSessionHasErrors([
+        'closure' => 'Questa chiusura e gia coperta da una chiusura esistente.',
+      ]);
+
+    $this->assertSame(1, $doctor->closures()->whereDate('date', $date->toDateString())->count());
+    $this->assertDatabaseHas('closures', ['id' => $existing->id]);
+  }
+
+  public function test_creating_closure_in_the_past_is_rejected(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $date = CarbonImmutable::now()->subDay()->startOfDay();
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/agenda?date='.$date->toDateString())
+      ->post('/doctor/closures', [
+        'date' => $date->toDateString(),
+        'all_day' => '1',
+        'reason' => 'Ferie passate',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$date->toDateString())
+      ->assertSessionHasErrors([
+        'closure' => 'Non puoi creare chiusure in date passate.',
+      ]);
 
     $this->assertSame(0, $doctor->closures()->count());
   }
@@ -331,7 +556,28 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertSessionHasErrors('special_opening');
   }
 
-  public function test_deleting_special_opening_that_supports_active_appointment_is_rejected(): void
+  public function test_creating_special_opening_in_the_past_is_rejected(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $date = CarbonImmutable::now()->subDay()->startOfDay();
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/agenda?date='.$date->toDateString())
+      ->post('/doctor/special-openings', [
+        'date' => $date->toDateString(),
+        'start_time' => '09:00',
+        'end_time' => '10:00',
+        'note' => 'Apertura passata',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$date->toDateString())
+      ->assertSessionHasErrors([
+        'special_opening' => 'Non puoi creare aperture extra in date passate.',
+      ]);
+
+    $this->assertSame(0, $doctor->specialOpenings()->count());
+  }
+
+  public function test_deleting_special_opening_that_supports_active_appointment_requires_confirmation_to_cancel_it(): void
   {
     [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
     $sunday = CarbonImmutable::now()->next(CarbonImmutable::SUNDAY)->setTime(9, 0);
@@ -341,15 +587,149 @@ class DoctorSchedulingUxTest extends TestCase
       'start_time' => '09:00',
       'end_time' => '10:00',
     ]);
-    $this->appointment($patient, $doctor, $service, $sunday);
+    $appointment = $this->appointment($patient, $doctor, $service, $sunday);
 
     $this->actingAs($doctorUser)
       ->from('/doctor/agenda?date='.$sunday->toDateString())
       ->delete("/doctor/special-openings/{$opening->id}")
       ->assertRedirect('/doctor/agenda?date='.$sunday->toDateString())
-      ->assertSessionHasErrors('special_opening');
+      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool =>
+        $confirmation['reason'] === 'Cambio orario lavoro medico'
+        && $confirmation['action'] === "/doctor/special-openings/{$opening->id}"
+        && $confirmation['method'] === 'DELETE'
+        && count($confirmation['appointments']) === 1
+        && $confirmation['appointments'][0]['id'] === $appointment->id
+      );
 
     $this->assertDatabaseHas('special_openings', ['id' => $opening->id]);
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CONFIRMED,
+      'cancellation_reason' => null,
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->delete("/doctor/special-openings/{$opening->id}", [
+        'confirm_appointment_cancellations' => '1',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$sunday->toDateString())
+      ->assertSessionHas('status', 'Apertura extra rimossa.');
+
+    $this->assertDatabaseMissing('special_openings', ['id' => $opening->id]);
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CANCELLED,
+      'cancellation_reason' => 'Cambio orario lavoro medico',
+    ]);
+  }
+
+  public function test_updating_special_opening_that_supports_active_appointment_requires_confirmation_to_cancel_it(): void
+  {
+    [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
+    $sunday = CarbonImmutable::now()->next(CarbonImmutable::SUNDAY)->setTime(9, 0);
+    $opening = SpecialOpening::create([
+      'doctor_profile_id' => $doctor->id,
+      'date' => $sunday->toDateString(),
+      'start_time' => '09:00',
+      'end_time' => '10:00',
+      'note' => 'Apertura domenicale',
+    ]);
+    $appointment = $this->appointment($patient, $doctor, $service, $sunday);
+
+    $payload = [
+      'date' => $sunday->toDateString(),
+      'start_time' => '10:00',
+      'end_time' => '11:00',
+      'note' => 'Nuovo turno',
+    ];
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/agenda?date='.$sunday->toDateString())
+      ->patch("/doctor/special-openings/{$opening->id}", $payload)
+      ->assertRedirect('/doctor/agenda?date='.$sunday->toDateString())
+      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool =>
+        $confirmation['reason'] === 'Cambio orario lavoro medico'
+        && $confirmation['action'] === "/doctor/special-openings/{$opening->id}"
+        && $confirmation['method'] === 'PATCH'
+        && $confirmation['payload']['start_time'] === '10:00'
+        && count($confirmation['appointments']) === 1
+        && $confirmation['appointments'][0]['id'] === $appointment->id
+      );
+
+    $this->assertDatabaseHas('special_openings', [
+      'id' => $opening->id,
+      'start_time' => '09:00',
+      'end_time' => '10:00',
+    ]);
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CONFIRMED,
+      'cancellation_reason' => null,
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->patch("/doctor/special-openings/{$opening->id}", $payload + [
+        'confirm_appointment_cancellations' => '1',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$sunday->toDateString())
+      ->assertSessionHas('status', 'Apertura extra aggiornata.');
+
+    $this->assertDatabaseHas('special_openings', [
+      'id' => $opening->id,
+      'start_time' => '10:00',
+      'end_time' => '11:00',
+    ]);
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CANCELLED,
+      'cancellation_reason' => 'Cambio orario lavoro medico',
+    ]);
+  }
+
+  public function test_deleting_closure_that_overlaps_active_appointment_requires_confirmation_to_cancel_it(): void
+  {
+    [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
+    $start = CarbonImmutable::now()->next(CarbonImmutable::MONDAY)->setTime(9, 0);
+    $closure = $doctor->closures()->create([
+      'date' => $start->toDateString(),
+      'start_time' => '08:00',
+      'end_time' => '10:00',
+      'reason' => 'Chiusura',
+    ]);
+    $appointment = $this->appointment($patient, $doctor, $service, $start);
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/agenda?date='.$start->toDateString())
+      ->delete("/doctor/closures/{$closure->id}")
+      ->assertRedirect('/doctor/agenda?date='.$start->toDateString())
+      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool =>
+        $confirmation['reason'] === 'Chiusura straordinaria studio'
+        && $confirmation['action'] === "/doctor/closures/{$closure->id}"
+        && $confirmation['method'] === 'DELETE'
+        && count($confirmation['appointments']) === 1
+        && $confirmation['appointments'][0]['id'] === $appointment->id
+      );
+
+    $this->assertDatabaseHas('closures', ['id' => $closure->id]);
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CONFIRMED,
+      'cancellation_reason' => null,
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->delete("/doctor/closures/{$closure->id}", [
+        'confirm_appointment_cancellations' => '1',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$start->toDateString())
+      ->assertSessionHas('status', 'Chiusura rimossa.');
+
+    $this->assertDatabaseMissing('closures', ['id' => $closure->id]);
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CANCELLED,
+      'cancellation_reason' => 'Chiusura straordinaria studio',
+    ]);
   }
 
   public function test_agenda_renders_exception_actions_and_upcoming_events_without_batch_availability(): void

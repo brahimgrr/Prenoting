@@ -189,6 +189,47 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertDontSeeText('Ambulatorio');
   }
 
+  public function test_patient_appointments_history_marks_past_and_cancelled_and_shows_visit_details(): void
+  {
+    [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
+    $service->forceFill(['price' => '95.50'])->save();
+
+    $pastSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 30),
+      $doctor->id,
+    );
+    $cancelledSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->addDays(4)->setTime(11, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->addDays(4)->setTime(11, 0),
+      CarbonImmutable::now()->addDays(4)->setTime(11, 30),
+      $doctor->id,
+    );
+
+    $this->appointment($patient, $doctor, $service, $pastSlot, Appointment::STATUS_COMPLETED, 'Controllo nei prossimi mesi');
+    $this->appointment(
+      $patient,
+      $doctor,
+      $service,
+      $cancelledSlot,
+      Appointment::STATUS_CANCELLED,
+      'Portare referti precedenti',
+      'Imprevisto personale',
+    );
+
+    $response = $this->actingAs($patientUser)->get('/patient/appointments');
+
+    $response->assertOk();
+    $response->assertSeeText('Passato');
+    $response->assertSeeText('Annullato');
+    $response->assertSeeText('EUR 95,50');
+    $response->assertSeeText('Controllo nei prossimi mesi');
+    $response->assertSeeText('Portare referti precedenti');
+    $response->assertSeeText('Imprevisto personale');
+    $response->assertSee('<dt>Motivo annullamento</dt>', false);
+  }
+
   public function test_patient_can_open_reschedule_wizard_and_confirm_new_start(): void
   {
     [$patientUser, $patient, $doctor, $service, $oldSlot] = $this->bookingContext();
@@ -279,6 +320,8 @@ class AppointmentWorkflowTest extends TestCase
     MedicalService $service,
     VirtualAvailabilitySlot $slot,
     string $status = Appointment::STATUS_CONFIRMED,
+    string $notes = '',
+    ?string $cancellationReason = null,
   ): Appointment {
     return Appointment::create([
       'patient_id' => $patient->id,
@@ -287,6 +330,8 @@ class AppointmentWorkflowTest extends TestCase
       'start_at' => $slot->start_at,
       'end_at' => $slot->end_at,
       'status' => $status,
+      'notes' => $notes,
+      'cancellation_reason' => $cancellationReason,
     ]);
   }
 }

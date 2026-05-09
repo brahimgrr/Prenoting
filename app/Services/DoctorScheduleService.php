@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\ScheduleAppointmentConflictsException;
 use App\Models\Appointment;
 use App\Models\DoctorProfile;
 use App\Models\ScheduleClosure;
@@ -14,6 +15,11 @@ use Illuminate\Validation\ValidationException;
 
 class DoctorScheduleService
 {
+  public const CONFIRM_APPOINTMENT_CANCELLATIONS_FIELD = 'confirm_appointment_cancellations';
+
+  private const WORKING_HOURS_CANCELLATION_REASON = 'Cambio orario lavoro medico';
+  private const CLOSURE_CANCELLATION_REASON = 'Chiusura straordinaria studio';
+
   public const WEEKDAYS = [
     1 => 'Lunedi',
     2 => 'Martedi',
@@ -55,18 +61,17 @@ class DoctorScheduleService
       ->all();
   }
 
-  public function replaceWeeklyTemplate(DoctorProfile $doctor, array $input): void
+  public function replaceWeeklyTemplate(DoctorProfile $doctor, array $input, bool $confirmed = false): void
   {
     $windows = $this->normalizeWorkingHours($input);
-    $conflicts = $this->appointmentsUnsupportedBy($doctor, $windows);
 
-    if ($conflicts->isNotEmpty()) {
-      throw ValidationException::withMessages([
-        'working_hours' => 'Gli orari escludono appuntamenti attivi: '.$this->formatAppointmentConflicts($conflicts),
-      ]);
-    }
+    DB::transaction(function () use ($doctor, $windows, $confirmed): void {
+      $this->cancelOrRequestConfirmation(
+        $this->appointmentsUnsupportedBy($doctor, $windows),
+        self::WORKING_HOURS_CANCELLATION_REASON,
+        $confirmed,
+      );
 
-    DB::transaction(function () use ($doctor, $windows): void {
       $doctor->workingHours()->delete();
 
       foreach ($windows as $weekday => $dayWindows) {
@@ -85,45 +90,73 @@ class DoctorScheduleService
     });
   }
 
-  public function createClosure(DoctorProfile $doctor, array $input): Collection
+  public function createClosure(DoctorProfile $doctor, array $input, bool $confirmed = false): Collection
   {
     $closures = $this->normalizeClosureInput($input, allowRange: true);
-    $this->rejectClosureAppointmentConflicts($doctor, $closures);
+    $this->rejectPastClosureDates($closures);
 
-    return DB::transaction(fn (): Collection => collect($closures)
-      ->map(fn (array $closure): ScheduleClosure => ScheduleClosure::create([
-        'doctor_profile_id' => $doctor->id,
-        'date' => $closure['date'],
-        'start_time' => $closure['start_time'],
-        'end_time' => $closure['end_time'],
-        'reason' => $closure['reason'],
-      ])));
+    return DB::transaction(function () use ($doctor, $closures, $confirmed): Collection {
+      $this->cancelOrRequestConfirmation(
+        $this->closureAppointmentConflicts($doctor, $closures),
+        self::CLOSURE_CANCELLATION_REASON,
+        $confirmed,
+      );
+
+      return collect($closures)->map(function (array $closure) use ($doctor): ScheduleClosure {
+        $this->rejectCoveredClosureAndDeleteContained($doctor, $closure);
+
+        return ScheduleClosure::create([
+          'doctor_profile_id' => $doctor->id,
+          'date' => $closure['date'],
+          'start_time' => $closure['start_time'],
+          'end_time' => $closure['end_time'],
+          'reason' => $closure['reason'],
+        ]);
+      });
+    });
   }
 
-  public function updateClosure(DoctorProfile $doctor, ScheduleClosure $closure, array $input): void
+  public function updateClosure(DoctorProfile $doctor, ScheduleClosure $closure, array $input, bool $confirmed = false): void
   {
     $this->assertOwns($doctor, $closure->doctor_profile_id);
     $closures = $this->normalizeClosureInput($input, allowRange: false);
-    $this->rejectClosureAppointmentConflicts($doctor, $closures);
     $normalized = $closures[0];
 
-    $closure->forceFill([
-      'date' => $normalized['date'],
-      'start_time' => $normalized['start_time'],
-      'end_time' => $normalized['end_time'],
-      'reason' => $normalized['reason'],
-    ])->save();
+    DB::transaction(function () use ($doctor, $closure, $closures, $normalized, $confirmed): void {
+      $this->cancelOrRequestConfirmation(
+        $this->closureAppointmentConflicts($doctor, $closures),
+        self::CLOSURE_CANCELLATION_REASON,
+        $confirmed,
+      );
+
+      $closure->forceFill([
+        'date' => $normalized['date'],
+        'start_time' => $normalized['start_time'],
+        'end_time' => $normalized['end_time'],
+        'reason' => $normalized['reason'],
+      ])->save();
+    });
   }
 
-  public function deleteClosure(DoctorProfile $doctor, ScheduleClosure $closure): void
+  public function deleteClosure(DoctorProfile $doctor, ScheduleClosure $closure, bool $confirmed = false): void
   {
     $this->assertOwns($doctor, $closure->doctor_profile_id);
-    $closure->delete();
+
+    DB::transaction(function () use ($doctor, $closure, $confirmed): void {
+      $this->cancelOrRequestConfirmation(
+        $this->closureModelAppointmentConflicts($doctor, $closure),
+        self::CLOSURE_CANCELLATION_REASON,
+        $confirmed,
+      );
+
+      $closure->delete();
+    });
   }
 
   public function createSpecialOpening(DoctorProfile $doctor, array $input): SpecialOpening
   {
     $opening = $this->normalizeSpecialOpeningInput($input);
+    $this->rejectPastDate($opening['date'], 'special_opening', 'Non puoi creare aperture extra in date passate.');
     $this->rejectRedundantSpecialOpening($doctor, $opening);
 
     return SpecialOpening::create([
@@ -135,34 +168,41 @@ class DoctorScheduleService
     ]);
   }
 
-  public function updateSpecialOpening(DoctorProfile $doctor, SpecialOpening $specialOpening, array $input): void
+  public function updateSpecialOpening(
+    DoctorProfile $doctor,
+    SpecialOpening $specialOpening,
+    array $input,
+    bool $confirmed = false,
+  ): void
   {
     $this->assertOwns($doctor, $specialOpening->doctor_profile_id);
     $opening = $this->normalizeSpecialOpeningInput($input);
     $this->rejectRedundantSpecialOpening($doctor, $opening, $specialOpening);
-    $conflicts = $this->appointmentsUnsupportedBy($doctor, null, $specialOpening, $opening);
 
-    if ($conflicts->isNotEmpty()) {
-      throw ValidationException::withMessages([
-        'special_opening' => 'Questa modifica escluderebbe appuntamenti attivi: '.$this->formatAppointmentConflicts($conflicts),
-      ]);
-    }
+    DB::transaction(function () use ($doctor, $specialOpening, $opening, $confirmed): void {
+      $this->cancelOrRequestConfirmation(
+        $this->appointmentsUnsupportedBy($doctor, null, $specialOpening, $opening),
+        self::WORKING_HOURS_CANCELLATION_REASON,
+        $confirmed,
+      );
 
-    $specialOpening->forceFill($opening)->save();
+      $specialOpening->forceFill($opening)->save();
+    });
   }
 
-  public function deleteSpecialOpening(DoctorProfile $doctor, SpecialOpening $specialOpening): void
+  public function deleteSpecialOpening(DoctorProfile $doctor, SpecialOpening $specialOpening, bool $confirmed = false): void
   {
     $this->assertOwns($doctor, $specialOpening->doctor_profile_id);
-    $conflicts = $this->appointmentsUnsupportedBy($doctor, null, $specialOpening);
 
-    if ($conflicts->isNotEmpty()) {
-      throw ValidationException::withMessages([
-        'special_opening' => 'Questa apertura supporta appuntamenti attivi: '.$this->formatAppointmentConflicts($conflicts),
-      ]);
-    }
+    DB::transaction(function () use ($doctor, $specialOpening, $confirmed): void {
+      $this->cancelOrRequestConfirmation(
+        $this->appointmentsUnsupportedBy($doctor, null, $specialOpening),
+        self::WORKING_HOURS_CANCELLATION_REASON,
+        $confirmed,
+      );
 
-    $specialOpening->delete();
+      $specialOpening->delete();
+    });
   }
 
   public function upcomingEvents(DoctorProfile $doctor, CarbonImmutable $from, int $limit = 8): Collection
@@ -346,7 +386,7 @@ class DoctorScheduleService
     ];
   }
 
-  private function rejectClosureAppointmentConflicts(DoctorProfile $doctor, array $closures): void
+  private function closureAppointmentConflicts(DoctorProfile $doctor, array $closures): Collection
   {
     $conflicts = collect();
 
@@ -359,23 +399,122 @@ class DoctorScheduleService
         ? $this->combineDateAndTime($date, $closure['end_time'])
         : $date->endOfDay();
 
-      $appointments = Appointment::withPortalRelations()
-        ->where('doctor_profile_id', $doctor->id)
-        ->whereIn('status', Appointment::ACTIVE_SLOT_STATUSES)
-        ->where('start_at', '>=', CarbonImmutable::now())
-        ->where('start_at', '<', $end)
-        ->where('end_at', '>', $start)
-        ->orderBy('start_at')
-        ->get();
-
-      $conflicts = $conflicts->concat($appointments);
+      $conflicts = $conflicts->concat($this->appointmentsOverlapping($doctor, $start, $end));
     }
 
-    if ($conflicts->isNotEmpty()) {
-      throw ValidationException::withMessages([
-        'closure' => 'La chiusura si sovrappone ad appuntamenti attivi: '.$this->formatAppointmentConflicts($conflicts),
+    return $conflicts->unique('id')->values();
+  }
+
+  private function closureModelAppointmentConflicts(DoctorProfile $doctor, ScheduleClosure $closure): Collection
+  {
+    $date = CarbonImmutable::parse($closure->date)->startOfDay();
+    $start = $closure->start_time
+      ? $this->combineDateAndTime($date, (string) $closure->start_time)
+      : $date->startOfDay();
+    $end = $closure->end_time
+      ? $this->combineDateAndTime($date, (string) $closure->end_time)
+      : $date->endOfDay();
+
+    return $this->appointmentsOverlapping($doctor, $start, $end);
+  }
+
+  private function appointmentsOverlapping(DoctorProfile $doctor, CarbonImmutable $start, CarbonImmutable $end): Collection
+  {
+    return Appointment::withPortalRelations()
+      ->where('doctor_profile_id', $doctor->id)
+      ->whereIn('status', Appointment::ACTIVE_SLOT_STATUSES)
+      ->where('start_at', '>=', CarbonImmutable::now())
+      ->where('start_at', '<', $end)
+      ->where('end_at', '>', $start)
+      ->orderBy('start_at')
+      ->get();
+  }
+
+  private function cancelOrRequestConfirmation(Collection $appointments, string $reason, bool $confirmed): void
+  {
+    $appointments = $appointments->unique('id')->values();
+
+    if ($appointments->isEmpty()) {
+      return;
+    }
+
+    if (! $confirmed) {
+      throw new ScheduleAppointmentConflictsException($appointments, $reason);
+    }
+
+    $this->cancelAppointments($appointments, $reason);
+  }
+
+  private function cancelAppointments(Collection $appointments, string $reason): void
+  {
+    $appointmentIds = $appointments->pluck('id')->all();
+
+    if ($appointmentIds === []) {
+      return;
+    }
+
+    Appointment::query()
+      ->whereKey($appointmentIds)
+      ->whereIn('status', Appointment::ACTIVE_SLOT_STATUSES)
+      ->where('start_at', '>=', CarbonImmutable::now())
+      ->update([
+        'status' => Appointment::STATUS_CANCELLED,
+        'cancellation_reason' => $reason,
+        'updated_at' => now(),
       ]);
+  }
+
+  private function rejectPastClosureDates(array $closures): void
+  {
+    foreach ($closures as $closure) {
+      $this->rejectPastDate($closure['date'], 'closure', 'Non puoi creare chiusure in date passate.');
     }
+  }
+
+  private function rejectPastDate(string $date, string $field, string $message): void
+  {
+    if (CarbonImmutable::parse($date)->startOfDay()->lessThan(CarbonImmutable::now()->startOfDay())) {
+      throw ValidationException::withMessages([$field => $message]);
+    }
+  }
+
+  private function rejectCoveredClosureAndDeleteContained(DoctorProfile $doctor, array $closure): void
+  {
+    $newWindow = $this->closureWindow($closure['start_time'], $closure['end_time']);
+    $existingClosures = $doctor->closures()
+      ->whereDate('date', $closure['date'])
+      ->lockForUpdate()
+      ->get();
+
+    foreach ($existingClosures as $existingClosure) {
+      $existingWindow = $this->closureWindow($existingClosure->start_time, $existingClosure->end_time);
+
+      if ($this->containsClosureWindow($existingWindow, $newWindow)) {
+        throw ValidationException::withMessages([
+          'closure' => 'Questa chiusura e gia coperta da una chiusura esistente.',
+        ]);
+      }
+    }
+
+    $existingClosures
+      ->filter(fn (ScheduleClosure $existingClosure): bool => $this->containsClosureWindow(
+        $newWindow,
+        $this->closureWindow($existingClosure->start_time, $existingClosure->end_time),
+      ))
+      ->each(fn (ScheduleClosure $existingClosure): ?bool => $existingClosure->delete());
+  }
+
+  private function closureWindow(?string $startTime, ?string $endTime): array
+  {
+    return [
+      'start' => $startTime === null ? 0 : $this->timeToMinutes($startTime),
+      'end' => $endTime === null ? 24 * 60 : $this->timeToMinutes($endTime),
+    ];
+  }
+
+  private function containsClosureWindow(array $outer, array $inner): bool
+  {
+    return $outer['start'] <= $inner['start'] && $outer['end'] >= $inner['end'];
   }
 
   private function rejectRedundantSpecialOpening(

@@ -42,79 +42,7 @@
         </section>
       </div>
     </div>
-
-    <div class="row g-3 mb-3">
-      <div class="col-lg-6">
-        <section class="portal-panel h-100 p-3 schedule-events-panel">
-          <div class="section-heading">
-            <h2>Eventi del giorno</h2>
-          </div>
-          @if ($dayEvents->isEmpty())
-            <p class="text-body-secondary mb-0">Nessuna chiusura o apertura extra per questa data.</p>
-          @else
-            <div class="schedule-event-list">
-              @foreach ($dayEvents as $event)
-                <article class="schedule-event schedule-event--{{ $event['type'] }}">
-                  <strong>{{ $event['title'] }}</strong>
-                  <span>
-                    {{ $event['date']->format('d/m/Y') }}
-                    @if ($event['start_time'])
-                      &middot; {{ $event['start_time'] }}-{{ $event['end_time'] }}
-                    @else
-                      &middot; Tutto il giorno
-                    @endif
-                  </span>
-                </article>
-              @endforeach
-            </div>
-          @endif
-        </section>
-      </div>
-      <div class="col-lg-6">
-        <section class="portal-panel h-100 p-3 schedule-events-panel">
-          <div class="section-heading">
-            <h2>Prossimi eventi</h2>
-          </div>
-          @if ($upcomingScheduleEvents->isEmpty())
-            <p class="text-body-secondary mb-0">Nessun evento programmato.</p>
-          @else
-            <div class="schedule-event-list">
-              @foreach ($upcomingScheduleEvents as $event)
-                @php
-                  $model = $event['model'];
-                  $modalId = $event['type'].'Modal'.$model->id;
-                @endphp
-                <article class="schedule-event schedule-event--{{ $event['type'] }}">
-                  <div>
-                    <strong>{{ $event['title'] }}</strong>
-                    <span>
-                      {{ $event['date']->format('d/m/Y') }}
-                      @if ($event['start_time'])
-                        &middot; {{ $event['start_time'] }}-{{ $event['end_time'] }}
-                      @else
-                        &middot; Tutto il giorno
-                      @endif
-                    </span>
-                  </div>
-                  <div class="schedule-event__actions">
-                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
-                      Modifica
-                    </button>
-                    <form method="POST" action="{{ $event['type'] === 'closure' ? "/doctor/closures/{$model->id}" : "/doctor/special-openings/{$model->id}" }}">
-                      @csrf
-                      @method('DELETE')
-                      <button class="btn btn-sm btn-outline-danger" type="submit">Elimina</button>
-                    </form>
-                  </div>
-                </article>
-              @endforeach
-            </div>
-          @endif
-        </section>
-      </div>
-    </div>
-
-    <section class="portal-panel doctor-agenda-panel">
+<section class="portal-panel doctor-agenda-panel">
       <div class="week-strip-wrapper mb-3">
         <a class="btn btn-outline-secondary week-nav-arrow"
            href="/doctor/agenda?date={{ $previousWeekStart->toDateString() }}&week_start={{ $previousWeekStart->toDateString() }}"
@@ -125,8 +53,7 @@
             @php
               $dayDateStr = $weekDay['date']->toDateString();
               $isSelected = $dayDateStr === $date;
-              $isWeekend  = $weekDay['date']->isWeekend();
-              $dayClass   = 'week-day' . ($isWeekend ? ' week-day--weekend' : '') . ($isSelected ? ' week-day--selected' : '');
+              $dayClass   = 'week-day' . ($isSelected ? ' week-day--selected' : '');
             @endphp
             <a class="{{ $dayClass }}"
                href="/doctor/agenda?date={{ $dayDateStr }}&week_start={{ $weekStart->toDateString() }}">
@@ -254,6 +181,79 @@
         </div>
       </div>
     </section>
+    
+    <div class="row g-3 mb-3">
+      <div class="col-lg-6">
+        <section class="portal-panel h-100 p-3 schedule-events-panel">
+          <div class="section-heading">
+            <h2>Eventi del giorno</h2>
+          </div>
+          @if ($dayEvents->isEmpty())
+            <p class="text-body-secondary mb-0">Nessuna chiusura o apertura extra per questa data.</p>
+          @else
+            <div class="schedule-event-list">
+              @foreach ($dayEvents as $event)
+                <article class="schedule-event schedule-event--{{ $event['type'] }}">
+                  <strong>{{ $event['title'] }}</strong>
+                  <span>
+                    {{ $event['date']->format('d/m/Y') }}
+                    @if ($event['start_time'])
+                      &middot; {{ $event['start_time'] }}-{{ $event['end_time'] }}
+                    @else
+                      &middot; Tutto il giorno
+                    @endif
+                  </span>
+                </article>
+              @endforeach
+            </div>
+          @endif
+        </section>
+      </div>
+      <div class="col-lg-6">
+        <section class="portal-panel h-100 p-3 schedule-events-panel">
+          <div class="section-heading">
+            <h2>Prossimi eventi</h2>
+          </div>
+          @if ($upcomingScheduleEvents->isEmpty())
+            <p class="text-body-secondary mb-0">Nessun evento programmato.</p>
+          @else
+            <div class="schedule-event-list">
+              @foreach ($upcomingScheduleEvents as $event)
+                @php
+                  $model = $event['model'];
+                  $modalId = $event['type'].'Modal'.$model->id;
+                @endphp
+                <article class="schedule-event schedule-event--{{ $event['type'] }}">
+                  <div>
+                    <strong>{{ $event['title'] }}</strong>
+                    <span>
+                      {{ $event['date']->format('d/m/Y') }}
+                      @if ($event['start_time'])
+                        &middot; {{ $event['start_time'] }}-{{ $event['end_time'] }}
+                      @else
+                        &middot; Tutto il giorno
+                      @endif
+                    </span>
+                  </div>
+                  <div class="schedule-event__actions">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
+                      Modifica
+                    </button>
+                    <form method="POST" action="{{ $event['type'] === 'closure' ? "/doctor/closures/{$model->id}" : "/doctor/special-openings/{$model->id}" }}">
+                      @csrf
+                      @method('DELETE')
+                      <button class="btn btn-sm btn-outline-danger" type="submit">Elimina</button>
+                    </form>
+                  </div>
+                </article>
+              @endforeach
+            </div>
+          @endif
+        </section>
+      </div>
+    </div>
+
+    
 
   </section>
 

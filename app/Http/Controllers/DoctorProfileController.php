@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ScheduleAppointmentConflictsException;
+use App\Http\Controllers\Concerns\ConfirmsScheduleAppointmentCancellations;
 use App\Services\DoctorScheduleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -9,6 +11,8 @@ use Illuminate\View\View;
 
 class DoctorProfileController extends Controller
 {
+  use ConfirmsScheduleAppointmentCancellations;
+
   public function __construct(private readonly DoctorScheduleService $schedule)
   {
   }
@@ -55,7 +59,23 @@ class DoctorProfileController extends Controller
       'working_hours.*.*.end_time' => ['nullable', 'string', 'max:5'],
     ]);
 
-    $this->schedule->replaceWeeklyTemplate($doctor, $validated['working_hours'] ?? []);
+    $workingHours = $validated['working_hours'] ?? [];
+
+    try {
+      $this->schedule->replaceWeeklyTemplate(
+        $doctor,
+        $workingHours,
+        $request->boolean(DoctorScheduleService::CONFIRM_APPOINTMENT_CANCELLATIONS_FIELD),
+      );
+    } catch (ScheduleAppointmentConflictsException $exception) {
+      return $this->redirectWithScheduleConfirmation('/doctor/profile', [
+        'title' => 'Conferma modifica orari',
+        'message' => 'Questi appuntamenti verranno annullati per applicare i nuovi orari.',
+        'action' => '/doctor/profile/working-hours',
+        'method' => 'PATCH',
+        'payload' => ['working_hours' => $workingHours],
+      ], $exception);
+    }
 
     return redirect('/doctor/profile')->with('status', 'Orari ambulatorio aggiornati.');
   }

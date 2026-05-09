@@ -223,6 +223,10 @@ document.addEventListener("DOMContentLoaded", () => {
   positionAgendaScroll();
   tickAgendaNowMarker();
   setInterval(tickAgendaNowMarker, 30_000);
+
+  document.querySelectorAll("[data-auto-show-modal]").forEach((modalEl) => {
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  });
 });
 
 document.addEventListener("input", (e) => {

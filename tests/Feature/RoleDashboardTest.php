@@ -79,6 +79,24 @@ class RoleDashboardTest extends TestCase
       ->assertSee("data-bs-target=\"#appointmentInfoModal{$bookedAppointment->id}\"", false);
   }
 
+  public function test_doctor_agenda_hides_cancelled_appointments_by_default(): void
+  {
+    [$doctorUser,, $cancelledAppointment] = $this->dashboardContext(Appointment::STATUS_CANCELLED);
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/agenda?date='.$cancelledAppointment->start_at->toDateString())
+      ->assertOk()
+      ->assertDontSee('Mario Rossi')
+      ->assertDontSee("data-bs-target=\"#appointmentInfoModal{$cancelledAppointment->id}\"", false)
+      ->assertSee('Altro Paziente');
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/agenda?date='.$cancelledAppointment->start_at->toDateString().'&status='.Appointment::STATUS_CANCELLED)
+      ->assertOk()
+      ->assertDontSee('Mario Rossi')
+      ->assertDontSee("data-bs-target=\"#appointmentInfoModal{$cancelledAppointment->id}\"", false);
+  }
+
   public function test_doctor_can_block_and_unblock_future_generated_slot_from_agenda(): void
   {
     [$doctorUser, $doctor] = $this->dashboardContext();

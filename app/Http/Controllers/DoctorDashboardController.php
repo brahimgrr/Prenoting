@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ScheduleAppointmentConflictsException;
+use App\Http\Controllers\Concerns\ConfirmsScheduleAppointmentCancellations;
 use App\Models\Appointment;
 use App\Models\DoctorProfile;
 use App\Models\ScheduleClosure;
@@ -17,6 +19,8 @@ use Illuminate\View\View;
 
 class DoctorDashboardController extends Controller
 {
+  use ConfirmsScheduleAppointmentCancellations;
+
   public function __construct(
     private readonly AvailabilityService $availability,
     private readonly DoctorScheduleService $schedule,
@@ -54,12 +58,28 @@ class DoctorDashboardController extends Controller
       ]);
     }
 
-    $this->schedule->createClosure($doctor, [
+    $payload = [
       'date' => $slotStart->toDateString(),
       'start_time' => $slotStart->format('H:i'),
       'end_time' => $slotStart->addMinutes(AvailabilityService::SLOT_STEP_MINUTES)->format('H:i'),
       'reason' => 'Disponibilita bloccata',
-    ]);
+    ];
+
+    try {
+      $this->schedule->createClosure(
+        $doctor,
+        $payload,
+        $request->boolean(DoctorScheduleService::CONFIRM_APPOINTMENT_CANCELLATIONS_FIELD),
+      );
+    } catch (ScheduleAppointmentConflictsException $exception) {
+      return $this->redirectWithScheduleConfirmation('/doctor/agenda?date='.$payload['date'], [
+        'title' => 'Conferma chiusura',
+        'message' => 'Questi appuntamenti verranno annullati per bloccare la disponibilita.',
+        'action' => '/doctor/availability/block',
+        'method' => 'POST',
+        'payload' => ['slot_start' => $validated['slot_start']],
+      ], $exception);
+    }
 
     return redirect()->back()->with('status', 'Disponibilita bloccata.');
   }
@@ -76,7 +96,21 @@ class DoctorDashboardController extends Controller
       'reason' => ['nullable', 'string', 'max:255'],
     ]);
 
-    $this->schedule->createClosure($doctor, $validated);
+    try {
+      $this->schedule->createClosure(
+        $doctor,
+        $validated,
+        $request->boolean(DoctorScheduleService::CONFIRM_APPOINTMENT_CANCELLATIONS_FIELD),
+      );
+    } catch (ScheduleAppointmentConflictsException $exception) {
+      return $this->redirectWithScheduleConfirmation('/doctor/agenda?date='.$validated['date'], [
+        'title' => 'Conferma chiusura',
+        'message' => 'Questi appuntamenti verranno annullati per creare la chiusura.',
+        'action' => '/doctor/closures',
+        'method' => 'POST',
+        'payload' => $validated,
+      ], $exception);
+    }
 
     return redirect('/doctor/agenda?date='.$validated['date'])->with('status', 'Chiusura creata.');
   }
@@ -93,7 +127,22 @@ class DoctorDashboardController extends Controller
       'reason' => ['nullable', 'string', 'max:255'],
     ]);
 
-    $this->schedule->updateClosure($doctor, $closure, $validated);
+    try {
+      $this->schedule->updateClosure(
+        $doctor,
+        $closure,
+        $validated,
+        $request->boolean(DoctorScheduleService::CONFIRM_APPOINTMENT_CANCELLATIONS_FIELD),
+      );
+    } catch (ScheduleAppointmentConflictsException $exception) {
+      return $this->redirectWithScheduleConfirmation('/doctor/agenda?date='.$validated['date'], [
+        'title' => 'Conferma modifica chiusura',
+        'message' => 'Questi appuntamenti verranno annullati per modificare la chiusura.',
+        'action' => "/doctor/closures/{$closure->id}",
+        'method' => 'PATCH',
+        'payload' => $validated,
+      ], $exception);
+    }
 
     return redirect('/doctor/agenda?date='.$validated['date'])->with('status', 'Chiusura aggiornata.');
   }
@@ -103,7 +152,21 @@ class DoctorDashboardController extends Controller
     $doctor = $this->doctorFor($request);
     $date = CarbonImmutable::parse($closure->date)->toDateString();
 
-    $this->schedule->deleteClosure($doctor, $closure);
+    try {
+      $this->schedule->deleteClosure(
+        $doctor,
+        $closure,
+        $request->boolean(DoctorScheduleService::CONFIRM_APPOINTMENT_CANCELLATIONS_FIELD),
+      );
+    } catch (ScheduleAppointmentConflictsException $exception) {
+      return $this->redirectWithScheduleConfirmation('/doctor/agenda?date='.$date, [
+        'title' => 'Conferma rimozione chiusura',
+        'message' => 'Questi appuntamenti verranno annullati per rimuovere la chiusura.',
+        'action' => "/doctor/closures/{$closure->id}",
+        'method' => 'DELETE',
+        'payload' => [],
+      ], $exception);
+    }
 
     return redirect('/doctor/agenda?date='.$date)->with('status', 'Chiusura rimossa.');
   }
@@ -133,7 +196,22 @@ class DoctorDashboardController extends Controller
       'note' => ['nullable', 'string', 'max:255'],
     ]);
 
-    $this->schedule->updateSpecialOpening($doctor, $specialOpening, $validated);
+    try {
+      $this->schedule->updateSpecialOpening(
+        $doctor,
+        $specialOpening,
+        $validated,
+        $request->boolean(DoctorScheduleService::CONFIRM_APPOINTMENT_CANCELLATIONS_FIELD),
+      );
+    } catch (ScheduleAppointmentConflictsException $exception) {
+      return $this->redirectWithScheduleConfirmation('/doctor/agenda?date='.$validated['date'], [
+        'title' => 'Conferma modifica apertura extra',
+        'message' => 'Questi appuntamenti verranno annullati per modificare l\'apertura extra.',
+        'action' => "/doctor/special-openings/{$specialOpening->id}",
+        'method' => 'PATCH',
+        'payload' => $validated,
+      ], $exception);
+    }
 
     return redirect('/doctor/agenda?date='.$validated['date'])->with('status', 'Apertura extra aggiornata.');
   }
@@ -143,7 +221,21 @@ class DoctorDashboardController extends Controller
     $doctor = $this->doctorFor($request);
     $date = CarbonImmutable::parse($specialOpening->date)->toDateString();
 
-    $this->schedule->deleteSpecialOpening($doctor, $specialOpening);
+    try {
+      $this->schedule->deleteSpecialOpening(
+        $doctor,
+        $specialOpening,
+        $request->boolean(DoctorScheduleService::CONFIRM_APPOINTMENT_CANCELLATIONS_FIELD),
+      );
+    } catch (ScheduleAppointmentConflictsException $exception) {
+      return $this->redirectWithScheduleConfirmation('/doctor/agenda?date='.$date, [
+        'title' => 'Conferma eliminazione apertura extra',
+        'message' => 'Questi appuntamenti verranno annullati per eliminare l\'apertura extra.',
+        'action' => "/doctor/special-openings/{$specialOpening->id}",
+        'method' => 'DELETE',
+        'payload' => [],
+      ], $exception);
+    }
 
     return redirect('/doctor/agenda?date='.$date)->with('status', 'Apertura extra rimossa.');
   }
@@ -158,14 +250,16 @@ class DoctorDashboardController extends Controller
     $appointments = Appointment::withPortalRelations()
       ->where('doctor_profile_id', $doctor->id)
       ->whereDate('start_at', $selectedDate)
+      ->where('status', '!=', Appointment::STATUS_CANCELLED)
       ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
       ->orderBy('start_at')
       ->get();
 
-    $daySlots = $this->availability->agendaSlotsForDate($doctor, $selectedDay);
-    $dayClosures = $this->availability->closuresForDate($doctor, $selectedDay);
-    $dayEvents = $this->schedule->eventsForDate($doctor, $selectedDay);
-    $upcomingScheduleEvents = $this->schedule->upcomingEvents($doctor, $selectedDay);
+    $isPastDay = $selectedDay->lessThan($currentTime->startOfDay());
+    $daySlots = $isPastDay ? collect() : $this->availability->agendaSlotsForDate($doctor, $selectedDay);
+    $dayClosures = $isPastDay ? collect() : $this->availability->closuresForDate($doctor, $selectedDay);
+    $dayEvents = $isPastDay ? collect() : $this->schedule->eventsForDate($doctor, $selectedDay);
+    $upcomingScheduleEvents = $isPastDay ? collect() : $this->schedule->upcomingEvents($doctor, $selectedDay);
 
     $timelineItems = $this->buildTimelineItems($appointments, $daySlots, $dayClosures);
 
@@ -176,6 +270,7 @@ class DoctorDashboardController extends Controller
 
     $daysWithSlots = collect(range(0, 6))
       ->map(fn ($i) => $weekStart->addDays($i))
+      ->filter(fn (CarbonImmutable $date) => ! $date->lessThan($currentTime->startOfDay()))
       ->filter(fn (CarbonImmutable $date) => $this->availability->agendaSlotsForDate($doctor, $date)->isNotEmpty())
       ->map(fn (CarbonImmutable $date) => $date->toDateString())
       ->all();

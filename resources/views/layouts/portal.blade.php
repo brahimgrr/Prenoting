@@ -98,6 +98,7 @@
         </main>
       </div>
     </div>
+    @include('components.schedule-confirmation-modal', ['confirmation' => session('schedule_confirmation')])
     @stack('modals')
   </body>
 </html>

@@ -48,7 +48,7 @@ a {
 .slot-chip {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   box-shadow: var(--shadow-panel);
 }
 
@@ -90,7 +90,7 @@ a {
 .form-control,
 .form-select,
 .btn {
-  border-radius: 6px;
+  
 }
 
 .form-control,
@@ -106,7 +106,7 @@ a {
 .comune-suggestions {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
   display: grid;
   left: 0;
@@ -126,7 +126,7 @@ a {
 .comune-suggestion {
   background: transparent;
   border: 0;
-  border-radius: 6px;
+  
   color: var(--color-ink);
   font-weight: 650;
   padding: 0.55rem 0.65rem;
@@ -188,7 +188,7 @@ a {
 .app-brand__mark {
   align-items: center;
   background: var(--color-teal);
-  border-radius: 8px;
+  
   color: #ffffff;
   display: inline-flex;
   flex: 0 0 2.6rem;
@@ -225,7 +225,7 @@ a {
 }
 
 .app-nav__link {
-  border-radius: 6px;
+  
   color: #cbd5e1;
   font-weight: 650;
   padding: 0.8rem 0.9rem;
@@ -400,7 +400,7 @@ a {
 
 .metric-panel {
   background: var(--color-teal);
-  border-radius: 8px;
+  
   box-shadow: var(--shadow-panel);
   color: #ffffff;
   display: grid;
@@ -467,7 +467,7 @@ a {
 .quick-action {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   color: var(--color-ink);
   display: grid;
   gap: 0.35rem;
@@ -526,6 +526,30 @@ a {
   min-width: 0;
 }
 
+.appointment-status-badge {
+  align-items: center;
+  border: 1px solid transparent;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0.45rem 0.65rem;
+  text-transform: uppercase;
+}
+
+.appointment-status-badge--past {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.appointment-status-badge--cancelled {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
 .card-action-menu {
   flex-shrink: 0;
   margin-left: auto;
@@ -544,7 +568,7 @@ a {
 
 .card-action-menu .dropdown-menu {
   border-color: var(--color-border);
-  border-radius: 8px;
+  
   box-shadow: var(--shadow-panel);
   left: auto;
   min-width: 13rem;
@@ -555,7 +579,7 @@ a {
 }
 
 .card-action-menu .dropdown-item {
-  border-radius: 6px;
+  
   font-weight: 650;
 }
 
@@ -621,7 +645,7 @@ a {
 
 .service-choice-card {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   color: var(--color-ink);
   display: grid;
   gap: 0.35rem;
@@ -697,7 +721,7 @@ a {
   align-items: center;
   background: #ffffff;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   color: var(--color-ink);
   display: grid;
   gap: 0.25rem;
@@ -767,7 +791,7 @@ a {
   align-items: center;
   background: #ffffff;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   color: var(--color-ink);
   display: grid;
   gap: 0.2rem;
@@ -808,7 +832,7 @@ a {
 .booking-confirm-summary div {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   min-height: 100%;
   padding: 0.85rem;
 }
@@ -846,7 +870,7 @@ a {
 .profile-data-tile {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   padding: 0.85rem;
 }
 
@@ -877,7 +901,7 @@ a {
 
 .working-hours-day {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   display: grid;
   gap: 0.75rem;
   padding: 0.85rem;
@@ -998,7 +1022,7 @@ a {
 
 .doctor-agenda-scroll {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   max-height: 38rem;
   overflow-y: auto;
 }
@@ -1102,7 +1126,7 @@ a {
   background: #ffffff;
   border: 1px solid var(--color-border);
   border-left: 4px solid #94a3b8;
-  border-radius: 8px;
+  
   display: grid;
   gap: 0.55rem;
   min-width: 0;
@@ -1207,7 +1231,7 @@ a {
   align-items: center;
   border: 1px solid var(--color-border);
   border-left-width: 4px;
-  border-radius: 8px;
+  
   display: flex;
   gap: 0.75rem;
   justify-content: space-between;
@@ -1291,7 +1315,7 @@ a {
 .appointment-info-modal .modal-content {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  
   box-shadow: 0 22px 50px rgba(15, 23, 42, 0.14);
 }
 
@@ -1328,7 +1352,6 @@ a {
 .appointment-info-card {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
   box-shadow: var(--shadow-panel);
 }
 
@@ -1432,7 +1455,7 @@ a {
 .treatment-card {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   display: grid;
   gap: 1rem;
   padding: 1rem;
@@ -1466,7 +1489,7 @@ a {
 .treatment-card__facts div {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   padding: 0.75rem;
 }
 
@@ -1491,7 +1514,7 @@ a {
 .operations-summary-grid div {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
   display: grid;
   gap: 0.35rem;
   min-height: 7rem;
@@ -1506,7 +1529,7 @@ a {
 
 .dashboard-table-wrap {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  
 }
 
 .dashboard-table {
@@ -1883,7 +1906,7 @@ a {
 .landing-contacts div {
   background: rgba(255, 255, 255, 0.74);
   border: 1px solid rgba(219, 228, 238, 0.9);
-  border-radius: 8px;
+  
   display: flex;
   flex: 1 1 11rem;
   flex-direction: column;
