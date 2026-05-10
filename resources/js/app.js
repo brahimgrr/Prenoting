@@ -25,7 +25,7 @@ const DEFAULT_WORKING_START = "09:00";
 const DEFAULT_WORKING_END = "12:00";
 const WORKING_HOUR_AUTOFILL_MINUTES = 60;
 
-function halfHourTimeOptions(selectedValue = "") {
+function halfHourTimeOptions(selectedValue = "", includeEndOfDay = false) {
   let options = selectedValue
     ? `<option value="${selectedValue}" selected>${selectedValue}</option><option value="">--:--</option>`
     : '<option value="">--:--</option>';
@@ -39,11 +39,15 @@ function halfHourTimeOptions(selectedValue = "") {
     }
   }
 
+  if (includeEndOfDay && selectedValue !== "24:00") {
+    options += '<option value="24:00">24:00</option>';
+  }
+
   return options;
 }
 
-function timeSelectTemplate(name, selectedValue = "") {
-  return `<select class="form-select form-select-sm text-center" name="${name}">${halfHourTimeOptions(selectedValue)}</select>`;
+function timeSelectTemplate(name, selectedValue = "", includeEndOfDay = false) {
+  return `<select class="form-select" name="${name}">${halfHourTimeOptions(selectedValue, includeEndOfDay)}</select>`;
 }
 
 function timeToMinutes(value) {
@@ -53,8 +57,8 @@ function timeToMinutes(value) {
   return Number(match[1]) * 60 + Number(match[2]);
 }
 
-function minutesToTime(minutes) {
-  const lastOptionMinutes = (23 * 60) + 30;
+function minutesToTime(minutes, includeEndOfDay = false) {
+  const lastOptionMinutes = includeEndOfDay ? 24 * 60 : (23 * 60) + 30;
   if (minutes < 0 || minutes > lastOptionMinutes) return "";
 
   const hour = Math.floor(minutes / 60);
@@ -62,15 +66,15 @@ function minutesToTime(minutes) {
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
-function addMinutesToTime(value, minutesToAdd) {
+function addMinutesToTime(value, minutesToAdd, includeEndOfDay = false) {
   const minutes = timeToMinutes(value);
   if (minutes === null) return "";
 
-  return minutesToTime(minutes + minutesToAdd);
+  return minutesToTime(minutes + minutesToAdd, includeEndOfDay);
 }
 
 function suggestedWorkingHoursEnd(startValue) {
-  return addMinutesToTime(startValue, WORKING_HOUR_AUTOFILL_MINUTES);
+  return addMinutesToTime(startValue, WORKING_HOUR_AUTOFILL_MINUTES, true);
 }
 
 function previousWorkingHoursEnd(rows) {
@@ -88,11 +92,21 @@ function workingHoursDefaultsForNewRow(rows) {
 
 function workingHoursRowTemplate(weekday, index, startValue = "", endValue = "") {
   return `
-    <div class="input-group input-group-sm w-auto" data-working-hours-row>
-      ${timeSelectTemplate(`working_hours[${weekday}][${index}][start_time]`, startValue)}
-      <span class="input-group-text bg-transparent px-2">a</span>
-      ${timeSelectTemplate(`working_hours[${weekday}][${index}][end_time]`, endValue)}
-      <button class="btn btn-outline-danger border-start-0" type="button" data-working-hours-remove aria-label="Rimuovi fascia">x</button>
+    <div class="row g-2 align-items-end" data-working-hours-row>
+      <div class="col-12 col-md">
+        <label class="form-label">Apri alle</label>
+        ${timeSelectTemplate(`working_hours[${weekday}][${index}][start_time]`, startValue)}
+      </div>
+      <div class="col-12 col-md">
+        <label class="form-label">Chiudi alle</label>
+        ${timeSelectTemplate(`working_hours[${weekday}][${index}][end_time]`, endValue, true)}
+      </div>
+      <div class="col-12 col-md-auto">
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary" type="button" data-working-hours-add aria-label="Aggiungi un'altra fascia oraria">+</button>
+          <button class="btn btn-outline-secondary" type="button" data-working-hours-remove aria-label="Rimuovi fascia">-</button>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -126,10 +140,7 @@ function setWorkingHoursDayOpen(day, isOpen, fillDefaults = false) {
   const rows = day.querySelector("[data-working-hours-rows]");
   const controls = day.querySelector("[data-working-hours-controls]");
   const emptyMessage = day.querySelector("[data-working-hours-empty]");
-  const toggle = day.querySelector("[data-working-hours-toggle]");
   const status = day.querySelector("[data-working-hours-status]");
-  const label = day.querySelector(".form-check-label");
-  const layoutRow = day.querySelector(".row");
 
   if (!rows) return;
 
@@ -150,14 +161,14 @@ function setWorkingHoursDayOpen(day, isOpen, fillDefaults = false) {
     if (endSelect) endSelect.value = DEFAULT_WORKING_END;
   }
 
-  toggle && (toggle.checked = isOpen);
-  controls?.classList.toggle("d-flex", isOpen);
-  controls?.classList.toggle("d-none", !isOpen);
   emptyMessage?.classList.toggle("d-none", isOpen);
-  day.classList.toggle("bg-body-tertiary", !isOpen);
-  label?.classList.toggle("text-secondary", !isOpen);
-  layoutRow?.classList.toggle("align-items-start", isOpen);
-  layoutRow?.classList.toggle("align-items-center", !isOpen);
+  day.classList.toggle("text-secondary", !isOpen);
+  day.querySelectorAll("[data-working-hours-row] select").forEach((control) => {
+    control.disabled = !isOpen;
+  });
+  day.querySelectorAll("[data-working-hours-add], [data-working-hours-remove]").forEach((button) => {
+    button.disabled = false;
+  });
 
   if (status) {
     status.classList.toggle("text-primary", isOpen);
@@ -309,15 +320,6 @@ document.addEventListener("focusin", (e) => {
 });
 
 document.addEventListener("change", (e) => {
-  const workingHoursToggle = e.target.closest?.("[data-working-hours-toggle]");
-  if (workingHoursToggle) {
-    const day = workingHoursToggle.closest("[data-working-hours-day]");
-    if (day) {
-      setWorkingHoursDayOpen(day, workingHoursToggle.checked, true);
-    }
-    return;
-  }
-
   const workingHoursSelect = e.target.closest?.("[data-working-hours-row] select");
   const startSelect = e.target.matches?.('[data-working-hours-row] select[name$="[start_time]"]')
     ? e.target
@@ -458,6 +460,13 @@ document.addEventListener("click", (e) => {
     if (!day || !rows) return;
 
     const weekday = day.getAttribute("data-weekday");
+
+    if (!workingHoursRowsHaveValues(day)) {
+      setWorkingHoursDayOpen(day, true, true);
+      rows.querySelector("[data-working-hours-row] select")?.focus();
+      return;
+    }
+
     const index = Number(day.getAttribute("data-next-index") || "0");
     const defaults = workingHoursDefaultsForNewRow(rows);
     rows.insertAdjacentHTML("beforeend", workingHoursRowTemplate(weekday, index, defaults.start, defaults.end));

@@ -58,10 +58,12 @@ class DoctorDashboardController extends Controller
       ]);
     }
 
+    $slotEnd = $slotStart->addMinutes(AvailabilityService::SLOT_STEP_MINUTES);
+
     $payload = [
       'date' => $slotStart->toDateString(),
       'start_time' => $slotStart->format('H:i'),
-      'end_time' => $slotStart->addMinutes(AvailabilityService::SLOT_STEP_MINUTES)->format('H:i'),
+      'end_time' => $slotEnd->toDateString() === $slotStart->toDateString() ? $slotEnd->format('H:i') : '24:00',
       'reason' => 'Disponibilita bloccata',
     ];
 
@@ -91,8 +93,8 @@ class DoctorDashboardController extends Controller
       'date' => ['required', 'date_format:Y-m-d'],
       'end_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date'],
       'all_day' => ['nullable', 'string'],
-      'start_time' => ['nullable', 'date_format:H:i'],
-      'end_time' => ['nullable', 'date_format:H:i'],
+      'start_time' => ['nullable', 'string', 'max:5'],
+      'end_time' => ['nullable', 'string', 'max:5'],
       'reason' => ['nullable', 'string', 'max:255'],
     ]);
 
@@ -122,8 +124,8 @@ class DoctorDashboardController extends Controller
       'date' => ['required', 'date_format:Y-m-d'],
       'end_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date'],
       'all_day' => ['nullable', 'string'],
-      'start_time' => ['nullable', 'date_format:H:i'],
-      'end_time' => ['nullable', 'date_format:H:i'],
+      'start_time' => ['nullable', 'string', 'max:5'],
+      'end_time' => ['nullable', 'string', 'max:5'],
       'reason' => ['nullable', 'string', 'max:255'],
     ]);
 
@@ -176,8 +178,8 @@ class DoctorDashboardController extends Controller
     $doctor = $this->doctorFor($request);
     $validated = $request->validate([
       'date' => ['required', 'date_format:Y-m-d'],
-      'start_time' => ['required', 'date_format:H:i'],
-      'end_time' => ['required', 'date_format:H:i'],
+      'start_time' => ['required', 'string', 'max:5'],
+      'end_time' => ['required', 'string', 'max:5'],
       'note' => ['nullable', 'string', 'max:255'],
     ]);
 
@@ -191,8 +193,8 @@ class DoctorDashboardController extends Controller
     $doctor = $this->doctorFor($request);
     $validated = $request->validate([
       'date' => ['required', 'date_format:Y-m-d'],
-      'start_time' => ['required', 'date_format:H:i'],
-      'end_time' => ['required', 'date_format:H:i'],
+      'start_time' => ['required', 'string', 'max:5'],
+      'end_time' => ['required', 'string', 'max:5'],
       'note' => ['nullable', 'string', 'max:255'],
     ]);
 

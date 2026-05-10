@@ -202,6 +202,59 @@ class RoleDashboardTest extends TestCase
     $this->assertSame('Via Milano 2', $doctor->fresh()->clinic_address);
   }
 
+  public function test_doctor_profile_page_shows_password_change_form(): void
+  {
+    [$doctorUser] = $this->dashboardContext();
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/profile')
+      ->assertOk()
+      ->assertSee('Password')
+      ->assertSee('action="/doctor/password"', false)
+      ->assertSee('name="_method" value="PUT"', false)
+      ->assertSee('name="current_password"', false)
+      ->assertSee('name="password"', false)
+      ->assertSee('name="password_confirmation"', false)
+      ->assertSee('Aggiorna password');
+  }
+
+  public function test_doctor_can_change_password_from_profile(): void
+  {
+    [$doctorUser] = $this->dashboardContext();
+    $doctorUser->forceFill(['password' => Hash::make('old-password')])->save();
+
+    $this->actingAs($doctorUser)
+      ->put('/doctor/password', [
+        'current_password' => 'old-password',
+        'password' => 'new-password',
+        'password_confirmation' => 'new-password',
+      ])
+      ->assertRedirect('/doctor/profile')
+      ->assertSessionHas('status', 'Password aggiornata.');
+
+    $this->assertTrue(Hash::check('new-password', $doctorUser->fresh()->password));
+  }
+
+  public function test_doctor_password_change_rejects_wrong_current_password(): void
+  {
+    [$doctorUser] = $this->dashboardContext();
+    $doctorUser->forceFill(['password' => Hash::make('old-password')])->save();
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/profile')
+      ->put('/doctor/password', [
+        'current_password' => 'wrong-password',
+        'password' => 'new-password',
+        'password_confirmation' => 'new-password',
+      ])
+      ->assertRedirect('/doctor/profile')
+      ->assertSessionHasErrors([
+        'current_password' => 'La password attuale non e corretta.',
+      ]);
+
+    $this->assertTrue(Hash::check('old-password', $doctorUser->fresh()->password));
+  }
+
   public function test_patient_cannot_access_doctor_routes(): void
   {
     [$patientUser] = $this->patient('patient');

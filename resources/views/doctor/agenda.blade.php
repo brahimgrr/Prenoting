@@ -274,7 +274,7 @@
               </div>
               <div class="col-sm-6">
                 <label class="form-label" for="closure-end-time">Ora fine</label>
-                <x-time-select class="form-control" id="closure-end-time" name="end_time" :value="old('end_time')" />
+                <x-time-select class="form-control" id="closure-end-time" name="end_time" :value="old('end_time')" :include-end-of-day="true" />
               </div>
               <div class="col-12">
                 <label class="form-label" for="closure-reason">Motivo</label>
@@ -313,7 +313,7 @@
               </div>
               <div class="col-sm-6">
                 <label class="form-label" for="special-opening-end">Ora fine</label>
-                <x-time-select class="form-control" id="special-opening-end" name="end_time" :value="old('end_time', '12:00')" required />
+                <x-time-select class="form-control" id="special-opening-end" name="end_time" :value="old('end_time', '12:00')" :include-end-of-day="true" required />
               </div>
               <div class="col-12">
                 <label class="form-label" for="special-opening-note">Nota</label>
@@ -395,7 +395,7 @@
                   </div>
                   <div class="col-sm-6">
                     <label class="form-label">Ora fine</label>
-                    <x-time-select class="form-control" name="end_time" :value="$event['end_time']" />
+                    <x-time-select class="form-control" name="end_time" :value="$event['end_time']" :include-end-of-day="true" />
                   </div>
                   <div class="col-12">
                     <label class="form-label">Motivo</label>
@@ -428,7 +428,7 @@
                   </div>
                   <div class="col-sm-6">
                     <label class="form-label">Ora fine</label>
-                    <x-time-select class="form-control" name="end_time" :value="$event['end_time']" required />
+                    <x-time-select class="form-control" name="end_time" :value="$event['end_time']" :include-end-of-day="true" required />
                   </div>
                   <div class="col-12">
                     <label class="form-label">Nota</label>

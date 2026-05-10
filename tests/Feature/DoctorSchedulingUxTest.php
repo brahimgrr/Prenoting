@@ -31,18 +31,40 @@ class DoctorSchedulingUxTest extends TestCase
       'is_active' => true,
     ]);
 
-    $this->actingAs($doctorUser)
+    $response = $this->actingAs($doctorUser)
       ->get('/doctor/profile')
       ->assertOk()
       ->assertSee('Orari ambulatorio')
-      ->assertSee('Imposta le fasce orarie settimanali')
-      ->assertSee('class="card border-0 shadow-sm"', false)
-      ->assertSee('class="list-group list-group-flush"', false)
-      ->assertSee('class="form-check form-switch"', false)
-      ->assertSee('input-group input-group-sm', false)
-      ->assertSee('class="btn btn-outline-danger border-start-0"', false)
-      ->assertSee('aria-label="Rimuovi fascia">x</button>', false)
-      ->assertSee('data-working-hours-toggle', false)
+      ->assertDontSee('clinic-hours-', false)
+      ->assertDontSee('data-working-hours-expander', false)
+      ->assertDontSee('data-working-hours-expander-toggle', false)
+      ->assertDontSee('data-working-hours-expander-content', false)
+      ->assertSee('data-working-hours-render-summary', false)
+      ->assertSee('Orari di apertura', false)
+      ->assertSee('class="row g-2 align-items-end"', false)
+      ->assertSee('class="col-12 col-md"', false)
+      ->assertSee('Apri alle')
+      ->assertSee('Chiudi alle')
+      ->assertSee('data-working-hours-add', false)
+      ->assertSee('data-working-hours-remove', false)
+      ->assertSee('aria-label="Aggiungi un\'altra fascia oraria"', false)
+      ->assertSee('aria-label="Rimuovi fascia"', false)
+      ->assertSee('class="form-select"', false)
+      ->assertSee('class="btn btn-outline-secondary"', false)
+      ->assertSee('data-working-hours-status', false)
+      ->assertDontSee('<strong>08:00 - 12:00</strong>', false)
+      ->assertDontSee('Chiuso per le visite')
+      ->assertDontSee('data-working-hours-toggle', false)
+      ->assertDontSee('data-working-hours-closed-toggle', false)
+      ->assertDontSee('data-working-hours-add aria-label="Aggiungi un\'altra fascia oraria" disabled', false)
+      ->assertDontSee('data-working-hours-remove aria-label="Rimuovi fascia" disabled', false)
+      ->assertDontSee('Imposta le fasce orarie settimanali')
+      ->assertDontSee('class="card border-0 shadow-sm"', false)
+      ->assertDontSee('class="list-group list-group-flush"', false)
+      ->assertDontSee('class="form-check form-switch"', false)
+      ->assertDontSee('input-group input-group-sm', false)
+      ->assertDontSee('class="btn btn-outline-danger border-start-0"', false)
+      ->assertDontSee('aria-label="Rimuovi fascia">x</button>', false)
       ->assertDontSee('aria-label="Rimuovi fascia">Rimuovi</button>', false)
       ->assertDontSee('giorni aperti', false)
       ->assertDontSee('settimanali totali', false)
@@ -52,7 +74,13 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertSee('name="working_hours[1][0][start_time]"', false)
       ->assertSee('08:00');
 
-    $content = $this->actingAs($doctorUser)->get('/doctor/profile')->getContent();
+    $content = $response->getContent();
+    $this->assertSame(1, preg_match('/<div class="row g-2 align-items-end" data-working-hours-row>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/', $content, $firstRow));
+    $this->assertStringContainsString('data-working-hours-add', $firstRow[0]);
+    $this->assertStringContainsString('data-working-hours-remove', $firstRow[0]);
+    $this->assertStringContainsString('class="col-12 col-md"', $firstRow[0]);
+    $this->assertStringContainsString('class="form-select"', $firstRow[0]);
+
     $this->assertSelectStartsWithOptions($content, 'working_hours[1][0][start_time]', [
       '<option value="08:00" selected>08:00</option>',
       '<option value="">--:--</option>',
@@ -96,6 +124,13 @@ class DoctorSchedulingUxTest extends TestCase
       'effective_until' => null,
       'is_active' => true,
     ]);
+  }
+
+  public function test_doctor_profile_working_hours_styles_use_bootstrap_components(): void
+  {
+    $css = file_get_contents(resource_path('css/app.css'));
+
+    $this->assertStringNotContainsString('clinic-hours-', $css);
   }
 
   public function test_doctor_profile_defaults_empty_weekday_rows_to_morning_window_and_weekends_blank(): void
@@ -159,6 +194,131 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertSee('<option value="09:30"', false)
       ->assertDontSee('type="time"', false)
       ->assertDontSee('<option value="09:15"', false);
+  }
+
+  public function test_time_forms_offer_midnight_as_an_end_time_only(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    WorkingHour::create([
+      'doctor_profile_id' => $doctor->id,
+      'weekday' => $date->dayOfWeekIso,
+      'start_time' => '09:00',
+      'end_time' => '12:00',
+      'is_active' => true,
+    ]);
+
+    $profileContent = $this->actingAs($doctorUser)
+      ->get('/doctor/profile')
+      ->assertOk()
+      ->getContent();
+
+    $this->assertSelectDoesNotContainOption($profileContent, 'working_hours[1][0][start_time]', '24:00');
+    $this->assertSelectContainsOption($profileContent, 'working_hours[1][0][end_time]', '24:00');
+
+    $agendaContent = $this->actingAs($doctorUser)
+      ->get('/doctor/agenda?date='.$date->toDateString())
+      ->assertOk()
+      ->getContent();
+
+    $this->assertSelectByIdContainsOption($agendaContent, 'closure-end-time', '24:00');
+    $this->assertSelectByIdContainsOption($agendaContent, 'special-opening-end', '24:00');
+    $this->assertSelectByIdDoesNotContainOption($agendaContent, 'closure-start-time', '24:00');
+    $this->assertSelectByIdDoesNotContainOption($agendaContent, 'special-opening-start', '24:00');
+  }
+
+  public function test_doctor_can_save_working_hours_until_midnight_and_generate_the_last_slot(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+
+    $this->actingAs($doctorUser)
+      ->patch('/doctor/profile/working-hours', [
+        'working_hours' => [
+          $date->dayOfWeekIso => [
+            ['start_time' => '23:00', 'end_time' => '24:00'],
+          ],
+        ],
+      ])
+      ->assertRedirect('/doctor/profile')
+      ->assertSessionHas('status', 'Orari ambulatorio aggiornati.');
+
+    $workingHour = $doctor->workingHours()->firstOrFail();
+    $this->assertSame('23:00', substr((string) $workingHour->start_time, 0, 5));
+    $this->assertSame('24:00', substr((string) $workingHour->end_time, 0, 5));
+
+    $slots = app(AvailabilityService::class)->agendaSlotsForDate($doctor, $date);
+
+    $this->assertSame(['23:00', '23:30'], $slots->map(fn ($slot) => $slot->start_at->format('H:i'))->all());
+    $this->assertSame('00:00', $slots->last()->end_at->format('H:i'));
+    $this->assertSame($date->addDay()->toDateString(), $slots->last()->end_at->toDateString());
+  }
+
+  public function test_agenda_can_create_and_render_partial_closure_until_midnight(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    WorkingHour::create([
+      'doctor_profile_id' => $doctor->id,
+      'weekday' => $date->dayOfWeekIso,
+      'start_time' => '22:00',
+      'end_time' => '24:00',
+      'is_active' => true,
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->post('/doctor/closures', [
+        'date' => $date->toDateString(),
+        'start_time' => '22:00',
+        'end_time' => '24:00',
+        'reason' => 'Chiusura serale',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$date->toDateString())
+      ->assertSessionHas('status', 'Chiusura creata.');
+
+    $closure = $doctor->closures()->firstOrFail();
+    $this->assertSame('22:00', substr((string) $closure->start_time, 0, 5));
+    $this->assertSame('24:00', substr((string) $closure->end_time, 0, 5));
+
+    $response = $this->actingAs($doctorUser)
+      ->get('/doctor/agenda?date='.$date->toDateString())
+      ->assertOk()
+      ->assertSee('data-agenda-closure-id="'.$closure->id.'"', false)
+      ->assertSee('style="--agenda-span-rows: 4;"', false)
+      ->assertSee('22:00 - 00:00');
+
+    $this->assertStringNotContainsString('22:00 - 23:30', $response->getContent());
+  }
+
+  public function test_doctor_can_block_the_last_generated_slot_before_midnight(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    WorkingHour::create([
+      'doctor_profile_id' => $doctor->id,
+      'weekday' => $date->dayOfWeekIso,
+      'start_time' => '23:00',
+      'end_time' => '24:00',
+      'is_active' => true,
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/agenda?date='.$date->toDateString())
+      ->post('/doctor/availability/block', [
+        'slot_start' => $date->setTime(23, 30)->format('Y-m-d\TH:i'),
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$date->toDateString())
+      ->assertSessionHas('status', 'Disponibilita bloccata.');
+
+    $closure = $doctor->closures()->firstOrFail();
+    $this->assertSame($date->toDateString(), $closure->date->toDateString());
+    $this->assertSame('23:30', substr((string) $closure->start_time, 0, 5));
+    $this->assertSame('24:00', substr((string) $closure->end_time, 0, 5));
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/agenda?date='.$date->toDateString())
+      ->assertOk()
+      ->assertSee('23:30 - 00:00');
   }
 
   public function test_working_hours_template_rejects_overlaps_and_non_grid_times(): void
@@ -835,13 +995,58 @@ class DoctorSchedulingUxTest extends TestCase
 
   private function assertSelectStartsWithOptions(string $content, string $name, array $expectedOptions): void
   {
-    $quotedName = preg_quote($name, '/');
-    $this->assertSame(1, preg_match('/<select\b[^>]*name="'.$quotedName.'"[^>]*>[\s\S]*?<\/select>/', $content, $matches));
-
-    $options = substr($matches[0], strpos($matches[0], '>') + 1);
+    $options = substr($this->selectByName($content, $name), strpos($this->selectByName($content, $name), '>') + 1);
     $options = preg_replace('/\s+/', '', $options);
     $expected = preg_replace('/\s+/', '', implode('', $expectedOptions));
 
     $this->assertStringStartsWith($expected, $options);
+  }
+
+  private function assertSelectContainsOption(string $content, string $name, string $value): void
+  {
+    $this->assertStringContainsString(
+      '<option value="'.$value.'">'.$value.'</option>',
+      $this->selectByName($content, $name),
+    );
+  }
+
+  private function assertSelectDoesNotContainOption(string $content, string $name, string $value): void
+  {
+    $this->assertStringNotContainsString(
+      '<option value="'.$value.'">'.$value.'</option>',
+      $this->selectByName($content, $name),
+    );
+  }
+
+  private function assertSelectByIdContainsOption(string $content, string $id, string $value): void
+  {
+    $this->assertStringContainsString(
+      '<option value="'.$value.'">'.$value.'</option>',
+      $this->selectById($content, $id),
+    );
+  }
+
+  private function assertSelectByIdDoesNotContainOption(string $content, string $id, string $value): void
+  {
+    $this->assertStringNotContainsString(
+      '<option value="'.$value.'">'.$value.'</option>',
+      $this->selectById($content, $id),
+    );
+  }
+
+  private function selectByName(string $content, string $name): string
+  {
+    $quotedName = preg_quote($name, '/');
+    $this->assertSame(1, preg_match('/<select\b[^>]*name="'.$quotedName.'"[^>]*>[\s\S]*?<\/select>/', $content, $matches));
+
+    return $matches[0];
+  }
+
+  private function selectById(string $content, string $id): string
+  {
+    $quotedId = preg_quote($id, '/');
+    $this->assertSame(1, preg_match('/<select\b[^>]*id="'.$quotedId.'"[^>]*>[\s\S]*?<\/select>/', $content, $matches));
+
+    return $matches[0];
   }
 }

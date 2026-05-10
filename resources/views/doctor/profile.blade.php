@@ -73,25 +73,74 @@
       </section>
 
       <section class="portal-panel">
+        <div class="section-heading">
+          <h2>Password</h2>
+        </div>
+        <form method="POST" action="/doctor/password" class="profile-form">
+          @csrf
+          @method('PUT')
+          <div class="profile-grid">
+            <label class="form-label">
+              Password attuale
+              <input class="form-control @error('current_password') is-invalid @enderror" type="password" name="current_password" autocomplete="current-password" required>
+              @error('current_password') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+            </label>
+            <label class="form-label">
+              Nuova password
+              <input class="form-control @error('password') is-invalid @enderror" type="password" name="password" autocomplete="new-password" required>
+              @error('password') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+            </label>
+            <label class="form-label">
+              Conferma nuova password
+              <input class="form-control" type="password" name="password_confirmation" autocomplete="new-password" required>
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary">Aggiorna password</button>
+        </form>
+      </section>
+
+      <section class="portal-panel">
         <form method="POST" action="/doctor/profile/working-hours" class="m-0">
           @csrf
           @method('PATCH')
           @error('working_hours') <div class="alert alert-danger">{{ $message }}</div> @enderror
 
-          <div class="d-flex justify-content-between align-items-end mb-3 flex-wrap gap-2">
-            <div>
-              <h2 class="h4 fw-bold mb-0">Orari ambulatorio</h2>
-              <small class="text-secondary">Imposta le fasce orarie settimanali</small>
+          <div class="section-heading">
+            <h2>Orari ambulatorio</h2>
+          </div>
+
+          <div class="border-bottom pb-3 mb-3" data-working-hours-render-summary>
+            <div class="form-label mb-2">Orari di apertura</div>
+            <div class="row g-2">
+              @foreach ($weekdays as $weekday => $label)
+                @php
+                  if (is_array($oldWorkingHours)) {
+                    $summaryRows = array_values($oldWorkingHours[$weekday] ?? $oldWorkingHours[(string) $weekday] ?? [$emptyWorkingHourRow]);
+                  } elseif (! $hasConfiguredWorkingHours) {
+                    $summaryRows = [$weekday <= 5 ? $defaultWorkingHourRow : $emptyWorkingHourRow];
+                  } else {
+                    $summaryRows = $workingHourDays[$weekday]['rows'] ?? [$emptyWorkingHourRow];
+                  }
+
+                  $summarySlots = collect($summaryRows)
+                    ->filter(fn ($row) => filled($row['start_time'] ?? null) && filled($row['end_time'] ?? null))
+                    ->map(fn ($row) => ($row['start_time'] ?? '').' - '.($row['end_time'] ?? ''))
+                    ->values();
+                @endphp
+                <div class="col-12 col-md-6">
+                  <div class="d-flex justify-content-between gap-3">
+                    <span class="text-secondary">{{ $label }}</span>
+                    <span>{{ $summarySlots->isNotEmpty() ? $summarySlots->join(', ') : 'Chiuso' }}</span>
+                  </div>
+                </div>
+              @endforeach
             </div>
           </div>
 
-          <div class="card border-0 shadow-sm">
-            <div class="list-group list-group-flush">
-              @php
-                $weeklyOpenDays = 0;
-                $weeklyMinutes = 0;
-              @endphp
-              @foreach ($weekdays as $weekday => $label)
+          <div class="vstack gap-3">
+            <div class="form-label mb-0">Orari di apertura</div>
+
+            @foreach ($weekdays as $weekday => $label)
               @php
                 if (is_array($oldWorkingHours)) {
                   $dayRows = array_values($oldWorkingHours[$weekday] ?? $oldWorkingHours[(string) $weekday] ?? [$emptyWorkingHourRow]);
@@ -99,6 +148,10 @@
                   $dayRows = [$weekday <= 5 ? $defaultWorkingHourRow : $emptyWorkingHourRow];
                 } else {
                   $dayRows = $workingHourDays[$weekday]['rows'] ?? [$emptyWorkingHourRow];
+                  $dayRows = collect($dayRows)
+                    ->filter(fn ($row) => filled($row['start_time'] ?? null) || filled($row['end_time'] ?? null))
+                    ->values()
+                    ->all();
                 }
 
                 if (count($dayRows) === 0) {
@@ -124,60 +177,67 @@
                 $dayDuration = $dayMinutes > 0
                   ? ($dayHours.($dayRemainder > 0 ? 'h '.$dayRemainder.'m' : 'h'))
                   : null;
-                $weeklyOpenDays += $isOpen ? 1 : 0;
-                $weeklyMinutes += $dayMinutes;
-                $switchId = "working-hours-switch-{$weekday}";
               @endphp
-              <section class="list-group-item p-3 p-md-4 {{ $isOpen ? '' : 'bg-body-tertiary' }}" data-working-hours-day data-weekday="{{ $weekday }}" data-next-index="{{ count($dayRows) }}">
-                <div class="row g-3 {{ $isOpen ? 'align-items-start' : 'align-items-center' }}">
-                  <div class="col-md-3">
-                    <div class="form-check form-switch">
-                      <input class="form-check-input" type="checkbox" role="switch" id="{{ $switchId }}" data-working-hours-toggle @checked($isOpen)>
-                      <label class="form-check-label fw-semibold text-uppercase small {{ $isOpen ? '' : 'text-secondary' }}" for="{{ $switchId }}">{{ $label }}</label>
-                    </div>
-                    <div class="{{ $isOpen ? 'text-primary' : 'text-secondary' }} small mt-1" data-working-hours-status>
-                      @if ($isOpen)
-                        Aperto @if ($dayDuration)&middot; {{ $dayDuration }}@endif
-                      @else
-                        Chiuso
-                      @endif
-                    </div>
-                  </div>
-                  <div class="col-md-9">
-                    <div class="{{ $isOpen ? 'd-flex' : 'd-none' }} flex-wrap gap-2" data-working-hours-controls>
-                      <div class="d-flex flex-wrap gap-2" data-working-hours-rows>
-                        @foreach ($dayRows as $index => $row)
-                          <div class="input-group input-group-sm w-auto" data-working-hours-row>
-                            <x-time-select
-                              class="form-select form-select-sm text-center"
-                              name="working_hours[{{ $weekday }}][{{ $index }}][start_time]"
-                              :value="$row['start_time'] ?? ''"
-                            />
-                            <span class="input-group-text bg-transparent px-2">a</span>
-                            <x-time-select
-                              class="form-select form-select-sm text-center"
-                              name="working_hours[{{ $weekday }}][{{ $index }}][end_time]"
-                              :value="$row['end_time'] ?? ''"
-                            />
-                            <button class="btn btn-outline-danger border-start-0" type="button" data-working-hours-remove aria-label="Rimuovi fascia">x</button>
+              <section class="border-top pt-3{{ $isOpen ? '' : ' text-secondary' }}" data-working-hours-day data-weekday="{{ $weekday }}" data-next-index="{{ count($dayRows) }}">
+                <div class="d-flex justify-content-between gap-3 mb-2">
+                  <span>{{ $label }}</span>
+                  <span class="{{ $isOpen ? 'text-primary' : 'text-secondary' }}" data-working-hours-status>
+                    @if ($isOpen)
+                      Aperto @if ($dayDuration)- {{ $dayDuration }}@endif
+                    @else
+                      Chiuso
+                    @endif
+                  </span>
+                </div>
+
+                <div data-working-hours-controls>
+                  <div class="vstack gap-2" data-working-hours-rows>
+                    @foreach ($dayRows as $index => $row)
+                      @php
+                        $startId = "working-hours-{$weekday}-{$index}-start";
+                        $endId = "working-hours-{$weekday}-{$index}-end";
+                      @endphp
+                      <div class="row g-2 align-items-end" data-working-hours-row>
+                        <div class="col-12 col-md">
+                          <label class="form-label" for="{{ $startId }}">Apri alle</label>
+                          <x-time-select
+                            id="{{ $startId }}"
+                            class="form-select"
+                            name="working_hours[{{ $weekday }}][{{ $index }}][start_time]"
+                            :value="$row['start_time'] ?? ''"
+                            :disabled="! $isOpen"
+                          />
+                        </div>
+
+                        <div class="col-12 col-md">
+                          <label class="form-label" for="{{ $endId }}">Chiudi alle</label>
+                          <x-time-select
+                            id="{{ $endId }}"
+                            class="form-select"
+                            name="working_hours[{{ $weekday }}][{{ $index }}][end_time]"
+                            :value="$row['end_time'] ?? ''"
+                            :include-end-of-day="true"
+                            :disabled="! $isOpen"
+                          />
+                        </div>
+
+                        <div class="col-12 col-md-auto">
+                          <div class="d-flex gap-2">
+                            <button class="btn btn-outline-secondary" type="button" data-working-hours-add aria-label="Aggiungi un'altra fascia oraria">+</button>
+                            <button class="btn btn-outline-secondary" type="button" data-working-hours-remove aria-label="Rimuovi fascia">-</button>
                           </div>
-                        @endforeach
+                        </div>
                       </div>
-                      <button class="btn btn-sm btn-outline-primary" type="button" data-working-hours-add>Aggiungi fascia</button>
-                    </div>
-                    <div class="{{ $isOpen ? 'd-none' : '' }} text-secondary small fst-italic" data-working-hours-empty>
-                      Attiva l'interruttore per impostare gli orari
-                    </div>
+                    @endforeach
                   </div>
                 </div>
               </section>
-              @endforeach
-            </div>
+            @endforeach
+          </div>
 
-            <div class="card-footer bg-white d-flex justify-content-end gap-2 py-3">
-              <a class="btn btn-outline-secondary" href="/doctor/profile">Reset</a>
-              <button type="submit" class="btn btn-primary">Salva orari</button>
-            </div>
+          <div class="d-flex justify-content-end gap-2 pt-3 mt-3 border-top">
+            <a class="btn btn-outline-secondary" href="/doctor/profile">Reset</a>
+            <button type="submit" class="btn btn-primary">Salva orari</button>
           </div>
 
         </form>

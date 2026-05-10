@@ -7,6 +7,9 @@ use App\Http\Controllers\Concerns\ConfirmsScheduleAppointmentCancellations;
 use App\Services\DoctorScheduleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class DoctorProfileController extends Controller
@@ -78,5 +81,25 @@ class DoctorProfileController extends Controller
     }
 
     return redirect('/doctor/profile')->with('status', 'Orari ambulatorio aggiornati.');
+  }
+
+  public function updatePassword(Request $request): RedirectResponse
+  {
+    $validated = $request->validate([
+      'current_password' => ['required', 'string'],
+      'password' => ['required', 'confirmed', Password::min(8)],
+    ]);
+
+    if (! Hash::check($validated['current_password'], $request->user()->password)) {
+      throw ValidationException::withMessages([
+        'current_password' => 'La password attuale non e corretta.',
+      ]);
+    }
+
+    $request->user()->forceFill([
+      'password' => $validated['password'],
+    ])->save();
+
+    return redirect('/doctor/profile')->with('status', 'Password aggiornata.');
   }
 }

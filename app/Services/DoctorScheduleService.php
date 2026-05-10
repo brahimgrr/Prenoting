@@ -277,7 +277,7 @@ class DoctorScheduleService
         }
 
         $this->assertGridTime($start, 'working_hours');
-        $this->assertGridTime($end, 'working_hours');
+        $this->assertGridTime($end, 'working_hours', allowEndOfDay: true);
 
         if ($this->timeToMinutes($end) <= $this->timeToMinutes($start)) {
           throw ValidationException::withMessages([
@@ -351,7 +351,7 @@ class DoctorScheduleService
     }
 
     $this->assertGridTime($startTime, 'closure');
-    $this->assertGridTime($endTime, 'closure');
+    $this->assertGridTime($endTime, 'closure', allowEndOfDay: true);
 
     if ($this->timeToMinutes($endTime) <= $this->timeToMinutes($startTime)) {
       throw ValidationException::withMessages(['closure' => 'La fine della chiusura deve essere successiva all\'inizio.']);
@@ -372,7 +372,7 @@ class DoctorScheduleService
     $endTime = trim((string) ($input['end_time'] ?? ''));
 
     $this->assertGridTime($startTime, 'special_opening');
-    $this->assertGridTime($endTime, 'special_opening');
+    $this->assertGridTime($endTime, 'special_opening', allowEndOfDay: true);
 
     if ($this->timeToMinutes($endTime) <= $this->timeToMinutes($startTime)) {
       throw ValidationException::withMessages(['special_opening' => 'La fine deve essere successiva all\'inizio.']);
@@ -631,14 +631,18 @@ class DoctorScheduleService
       ]);
   }
 
-  private function assertGridTime(string $time, string $field): void
+  private function assertGridTime(string $time, string $field, bool $allowEndOfDay = false): void
   {
     if (! preg_match('/^\d{2}:\d{2}$/', $time)) {
       throw ValidationException::withMessages([$field => 'Usa un orario valido nel formato HH:MM.']);
     }
 
     [$hour, $minute] = array_map('intval', explode(':', $time));
-    if ($hour < 0 || $hour > 23 || ! in_array($minute, [0, 30], true)) {
+    $isEndOfDay = $hour === 24 && $minute === 0;
+    if (
+      ! ($allowEndOfDay && $isEndOfDay)
+      && ($hour < 0 || $hour > 23 || ! in_array($minute, [0, 30], true))
+    ) {
       throw ValidationException::withMessages([$field => 'Gli orari devono rispettare la griglia di 30 minuti.']);
     }
   }

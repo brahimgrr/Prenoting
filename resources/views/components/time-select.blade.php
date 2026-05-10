@@ -1,6 +1,7 @@
 @props([
   'name',
   'value' => '',
+  'includeEndOfDay' => false,
 ])
 
 @php
@@ -27,4 +28,7 @@
       @endif
     @endforeach
   @endfor
+  @if ($includeEndOfDay && $selectedValue !== '24:00')
+    <option value="24:00">24:00</option>
+  @endif
 </select>
