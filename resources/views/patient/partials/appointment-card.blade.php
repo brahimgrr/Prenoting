@@ -46,7 +46,7 @@
     @endif
   </div>
   @if ($manageable && $changeLocked)
-    <p class="appointment-card__notice">Modifiche non disponibili nelle 24 ore precedenti.</p>
+    <p class="appointment-card__notice">Modifiche e cancellazioni non disponibili nelle 24 ore precedenti.</p>
   @endif
   <dl class="appointment-details">
     <div>

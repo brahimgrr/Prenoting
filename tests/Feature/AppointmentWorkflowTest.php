@@ -248,7 +248,7 @@ class AppointmentWorkflowTest extends TestCase
       $response->assertOk();
       $response->assertDontSee('Sposta appuntamento');
       $response->assertDontSee('Annulla appuntamento');
-      $response->assertSee('Modifiche non disponibili nelle 24 ore precedenti');
+      $response->assertSee('Modifiche e cancellazioni non disponibili nelle 24 ore precedenti');
     } finally {
       $this->travelBack();
     }
