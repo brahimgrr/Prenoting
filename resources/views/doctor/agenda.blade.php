@@ -182,76 +182,62 @@
       </div>
     </section>
     
-    <div class="row g-3 mb-3">
-      <div class="col-lg-6">
-        <section class="portal-panel h-100 p-3 schedule-events-panel">
-          <div class="section-heading">
-            <h2>Eventi del giorno</h2>
-          </div>
-          @if ($dayEvents->isEmpty())
-            <p class="text-body-secondary mb-0">Nessuna chiusura o apertura extra per questa data.</p>
-          @else
-            <div class="schedule-event-list">
-              @foreach ($dayEvents as $event)
-                <article class="schedule-event schedule-event--{{ $event['type'] }}">
-                  <strong>{{ $event['title'] }}</strong>
-                  <span>
-                    {{ $event['date']->format('d/m/Y') }}
-                    @if ($event['start_time'])
-                      &middot; {{ $event['start_time'] }}-{{ $event['end_time'] }}
-                    @else
-                      &middot; Tutto il giorno
-                    @endif
-                  </span>
-                </article>
-              @endforeach
-            </div>
-          @endif
-        </section>
+    <section class="card border-0 shadow-sm mb-3">
+      <div class="card-body pb-2">
+        <div>
+          <h2 class="h4 fw-bold mb-0">Prossimi eventi</h2>
+          <small class="text-secondary">{{ $upcomingScheduleEvents->count() }} eventi programmati</small>
+        </div>
       </div>
-      <div class="col-lg-6">
-        <section class="portal-panel h-100 p-3 schedule-events-panel">
-          <div class="section-heading">
-            <h2>Prossimi eventi</h2>
-          </div>
-          @if ($upcomingScheduleEvents->isEmpty())
-            <p class="text-body-secondary mb-0">Nessun evento programmato.</p>
-          @else
-            <div class="schedule-event-list">
-              @foreach ($upcomingScheduleEvents as $event)
-                @php
-                  $model = $event['model'];
-                  $modalId = $event['type'].'Modal'.$model->id;
-                @endphp
-                <article class="schedule-event schedule-event--{{ $event['type'] }}">
-                  <div>
-                    <strong>{{ $event['title'] }}</strong>
-                    <span>
-                      {{ $event['date']->format('d/m/Y') }}
-                      @if ($event['start_time'])
-                        &middot; {{ $event['start_time'] }}-{{ $event['end_time'] }}
-                      @else
-                        &middot; Tutto il giorno
-                      @endif
-                    </span>
-                  </div>
-                  <div class="schedule-event__actions">
-                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
-                      Modifica
-                    </button>
-                    <form method="POST" action="{{ $event['type'] === 'closure' ? "/doctor/closures/{$model->id}" : "/doctor/special-openings/{$model->id}" }}">
-                      @csrf
-                      @method('DELETE')
-                      <button class="btn btn-sm btn-outline-danger" type="submit">Elimina</button>
-                    </form>
-                  </div>
-                </article>
-              @endforeach
-            </div>
-          @endif
-        </section>
-      </div>
-    </div>
+
+      @if ($upcomingScheduleEvents->isEmpty())
+        <div class="card-body pt-0">
+          <p class="text-body-secondary mb-0">Nessun evento programmato.</p>
+        </div>
+      @else
+        <div class="list-group list-group-flush">
+          @foreach ($upcomingScheduleEvents as $event)
+            @php
+              $model = $event['model'];
+              $modalId = $event['type'].'Modal'.$model->id;
+              $timeLabel = $event['start_time']
+                ? "{$event['start_time']} - {$event['end_time']}"
+                : 'Tutto il giorno';
+            @endphp
+            <article class="list-group-item border-start-0 border-end-0 border-top-0 border-bottom border-success border-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 p-3">
+              <div class="d-flex align-items-center gap-3 flex-grow-1">
+                <div class="text-center flex-shrink-0">
+                  <div class="text-success small fw-bold text-uppercase">{{ ucfirst($event['date']->locale('it')->isoFormat('ddd')) }}</div>
+                  <div class="fs-4 fw-bold lh-1">{{ $event['date']->format('d') }}</div>
+                </div>
+                <div class="vr d-none d-sm-block"></div>
+                <div>
+                  <div class="fw-semibold">{{ $event['title'] }}</div>
+                  <small class="text-secondary">{{ $timeLabel }}</small>
+                </div>
+              </div>
+              <div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="Azioni evento">
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}" aria-label="Modifica evento">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 3 10.707V13h2.293z"/>
+                  </svg>
+                </button>
+                <form class="d-inline" method="POST" action="{{ $event['type'] === 'closure' ? "/doctor/closures/{$model->id}" : "/doctor/special-openings/{$model->id}" }}">
+                  @csrf
+                  @method('DELETE')
+                  <button class="btn btn-outline-danger" type="submit" aria-label="Elimina evento">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                      <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                      <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1h2.5a1 1 0 0 1 1 1M4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                    </svg>
+                  </button>
+                </form>
+              </div>
+            </article>
+          @endforeach
+        </div>
+      @endif
+    </section>
 
     
 

@@ -258,7 +258,6 @@ class DoctorDashboardController extends Controller
     $isPastDay = $selectedDay->lessThan($currentTime->startOfDay());
     $daySlots = $isPastDay ? collect() : $this->availability->agendaSlotsForDate($doctor, $selectedDay);
     $dayClosures = $isPastDay ? collect() : $this->availability->closuresForDate($doctor, $selectedDay);
-    $dayEvents = $isPastDay ? collect() : $this->schedule->eventsForDate($doctor, $selectedDay);
     $upcomingScheduleEvents = $isPastDay ? collect() : $this->schedule->upcomingEvents($doctor, $selectedDay);
 
     $timelineItems = $this->buildTimelineItems($appointments, $daySlots, $dayClosures);
@@ -285,7 +284,6 @@ class DoctorDashboardController extends Controller
       'appointments'        => $appointments,
       'daySlots'            => $daySlots,
       'dayClosures'         => $dayClosures,
-      'dayEvents'           => $dayEvents,
       'upcomingScheduleEvents' => $upcomingScheduleEvents,
       'agendaRows'          => $this->buildAgendaRows($selectedDay, $timelineItems, $currentTime),
       'currentTime'         => $currentTime,
