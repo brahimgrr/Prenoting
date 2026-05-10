@@ -9,6 +9,7 @@
     : 'Da definire';
   $historyStatusLabel = $appointment->status === \App\Models\Appointment::STATUS_CANCELLED ? 'Annullato' : 'Passato';
   $historyStatusClass = $appointment->status === \App\Models\Appointment::STATUS_CANCELLED ? 'cancelled' : 'past';
+  $changeLocked = ($manageable ?? false) && $appointment->start_at->lte(now()->addDay());
 @endphp
 
 <article class="appointment-card {{ ($muted ?? false) ? 'appointment-card--muted' : '' }}">
@@ -19,7 +20,7 @@
     @if ($muted ?? false)
       <span class="appointment-status-badge appointment-status-badge--{{ $historyStatusClass }}">{{ $historyStatusLabel }}</span>
     @endif
-    @if ($manageable)
+    @if ($manageable && ! $changeLocked)
       <div class="card-action-menu dropdown">
         <button
           class="btn btn-sm btn-outline-secondary card-action-menu__trigger"
@@ -44,6 +45,9 @@
       </div>
     @endif
   </div>
+  @if ($manageable && $changeLocked)
+    <p class="appointment-card__notice">Modifiche non disponibili nelle 24 ore precedenti.</p>
+  @endif
   <dl class="appointment-details">
     <div>
       <dt>Prestazione</dt>
@@ -68,7 +72,7 @@
       </div>
     @endif
   </dl>
-  @if ($manageable)
+  @if ($manageable && ! $changeLocked)
     <div class="modal fade" id="{{ $cancelModalId }}" tabindex="-1" aria-labelledby="{{ $cancelModalId }}Label" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">

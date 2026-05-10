@@ -169,6 +169,17 @@ class AppointmentService
         'start_at' => "Gli appuntamenti passati non possono essere {$label}.",
       ]);
     }
+
+    if ($appointment->start_at->lte(now()->addDay())) {
+      $messages = [
+        'cancelled' => 'Gli appuntamenti non possono essere annullati nelle 24 ore precedenti.',
+        'rescheduled' => 'Gli appuntamenti non possono essere spostati nelle 24 ore precedenti.',
+      ];
+
+      throw ValidationException::withMessages([
+        'start_at' => $messages[$action] ?? 'Gli appuntamenti non possono essere modificati nelle 24 ore precedenti.',
+      ]);
+    }
   }
 
   private function validateChoice(string $nextStatus, array $allowed): void

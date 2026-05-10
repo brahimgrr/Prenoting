@@ -130,6 +130,27 @@ class AppointmentWorkflowTest extends TestCase
     $this->assertNotNull($available);
   }
 
+  public function test_patient_cannot_cancel_appointment_within_24_hours(): void
+  {
+    $this->travelTo(CarbonImmutable::parse('2026-05-10 09:00:00'));
+
+    try {
+      [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
+      $slot = $this->slotAt($doctor, CarbonImmutable::parse('2026-05-11 08:59:00'));
+      $appointment = $this->appointment($patient, $doctor, $service, $slot);
+
+      $response = $this->actingAs($patientUser)
+        ->from('/patient/appointments')
+        ->post("/appointments/{$appointment->id}/cancel");
+
+      $response->assertRedirect('/patient/appointments');
+      $response->assertSessionHasErrors('start_at');
+      $this->assertSame(Appointment::STATUS_CONFIRMED, $appointment->fresh()->status);
+    } finally {
+      $this->travelBack();
+    }
+  }
+
   public function test_patient_can_reschedule_to_different_available_generated_start(): void
   {
     [$patientUser, $patient, $doctor, $service, $oldSlot] = $this->bookingContext();
@@ -145,6 +166,30 @@ class AppointmentWorkflowTest extends TestCase
     $this->assertSame($newSlot->key, $appointment->start_at->format('Y-m-d\TH:i'));
     $this->assertNotNull(app(AvailabilityService::class)->availableSlotByKey($doctor, $service, $oldSlot->key));
     $this->assertNull(app(AvailabilityService::class)->availableSlotByKey($doctor, $service, $newSlot->key));
+  }
+
+  public function test_patient_cannot_reschedule_appointment_within_24_hours(): void
+  {
+    $this->travelTo(CarbonImmutable::parse('2026-05-10 09:00:00'));
+
+    try {
+      [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
+      $oldSlot = $this->slotAt($doctor, CarbonImmutable::parse('2026-05-11 08:59:00'));
+      $newSlot = $this->slotAt($doctor, CarbonImmutable::parse('2026-05-12 10:00:00'));
+      $appointment = $this->appointment($patient, $doctor, $service, $oldSlot);
+
+      $response = $this->actingAs($patientUser)
+        ->from('/patient/appointments')
+        ->post("/appointments/{$appointment->id}/reschedule", [
+          'slot_start' => $newSlot->key,
+        ]);
+
+      $response->assertRedirect('/patient/appointments');
+      $response->assertSessionHasErrors('start_at');
+      $this->assertSame($oldSlot->key, $appointment->fresh()->start_at->format('Y-m-d\TH:i'));
+    } finally {
+      $this->travelBack();
+    }
   }
 
   public function test_selected_booking_slot_renders_confirmation_before_posting(): void
@@ -187,6 +232,26 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee("id=\"appointmentCancelModal{$appointment->id}\"", false);
     $response->assertDontSeeText('Medico');
     $response->assertDontSeeText('Ambulatorio');
+  }
+
+  public function test_patient_appointments_page_hides_change_actions_within_24_hours(): void
+  {
+    $this->travelTo(CarbonImmutable::parse('2026-05-10 09:00:00'));
+
+    try {
+      [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
+      $slot = $this->slotAt($doctor, CarbonImmutable::parse('2026-05-11 08:59:00'));
+      $this->appointment($patient, $doctor, $service, $slot);
+
+      $response = $this->actingAs($patientUser)->get('/patient/appointments');
+
+      $response->assertOk();
+      $response->assertDontSee('Sposta appuntamento');
+      $response->assertDontSee('Annulla appuntamento');
+      $response->assertSee('Modifiche non disponibili nelle 24 ore precedenti');
+    } finally {
+      $this->travelBack();
+    }
   }
 
   public function test_patient_appointments_history_marks_past_and_cancelled_and_shows_visit_details(): void
@@ -281,7 +346,7 @@ class AppointmentWorkflowTest extends TestCase
       'display_name' => 'Dott. Mbappe',
     ]);
     $service = MedicalService::create(['name' => 'Visita dermatologica']);
-    $slot = $createSlot ? $this->slotAt($doctor, CarbonImmutable::now()->addDay()->setTime(9, 0)) : null;
+    $slot = $createSlot ? $this->slotAt($doctor, CarbonImmutable::now()->addDays(2)->setTime(9, 0)) : null;
 
     return array_filter([$patientUser, $patient, $doctor, $service, $slot], fn ($value) => $value !== null);
   }
