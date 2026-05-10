@@ -200,14 +200,17 @@
             @php
               $model = $event['model'];
               $modalId = $event['type'].'Modal'.$model->id;
+              $deleteModalId = $event['type'] === 'closure'
+                ? "deleteScheduleEventModalClosure{$model->id}"
+                : "deleteScheduleEventModalSpecialOpening{$model->id}";
               $timeLabel = $event['start_time']
                 ? "{$event['start_time']} - {$event['end_time']}"
                 : 'Tutto il giorno';
             @endphp
-            <article class="list-group-item border-start-0 border-end-0 border-top-0 border-bottom border-success border-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 p-3">
+            <article class="list-group-item border-start-0 border-end-0 border-top-0 border-bottom border-primary border-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 p-3">
               <div class="d-flex align-items-center gap-3 flex-grow-1">
                 <div class="text-center flex-shrink-0">
-                  <div class="text-success small fw-bold text-uppercase">{{ ucfirst($event['date']->locale('it')->isoFormat('ddd')) }}</div>
+                  <div class="text-primary small fw-bold text-uppercase">{{ ucfirst($event['date']->locale('it')->isoFormat('ddd')) }}</div>
                   <div class="fs-4 fw-bold lh-1">{{ $event['date']->format('d') }}</div>
                 </div>
                 <div class="vr d-none d-sm-block"></div>
@@ -222,16 +225,12 @@
                     <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 3 10.707V13h2.293z"/>
                   </svg>
                 </button>
-                <form class="d-inline" method="POST" action="{{ $event['type'] === 'closure' ? "/doctor/closures/{$model->id}" : "/doctor/special-openings/{$model->id}" }}">
-                  @csrf
-                  @method('DELETE')
-                  <button class="btn btn-outline-danger" type="submit" aria-label="Elimina evento">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                      <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-                      <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1h2.5a1 1 0 0 1 1 1M4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-                    </svg>
-                  </button>
-                </form>
+                <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#{{ $deleteModalId }}" aria-label="Elimina evento">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                    <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1h2.5a1 1 0 0 1 1 1M4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                  </svg>
+                </button>
               </div>
             </article>
           @endforeach
@@ -335,7 +334,38 @@
     @php
       $model = $event['model'];
       $modalId = $event['type'].'Modal'.$model->id;
+      $deleteModalId = $event['type'] === 'closure'
+        ? "deleteScheduleEventModalClosure{$model->id}"
+        : "deleteScheduleEventModalSpecialOpening{$model->id}";
+      $deleteAction = $event['type'] === 'closure'
+        ? "/doctor/closures/{$model->id}"
+        : "/doctor/special-openings/{$model->id}";
+      $deleteMessage = $event['type'] === 'closure'
+        ? 'Questa chiusura verrà eliminata.'
+        : 'Questa apertura extra verrà eliminata.';
     @endphp
+    <div class="modal fade" id="{{ $deleteModalId }}" tabindex="-1" aria-labelledby="{{ $deleteModalId }}Label" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form method="POST" action="{{ $deleteAction }}">
+            @csrf
+            @method('DELETE')
+            <div class="modal-header">
+              <h2 class="modal-title fs-5" id="{{ $deleteModalId }}Label">Conferma eliminazione</h2>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi conferma eliminazione"></button>
+            </div>
+            <div class="modal-body">
+              <p>{{ $deleteMessage }}</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+              <button type="submit" class="btn btn-danger">Sì, elimina</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-labelledby="{{ $modalId }}Label" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">

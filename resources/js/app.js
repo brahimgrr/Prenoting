@@ -43,7 +43,7 @@ function halfHourTimeOptions(selectedValue = "") {
 }
 
 function timeSelectTemplate(name, selectedValue = "") {
-  return `<select class="form-control" name="${name}">${halfHourTimeOptions(selectedValue)}</select>`;
+  return `<select class="form-select form-select-sm text-center" name="${name}">${halfHourTimeOptions(selectedValue)}</select>`;
 }
 
 function timeToMinutes(value) {
@@ -88,18 +88,83 @@ function workingHoursDefaultsForNewRow(rows) {
 
 function workingHoursRowTemplate(weekday, index, startValue = "", endValue = "") {
   return `
-    <div class="working-hours-row" data-working-hours-row>
-      <label class="form-label">
-        Inizio
-        ${timeSelectTemplate(`working_hours[${weekday}][${index}][start_time]`, startValue)}
-      </label>
-      <label class="form-label">
-        Fine
-        ${timeSelectTemplate(`working_hours[${weekday}][${index}][end_time]`, endValue)}
-      </label>
-      <button class="btn btn-outline-secondary working-hours-row__remove" type="button" data-working-hours-remove aria-label="Rimuovi fascia">Rimuovi</button>
+    <div class="input-group input-group-sm w-auto" data-working-hours-row>
+      ${timeSelectTemplate(`working_hours[${weekday}][${index}][start_time]`, startValue)}
+      <span class="input-group-text bg-transparent px-2">a</span>
+      ${timeSelectTemplate(`working_hours[${weekday}][${index}][end_time]`, endValue)}
+      <button class="btn btn-outline-danger border-start-0" type="button" data-working-hours-remove aria-label="Rimuovi fascia">x</button>
     </div>
   `;
+}
+
+function workingHoursRowsHaveValues(day) {
+  return Array.from(day.querySelectorAll("[data-working-hours-row] select")).some((select) => select.value);
+}
+
+function workingHoursDayMinutes(day) {
+  return Array.from(day.querySelectorAll("[data-working-hours-row]")).reduce((total, row) => {
+    const start = row.querySelector('select[name$="[start_time]"]')?.value;
+    const end = row.querySelector('select[name$="[end_time]"]')?.value;
+    const startMinutes = timeToMinutes(start || "");
+    const endMinutes = timeToMinutes(end || "");
+
+    if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) return total;
+
+    return total + (endMinutes - startMinutes);
+  }, 0);
+}
+
+function workingHoursDurationLabel(minutes) {
+  if (minutes <= 0) return "";
+
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return `${hours}h${remainder > 0 ? ` ${remainder}m` : ""}`;
+}
+
+function setWorkingHoursDayOpen(day, isOpen, fillDefaults = false) {
+  const rows = day.querySelector("[data-working-hours-rows]");
+  const controls = day.querySelector("[data-working-hours-controls]");
+  const emptyMessage = day.querySelector("[data-working-hours-empty]");
+  const toggle = day.querySelector("[data-working-hours-toggle]");
+  const status = day.querySelector("[data-working-hours-status]");
+  const label = day.querySelector(".form-check-label");
+  const layoutRow = day.querySelector(".row");
+
+  if (!rows) return;
+
+  if (!isOpen) {
+    const firstRow = rows.querySelector("[data-working-hours-row]");
+    rows.querySelectorAll("[data-working-hours-row]").forEach((row, index) => {
+      if (index > 0) row.remove();
+    });
+    firstRow?.querySelectorAll("select").forEach((select) => {
+      select.value = "";
+    });
+    day.setAttribute("data-next-index", "1");
+  } else if (fillDefaults && !workingHoursRowsHaveValues(day)) {
+    const firstRow = rows.querySelector("[data-working-hours-row]");
+    const startSelect = firstRow?.querySelector('select[name$="[start_time]"]');
+    const endSelect = firstRow?.querySelector('select[name$="[end_time]"]');
+    if (startSelect) startSelect.value = DEFAULT_WORKING_START;
+    if (endSelect) endSelect.value = DEFAULT_WORKING_END;
+  }
+
+  toggle && (toggle.checked = isOpen);
+  controls?.classList.toggle("d-flex", isOpen);
+  controls?.classList.toggle("d-none", !isOpen);
+  emptyMessage?.classList.toggle("d-none", isOpen);
+  day.classList.toggle("bg-body-tertiary", !isOpen);
+  label?.classList.toggle("text-secondary", !isOpen);
+  layoutRow?.classList.toggle("align-items-start", isOpen);
+  layoutRow?.classList.toggle("align-items-center", !isOpen);
+
+  if (status) {
+    status.classList.toggle("text-primary", isOpen);
+    status.classList.toggle("text-secondary", !isOpen);
+    const duration = workingHoursDurationLabel(workingHoursDayMinutes(day));
+    status.textContent = isOpen ? `Aperto${duration ? ` - ${duration}` : ""}` : "Chiuso";
+  }
 }
 
 const COMUNE_SUGGESTION_LIMIT = 8;
@@ -244,16 +309,31 @@ document.addEventListener("focusin", (e) => {
 });
 
 document.addEventListener("change", (e) => {
+  const workingHoursToggle = e.target.closest?.("[data-working-hours-toggle]");
+  if (workingHoursToggle) {
+    const day = workingHoursToggle.closest("[data-working-hours-day]");
+    if (day) {
+      setWorkingHoursDayOpen(day, workingHoursToggle.checked, true);
+    }
+    return;
+  }
+
+  const workingHoursSelect = e.target.closest?.("[data-working-hours-row] select");
   const startSelect = e.target.matches?.('[data-working-hours-row] select[name$="[start_time]"]')
     ? e.target
     : null;
-  if (!startSelect) return;
+  if (!workingHoursSelect) return;
 
-  const row = startSelect.closest("[data-working-hours-row]");
-  const endSelect = row?.querySelector('select[name$="[end_time]"]');
-  if (!endSelect) return;
+  const row = workingHoursSelect.closest("[data-working-hours-row]");
+  if (startSelect) {
+    const endSelect = row?.querySelector('select[name$="[end_time]"]');
+    if (endSelect) {
+      endSelect.value = suggestedWorkingHoursEnd(startSelect.value);
+    }
+  }
 
-  endSelect.value = suggestedWorkingHoursEnd(startSelect.value);
+  const day = row?.closest("[data-working-hours-day]");
+  if (day) setWorkingHoursDayOpen(day, workingHoursRowsHaveValues(day));
 });
 
 document.addEventListener("keydown", (e) => {
@@ -382,6 +462,7 @@ document.addEventListener("click", (e) => {
     const defaults = workingHoursDefaultsForNewRow(rows);
     rows.insertAdjacentHTML("beforeend", workingHoursRowTemplate(weekday, index, defaults.start, defaults.end));
     day.setAttribute("data-next-index", String(index + 1));
+    setWorkingHoursDayOpen(day, true);
     rows.querySelector("[data-working-hours-row]:last-child select")?.focus();
     return;
   }
@@ -389,18 +470,26 @@ document.addEventListener("click", (e) => {
   const removeWorkingHoursRow = e.target.closest("[data-working-hours-remove]");
   if (removeWorkingHoursRow) {
     const row = removeWorkingHoursRow.closest("[data-working-hours-row]");
+    const day = row?.closest("[data-working-hours-day]");
     const rows = row?.parentElement;
     if (!row || !rows) return;
 
     if (rows.querySelectorAll("[data-working-hours-row]").length <= 1) {
-      row.querySelectorAll("select").forEach((select) => {
-        select.value = "";
-      });
-      row.querySelector("select")?.focus();
+      if (day) {
+        setWorkingHoursDayOpen(day, false);
+      } else {
+        row.querySelectorAll("select").forEach((select) => {
+          select.value = "";
+        });
+        row.querySelector("select")?.focus();
+      }
       return;
     }
 
     row.remove();
+    if (day) {
+      setWorkingHoursDayOpen(day, workingHoursRowsHaveValues(day));
+    }
     return;
   }
 
