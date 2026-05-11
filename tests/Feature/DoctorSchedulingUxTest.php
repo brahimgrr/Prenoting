@@ -509,6 +509,36 @@ class DoctorSchedulingUxTest extends TestCase
     $this->assertStringNotContainsString('week-day--weekend', $response->getContent());
   }
 
+  public function test_agenda_week_strip_colors_days_by_booked_open_and_closed_state(): void
+  {
+    [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
+    $weekStart = CarbonImmutable::now()->next(CarbonImmutable::MONDAY)->startOfDay();
+    $closedDay = $weekStart;
+    $openDay = $weekStart->addDay();
+    $bookedDay = $weekStart->addDays(2);
+
+    foreach ([$openDay, $bookedDay] as $workingDay) {
+      WorkingHour::create([
+        'doctor_profile_id' => $doctor->id,
+        'weekday' => $workingDay->dayOfWeekIso,
+        'start_time' => '09:00',
+        'end_time' => '10:00',
+        'is_active' => true,
+      ]);
+    }
+
+    $this->appointment($patient, $doctor, $service, $bookedDay->setTime(9, 0));
+
+    $content = $this->actingAs($doctorUser)
+      ->get('/doctor/agenda?date='.$closedDay->toDateString().'&week_start='.$weekStart->toDateString())
+      ->assertOk()
+      ->getContent();
+
+    $this->assertAgendaDayDotState($content, $closedDay, 'closed');
+    $this->assertAgendaDayDotState($content, $openDay, 'open');
+    $this->assertAgendaDayDotState($content, $bookedDay, 'booked');
+  }
+
   public function test_past_agenda_days_render_only_appointments_without_slots_or_closures(): void
   {
     [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
@@ -930,10 +960,24 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertSee('Apertura extra')
       ->assertDontSee('Eventi del giorno')
       ->assertSee('Prossimi eventi')
-      ->assertSee('list-group list-group-flush', false)
-      ->assertSee('border-bottom border-primary border-3', false)
+      ->assertSee('card mb-3', false)
+      ->assertSee('card-header border-bottom-0', false)
+      ->assertSee('vstack gap-3', false)
+      ->assertSee('card-body d-flex flex-column flex-sm-row justify-content-between gap-3', false)
+      ->assertSee('h6 mb-1', false)
+      ->assertSee('text-body-secondary small', false)
+      ->assertDontSee('eventi programmati')
+      ->assertDontSee('col-12 col-md-6', false)
+      ->assertDontSee('card h-100', false)
+      ->assertDontSee('card-body d-flex flex-column gap-3', false)
+      ->assertDontSee('list-group list-group-flush', false)
+      ->assertDontSee('list-group-item py-3', false)
+      ->assertDontSee('card border-0 shadow-sm', false)
+      ->assertDontSee('badge text-bg-light border', false)
+      ->assertDontSee('border-bottom border-primary border-3', false)
       ->assertDontSee('border-bottom border-success border-3', false)
       ->assertDontSee('<div class="text-success small fw-bold text-uppercase"', false)
+      ->assertDontSee('class="vr d-none d-sm-block"', false)
       ->assertSee('Open day')
       ->assertSee('Riunione')
       ->assertSee("data-bs-target=\"#deleteScheduleEventModalSpecialOpening{$opening->id}\"", false)
@@ -1031,6 +1075,21 @@ class DoctorSchedulingUxTest extends TestCase
     $this->assertStringNotContainsString(
       '<option value="'.$value.'">'.$value.'</option>',
       $this->selectById($content, $id),
+    );
+  }
+
+  private function assertAgendaDayDotState(string $content, CarbonImmutable $date, string $state): void
+  {
+    $quotedDate = preg_quote($date->toDateString(), '/');
+    $quotedState = preg_quote($state, '/');
+
+    $this->assertSame(
+      1,
+      preg_match(
+        '/<a\b(?=[^>]*href="\/doctor\/agenda\?date='.$quotedDate.'[^"]*")[^>]*>[\s\S]*?<span class="availability-dot availability-dot--'.$quotedState.'"><\/span>[\s\S]*?<\/a>/',
+        $content,
+      ),
+      "Expected {$date->toDateString()} to render an {$state} availability dot.",
     );
   }
 

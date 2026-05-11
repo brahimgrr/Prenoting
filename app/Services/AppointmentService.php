@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\DoctorProfile;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -46,15 +47,36 @@ class AppointmentService
     });
   }
 
-  public function cancelByPatient(Appointment $appointment, string $reason = ''): Appointment
+  public function cancelByPatient(Appointment $appointment, string $reason = '', ?User $cancelledBy = null): Appointment
   {
-    return DB::transaction(function () use ($appointment, $reason): Appointment {
+    return DB::transaction(function () use ($appointment, $reason, $cancelledBy): Appointment {
       $locked = Appointment::query()->lockForUpdate()->findOrFail($appointment->id);
       $this->validateFutureConfirmed($locked, 'cancelled');
 
       $locked->forceFill([
         'status' => Appointment::STATUS_CANCELLED,
         'cancellation_reason' => $reason,
+        'cancelled_by_role' => Appointment::CANCELLED_BY_PATIENT,
+        'cancelled_by_user_id' => $cancelledBy?->id,
+        'cancelled_at' => now(),
+      ])->save();
+
+      return $locked->fresh(['patient.user', 'service', 'doctor']);
+    });
+  }
+
+  public function cancelByDoctor(Appointment $appointment, string $reason = '', ?User $cancelledBy = null): Appointment
+  {
+    return DB::transaction(function () use ($appointment, $reason, $cancelledBy): Appointment {
+      $locked = Appointment::query()->lockForUpdate()->findOrFail($appointment->id);
+      $this->validateFutureActive($locked, 'annullati');
+
+      $locked->forceFill([
+        'status' => Appointment::STATUS_CANCELLED,
+        'cancellation_reason' => $reason,
+        'cancelled_by_role' => Appointment::CANCELLED_BY_DOCTOR,
+        'cancelled_by_user_id' => $cancelledBy?->id,
+        'cancelled_at' => now(),
       ])->save();
 
       return $locked->fresh(['patient.user', 'service', 'doctor']);
@@ -83,6 +105,9 @@ class AppointmentService
         'end_at' => $newSlot->end_at,
         'status' => Appointment::STATUS_CONFIRMED,
         'cancellation_reason' => null,
+        'cancelled_by_role' => null,
+        'cancelled_by_user_id' => null,
+        'cancelled_at' => null,
       ])->save();
 
       return $locked->fresh(['patient.user', 'service', 'doctor']);
@@ -178,6 +203,21 @@ class AppointmentService
 
       throw ValidationException::withMessages([
         'start_at' => $messages[$action] ?? 'Gli appuntamenti non possono essere modificati nelle 24 ore precedenti.',
+      ]);
+    }
+  }
+
+  private function validateFutureActive(Appointment $appointment, string $action): void
+  {
+    if (! in_array($appointment->status, Appointment::ACTIVE_SLOT_STATUSES, true)) {
+      throw ValidationException::withMessages([
+        'status' => "Solo gli appuntamenti attivi possono essere {$action}.",
+      ]);
+    }
+
+    if ($appointment->start_at->isPast()) {
+      throw ValidationException::withMessages([
+        'start_at' => "Gli appuntamenti passati non possono essere {$action}.",
       ]);
     }
   }

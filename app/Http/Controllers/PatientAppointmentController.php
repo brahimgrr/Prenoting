@@ -85,7 +85,7 @@ class PatientAppointmentController extends Controller
       'cancellation_reason' => ['nullable', 'string'],
     ]);
 
-    $appointments->cancelByPatient($appointment, $validated['cancellation_reason'] ?? '');
+    $appointments->cancelByPatient($appointment, $validated['cancellation_reason'] ?? '', $request->user());
 
     return redirect('/patient/appointments')->with('status', 'Appuntamento annullato.');
   }

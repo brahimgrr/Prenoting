@@ -273,7 +273,7 @@ class AuthTest extends TestCase
 
     $response->assertOk();
     $response->assertDontSee('/patient/book?mode=doctor', false);
-    $response->assertSeeText('Prenota per prestazione');
+    $response->assertSeeText('Prenota visita');
     $response->assertSeeText('I miei appuntamenti');
     $response->assertDontSee('>Prenota visita<', false);
   }

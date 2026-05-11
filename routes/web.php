@@ -76,6 +76,7 @@ Route::middleware('auth')->group(function (): void {
     Route::patch('/doctor/profile', [DoctorProfileController::class, 'update']);
     Route::patch('/doctor/profile/working-hours', [DoctorProfileController::class, 'updateWorkingHours']);
     Route::put('/doctor/password', [DoctorProfileController::class, 'updatePassword']);
+    Route::post('/doctor/appointments/{appointment}/cancel', [DoctorDashboardController::class, 'cancelAppointment']);
     Route::post('/doctor/appointments/{appointment}/status', [DoctorDashboardController::class, 'updateStatus']);
   });
 });

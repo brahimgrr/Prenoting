@@ -19,7 +19,6 @@
       <section class="portal-panel next-appointment-panel">
         <div class="section-heading">
           <h2>Prossimo appuntamento</h2>
-          <a href="/patient/appointments">Vedi tutti</a>
         </div>
         @if ($nextAppointment)
           <div class="next-appointment">
@@ -39,7 +38,7 @@
 
     <section class="quick-actions" aria-label="Azioni rapide">
       <a class="quick-action" href="/patient/book?mode=service">
-        <span>Prenota per prestazione</span>
+        <span>Prenota visita</span>
         <strong>Trova assistenza</strong>
       </a>
       <a class="quick-action" href="/patient/appointments">

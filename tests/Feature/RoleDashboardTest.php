@@ -64,19 +64,89 @@ class RoleDashboardTest extends TestCase
       ->assertSeeInOrder([
         '10:00',
         'Slot libero',
-        'Blocca',
         '10:30',
         'Blocco',
-        'Riapri',
         '11:00',
         'Mario Rossi',
         'Visita dermatologica',
       ])
       ->assertSee('action="/doctor/availability/block"', false)
       ->assertSee('name="slot_start"', false)
+      ->assertSee('aria-label="Blocca slot libero"', false)
+      ->assertSee('<svg', false)
+      ->assertDontSee('>Blocca</button>', false)
       ->assertSee("action=\"/doctor/closures/{$closure->id}\"", false)
+      ->assertSee('aria-label="Riapri disponibilita"', false)
+      ->assertDontSee('>Riapri</button>', false)
       ->assertSee('aria-label="Informazioni appuntamento"', false)
       ->assertSee("data-bs-target=\"#appointmentInfoModal{$bookedAppointment->id}\"", false);
+  }
+
+  public function test_doctor_agenda_renders_cancel_button_and_patient_style_modal_for_appointments(): void
+  {
+    [$doctorUser, , $appointment] = $this->dashboardContext();
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/agenda?date='.$appointment->start_at->toDateString())
+      ->assertOk()
+      ->assertSee('aria-label="Informazioni appuntamento"', false)
+      ->assertSee('aria-label="Annulla appuntamento"', false)
+      ->assertSee('title="Annulla appuntamento"', false)
+      ->assertSee("data-bs-target=\"#appointmentCancelModal{$appointment->id}\"", false)
+      ->assertSee("id=\"appointmentCancelModal{$appointment->id}\"", false)
+      ->assertSee("action=\"/doctor/appointments/{$appointment->id}/cancel\"", false)
+      ->assertSee('Lo slot verra liberato e tornera disponibile.')
+      ->assertSee('Motivo opzionale');
+  }
+
+  public function test_doctor_can_cancel_own_future_active_appointment_from_agenda(): void
+  {
+    [$doctorUser, , $appointment] = $this->dashboardContext();
+    $date = $appointment->start_at->toDateString();
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/agenda?date='.$date)
+      ->post("/doctor/appointments/{$appointment->id}/cancel", [
+        'cancellation_reason' => 'Cambio disponibilita',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$date)
+      ->assertSessionHas('status', 'Appuntamento annullato.');
+
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CANCELLED,
+      'cancellation_reason' => 'Cambio disponibilita',
+      'cancelled_by_role' => Appointment::CANCELLED_BY_DOCTOR,
+      'cancelled_by_user_id' => $doctorUser->id,
+    ]);
+    $this->assertNotNull($appointment->fresh()->cancelled_at);
+  }
+
+  public function test_doctor_cannot_cancel_another_doctors_appointment(): void
+  {
+    [$doctorUser, , $appointment] = $this->dashboardContext();
+    $otherDoctorUser = User::create([
+      'username' => 'doctor.other',
+      'password' => Hash::make('doctor123'),
+      'role' => User::ROLE_DOCTOR,
+    ]);
+    DoctorProfile::create([
+      'user_id' => $otherDoctorUser->id,
+      'display_name' => 'Dott. Altro',
+    ]);
+
+    $this->actingAs($otherDoctorUser)
+      ->from('/doctor/agenda?date='.$appointment->start_at->toDateString())
+      ->post("/doctor/appointments/{$appointment->id}/cancel", [
+        'cancellation_reason' => 'Non autorizzato',
+      ])
+      ->assertNotFound();
+
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CONFIRMED,
+      'cancellation_reason' => null,
+    ]);
   }
 
   public function test_doctor_agenda_hides_cancelled_appointments_by_default(): void

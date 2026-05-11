@@ -12,6 +12,13 @@
   --color-teal: #0f766e;
   --color-blue: #2563eb;
   --shadow-panel: 0 18px 50px rgba(15, 23, 42, 0.08);
+  --bs-border-radius: 0.625rem;
+  --bs-border-radius-sm: 0.5rem;
+  --bs-border-radius-lg: 0.875rem;
+  --bs-border-radius-xl: 1rem;
+  --app-card-radius: var(--bs-border-radius-lg);
+  --app-control-radius: var(--bs-border-radius);
+  --app-inner-radius: var(--bs-border-radius-sm);
 }
 
 html,
@@ -48,8 +55,33 @@ a {
 .slot-chip {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-card-radius);
   box-shadow: var(--shadow-panel);
+}
+
+.card {
+  --bs-card-border-radius: var(--app-card-radius);
+  --bs-card-inner-border-radius: calc(var(--app-card-radius) - 1px);
+  border-radius: var(--bs-card-border-radius);
+  overflow: hidden;
+}
+
+.modal-content {
+  border-radius: var(--app-card-radius);
+}
+
+.dropdown-menu {
+  --bs-dropdown-border-radius: var(--app-card-radius);
+  border-radius: var(--bs-dropdown-border-radius);
+}
+
+.list-group {
+  --bs-list-group-border-radius: var(--app-card-radius);
+  border-radius: var(--bs-list-group-border-radius);
+}
+
+.alert {
+  border-radius: var(--app-control-radius);
 }
 
 .auth-panel {
@@ -90,7 +122,7 @@ a {
 .form-control,
 .form-select,
 .btn {
-  
+  border-radius: var(--app-control-radius);
 }
 
 .form-control,
@@ -106,7 +138,7 @@ a {
 .comune-suggestions {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-card-radius);
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
   display: grid;
   left: 0;
@@ -126,7 +158,7 @@ a {
 .comune-suggestion {
   background: transparent;
   border: 0;
-  
+  border-radius: var(--app-inner-radius);
   color: var(--color-ink);
   font-weight: 650;
   padding: 0.55rem 0.65rem;
@@ -146,6 +178,7 @@ a {
 .badge-neutral {
   background: #ffffff;
   border: 1px solid var(--color-border);
+  border-radius: 999px;
   color: var(--color-ink);
 }
 
@@ -188,7 +221,7 @@ a {
 .app-brand__mark {
   align-items: center;
   background: var(--color-teal);
-  
+  border-radius: var(--app-control-radius);
   color: #ffffff;
   display: inline-flex;
   flex: 0 0 2.6rem;
@@ -225,7 +258,7 @@ a {
 }
 
 .app-nav__link {
-  
+  border-radius: var(--app-control-radius);
   color: #cbd5e1;
   font-weight: 650;
   padding: 0.8rem 0.9rem;
@@ -400,7 +433,7 @@ a {
 
 .metric-panel {
   background: var(--color-teal);
-  
+  border-radius: var(--app-card-radius);
   box-shadow: var(--shadow-panel);
   color: #ffffff;
   display: grid;
@@ -467,7 +500,7 @@ a {
 .quick-action {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-card-radius);
   color: var(--color-ink);
   display: grid;
   gap: 0.35rem;
@@ -524,6 +557,7 @@ a {
 .appointment-card__notice {
   background: #fff7ed;
   border: 1px solid #fed7aa;
+  border-radius: var(--app-inner-radius);
   color: #9a3412;
   font-weight: 700;
   margin: 0;
@@ -538,6 +572,7 @@ a {
 .appointment-status-badge {
   align-items: center;
   border: 1px solid transparent;
+  border-radius: 999px;
   display: inline-flex;
   flex-shrink: 0;
   font-size: 0.78rem;
@@ -577,7 +612,7 @@ a {
 
 .card-action-menu .dropdown-menu {
   border-color: var(--color-border);
-  
+  border-radius: var(--app-card-radius);
   box-shadow: var(--shadow-panel);
   left: auto;
   min-width: 13rem;
@@ -588,7 +623,7 @@ a {
 }
 
 .card-action-menu .dropdown-item {
-  
+  border-radius: var(--app-inner-radius);
   font-weight: 650;
 }
 
@@ -654,7 +689,7 @@ a {
 
 .service-choice-card {
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-card-radius);
   color: var(--color-ink);
   display: grid;
   gap: 0.35rem;
@@ -730,7 +765,7 @@ a {
   align-items: center;
   background: #ffffff;
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-card-radius);
   color: var(--color-ink);
   display: grid;
   gap: 0.25rem;
@@ -792,6 +827,10 @@ a {
   background: #16a34a;
 }
 
+.availability-dot--booked {
+  background: var(--color-blue);
+}
+
 .availability-dot--closed {
   background: #dc2626;
 }
@@ -800,7 +839,7 @@ a {
   align-items: center;
   background: #ffffff;
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-card-radius);
   color: var(--color-ink);
   display: grid;
   gap: 0.2rem;
@@ -841,7 +880,7 @@ a {
 .booking-confirm-summary div {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-inner-radius);
   min-height: 100%;
   padding: 0.85rem;
 }
@@ -867,7 +906,7 @@ a {
 .profile-grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(1, minmax(0, 1fr));
 }
 
 .profile-data-grid {
@@ -879,7 +918,7 @@ a {
 .profile-data-tile {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-inner-radius);
   padding: 0.85rem;
 }
 
@@ -910,7 +949,7 @@ a {
 
 .working-hours-day {
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-card-radius);
   display: grid;
   gap: 0.75rem;
   padding: 0.85rem;
@@ -1031,7 +1070,7 @@ a {
 
 .doctor-agenda-scroll {
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-card-radius);
   max-height: 38rem;
   overflow-y: auto;
 }
@@ -1135,7 +1174,7 @@ a {
   background: #ffffff;
   border: 1px solid var(--color-border);
   border-left: 4px solid #94a3b8;
-  
+  border-radius: var(--app-inner-radius);
   display: grid;
   gap: 0.55rem;
   min-width: 0;
@@ -1194,16 +1233,23 @@ a {
   justify-content: space-between;
 }
 
+.doctor-agenda-item__main > div:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .doctor-agenda-item__main h3 {
   color: var(--color-navy);
   font-size: 1rem;
   font-weight: 850;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .doctor-agenda-item__main p {
   font-weight: 700;
   margin: 0.15rem 0 0;
+  overflow-wrap: anywhere;
 }
 
 .doctor-agenda-item__meta {
@@ -1218,6 +1264,7 @@ a {
 .doctor-agenda-item__actions {
   align-items: center;
   display: flex;
+  flex: 0 0 auto;
   flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: flex-end;
@@ -1274,7 +1321,7 @@ a {
 .appointment-info-modal .modal-content {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--bs-modal-border-radius);
   box-shadow: 0 22px 50px rgba(15, 23, 42, 0.14);
 }
 
@@ -1311,6 +1358,7 @@ a {
 .appointment-info-card {
   background: #ffffff;
   border: 1px solid var(--color-border);
+  border-radius: var(--app-card-radius);
   box-shadow: var(--shadow-panel);
 }
 
@@ -1414,7 +1462,7 @@ a {
 .treatment-card {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-card-radius);
   display: grid;
   gap: 1rem;
   padding: 1rem;
@@ -1448,7 +1496,7 @@ a {
 .treatment-card__facts div {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-inner-radius);
   padding: 0.75rem;
 }
 
@@ -1473,7 +1521,7 @@ a {
 .operations-summary-grid div {
   background: #ffffff;
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-card-radius);
   display: grid;
   gap: 0.35rem;
   min-height: 7rem;
@@ -1488,7 +1536,7 @@ a {
 
 .dashboard-table-wrap {
   border: 1px solid var(--color-border);
-  
+  border-radius: var(--app-card-radius);
 }
 
 .dashboard-table {
@@ -1856,7 +1904,7 @@ a {
 .landing-contacts div {
   background: rgba(255, 255, 255, 0.74);
   border: 1px solid rgba(219, 228, 238, 0.9);
-  
+  border-radius: var(--app-card-radius);
   display: flex;
   flex: 1 1 11rem;
   flex-direction: column;

@@ -44,6 +44,21 @@ class DoctorDashboardController extends Controller
     return redirect('/doctor/agenda')->with('status', 'Stato appuntamento aggiornato.');
   }
 
+  public function cancelAppointment(Request $request, Appointment $appointment, AppointmentService $appointments): RedirectResponse
+  {
+    $doctor = $this->doctorFor($request);
+    abort_unless($appointment->doctor_profile_id === $doctor->id, 404);
+
+    $validated = $request->validate([
+      'cancellation_reason' => ['nullable', 'string'],
+    ]);
+
+    $appointments->cancelByDoctor($appointment, $validated['cancellation_reason'] ?? '', $request->user());
+
+    return redirect('/doctor/agenda?date='.$appointment->start_at->toDateString())
+      ->with('status', 'Appuntamento annullato.');
+  }
+
   public function blockAvailability(Request $request): RedirectResponse
   {
     $doctor = $this->doctorFor($request);
@@ -269,6 +284,16 @@ class DoctorDashboardController extends Controller
       $weekStartParam ?? $selectedDay->toDateString()
     )->startOfWeek(CarbonImmutable::MONDAY);
 
+    $daysWithAppointments = Appointment::query()
+      ->where('doctor_profile_id', $doctor->id)
+      ->where('status', '!=', Appointment::STATUS_CANCELLED)
+      ->where('start_at', '>=', $weekStart->startOfDay())
+      ->where('start_at', '<', $weekStart->addWeek()->startOfDay())
+      ->pluck('start_at')
+      ->map(fn ($startAt) => CarbonImmutable::parse($startAt)->toDateString())
+      ->unique()
+      ->all();
+
     $daysWithSlots = collect(range(0, 6))
       ->map(fn ($i) => $weekStart->addDays($i))
       ->filter(fn (CarbonImmutable $date) => ! $date->lessThan($currentTime->startOfDay()))
@@ -276,10 +301,19 @@ class DoctorDashboardController extends Controller
       ->map(fn (CarbonImmutable $date) => $date->toDateString())
       ->all();
 
-    $weekDays = collect(range(0, 6))->map(fn ($i) => [
-      'date'     => $weekStart->addDays($i),
-      'hasSlots' => in_array($weekStart->addDays($i)->toDateString(), $daysWithSlots),
-    ]);
+    $weekDays = collect(range(0, 6))->map(function (int $i) use ($weekStart, $daysWithAppointments, $daysWithSlots): array {
+      $date = $weekStart->addDays($i);
+      $dateStr = $date->toDateString();
+      $hasAppointments = in_array($dateStr, $daysWithAppointments, true);
+      $hasSlots = in_array($dateStr, $daysWithSlots, true);
+
+      return [
+        'date' => $date,
+        'hasSlots' => $hasSlots,
+        'hasAppointments' => $hasAppointments,
+        'availabilityState' => $hasAppointments ? 'booked' : ($hasSlots ? 'open' : 'closed'),
+      ];
+    });
 
     return view('doctor.agenda', [
       'date'                => $selectedDate,

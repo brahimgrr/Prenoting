@@ -43,7 +43,6 @@
             <strong>{{ $profile?->codice_fiscale ?: '-' }}</strong>
           </div>
         </div>
-        <p class="profile-lock-note">Questi dati non sono modificabili dal portale.</p>
       </section>
 
       <section class="portal-panel">

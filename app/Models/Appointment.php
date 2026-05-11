@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Appointment extends Model
 {
+  public const CANCELLED_BY_PATIENT = 'patient';
+  public const CANCELLED_BY_DOCTOR = 'doctor';
+  public const CANCELLED_BY_SYSTEM = 'system';
+
   public const STATUS_CONFIRMED = 'confirmed';
   public const STATUS_CHECKED_IN = 'checked_in';
   public const STATUS_COMPLETED = 'completed';
@@ -36,6 +40,9 @@ class Appointment extends Model
     'status',
     'notes',
     'cancellation_reason',
+    'cancelled_by_role',
+    'cancelled_by_user_id',
+    'cancelled_at',
   ];
 
   protected function casts(): array
@@ -43,6 +50,7 @@ class Appointment extends Model
     return [
       'start_at' => 'datetime',
       'end_at' => 'datetime',
+      'cancelled_at' => 'datetime',
     ];
   }
 
@@ -61,6 +69,11 @@ class Appointment extends Model
     return $this->belongsTo(DoctorProfile::class, 'doctor_profile_id');
   }
 
+  public function cancelledByUser(): BelongsTo
+  {
+    return $this->belongsTo(User::class, 'cancelled_by_user_id');
+  }
+
   public function scopeWithPortalRelations(Builder $query): Builder
   {
     return $query->with(['patient.user', 'service', 'doctor']);
@@ -74,5 +87,15 @@ class Appointment extends Model
   public function isFutureConfirmed(): bool
   {
     return $this->status === self::STATUS_CONFIRMED && $this->start_at->isFuture();
+  }
+
+  public function cancellationActorLabel(): string
+  {
+    return match ($this->cancelled_by_role) {
+      self::CANCELLED_BY_PATIENT => 'Annullato da te',
+      self::CANCELLED_BY_DOCTOR => 'Annullato dallo studio',
+      self::CANCELLED_BY_SYSTEM => 'Annullato dal sistema',
+      default => 'Annullato',
+    };
   }
 }

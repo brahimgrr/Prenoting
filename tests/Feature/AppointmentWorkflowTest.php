@@ -125,7 +125,11 @@ class AppointmentWorkflowTest extends TestCase
     ]);
 
     $response->assertRedirect('/patient/appointments');
-    $this->assertSame(Appointment::STATUS_CANCELLED, $appointment->fresh()->status);
+    $appointment->refresh();
+    $this->assertSame(Appointment::STATUS_CANCELLED, $appointment->status);
+    $this->assertSame(Appointment::CANCELLED_BY_PATIENT, $appointment->cancelled_by_role);
+    $this->assertSame($patientUser->id, $appointment->cancelled_by_user_id);
+    $this->assertNotNull($appointment->cancelled_at);
     $available = app(AvailabilityService::class)->availableSlotByKey($doctor, $service, $slot->key);
     $this->assertNotNull($available);
   }
@@ -230,6 +234,7 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee('Sposta appuntamento');
     $response->assertSee('Annulla appuntamento');
     $response->assertSee("id=\"appointmentCancelModal{$appointment->id}\"", false);
+    $response->assertSee("action=\"/appointments/{$appointment->id}/cancel\"", false);
     $response->assertDontSeeText('Medico');
     $response->assertDontSeeText('Ambulatorio');
   }
@@ -281,6 +286,7 @@ class AppointmentWorkflowTest extends TestCase
       Appointment::STATUS_CANCELLED,
       'Portare referti precedenti',
       'Imprevisto personale',
+      Appointment::CANCELLED_BY_PATIENT,
     );
 
     $response = $this->actingAs($patientUser)->get('/patient/appointments');
@@ -288,6 +294,7 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertOk();
     $response->assertSeeText('Passato');
     $response->assertSeeText('Annullato');
+    $response->assertSeeText('Annullato da te');
     $response->assertSeeText('EUR 95,50');
     $response->assertSeeText('Controllo nei prossimi mesi');
     $response->assertSeeText('Portare referti precedenti');
@@ -387,6 +394,7 @@ class AppointmentWorkflowTest extends TestCase
     string $status = Appointment::STATUS_CONFIRMED,
     string $notes = '',
     ?string $cancellationReason = null,
+    ?string $cancelledByRole = null,
   ): Appointment {
     return Appointment::create([
       'patient_id' => $patient->id,
@@ -397,6 +405,7 @@ class AppointmentWorkflowTest extends TestCase
       'status' => $status,
       'notes' => $notes,
       'cancellation_reason' => $cancellationReason,
+      'cancelled_by_role' => $cancelledByRole,
     ]);
   }
 }

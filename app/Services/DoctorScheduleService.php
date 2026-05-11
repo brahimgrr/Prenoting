@@ -460,6 +460,8 @@ class DoctorScheduleService
       ->update([
         'status' => Appointment::STATUS_CANCELLED,
         'cancellation_reason' => $reason,
+        'cancelled_by_role' => Appointment::CANCELLED_BY_DOCTOR,
+        'cancelled_at' => now(),
         'updated_at' => now(),
       ]);
   }

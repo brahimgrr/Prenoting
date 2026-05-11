@@ -67,33 +67,20 @@
     </div>
     @if ($appointment->status === \App\Models\Appointment::STATUS_CANCELLED)
       <div>
+        <dt>Annullamento</dt>
+        <dd>{{ $appointment->cancellationActorLabel() }}</dd>
+      </div>
+      <div>
         <dt>Motivo annullamento</dt>
         <dd>{{ filled($appointment->cancellation_reason) ? $appointment->cancellation_reason : 'Non indicato' }}</dd>
       </div>
     @endif
   </dl>
   @if ($manageable && ! $changeLocked)
-    <div class="modal fade" id="{{ $cancelModalId }}" tabindex="-1" aria-labelledby="{{ $cancelModalId }}Label" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <form method="POST" action="/appointments/{{ $appointment->id }}/cancel">
-            @csrf
-            <div class="modal-header">
-              <h2 class="modal-title fs-5" id="{{ $cancelModalId }}Label">Conferma annullamento</h2>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi conferma annullamento"></button>
-            </div>
-            <div class="modal-body">
-              <p>Lo slot verra liberato e tornera disponibile.</p>
-              <label class="form-label" for="cancellationReason{{ $appointment->id }}">Motivo opzionale</label>
-              <input id="cancellationReason{{ $appointment->id }}" type="text" class="form-control" name="cancellation_reason" placeholder="Es. imprevisto personale">
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
-              <button type="submit" class="btn btn-danger">Si, annulla appuntamento</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+    <x-appointment-cancel-modal
+      :appointment="$appointment"
+      :action="'/appointments/'.$appointment->id.'/cancel'"
+      :modal-id="$cancelModalId"
+    />
   @endif
 </article>

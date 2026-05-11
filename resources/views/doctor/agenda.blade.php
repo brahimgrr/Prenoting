@@ -60,7 +60,7 @@
               <span class="week-day__name">{{ ucfirst($weekDay['date']->locale('it')->isoFormat('ddd')) }}</span>
               <strong>{{ $weekDay['date']->format('d') }}</strong>
               <span class="week-day__month">{{ ucfirst($weekDay['date']->locale('it')->isoFormat('MMM')) }}</span>
-              <span class="availability-dot {{ $weekDay['hasSlots'] ? 'availability-dot--open' : 'availability-dot--closed' }}"></span>
+              <span class="availability-dot availability-dot--{{ $weekDay['availabilityState'] }}"></span>
             </a>
           @endforeach
         </div>
@@ -112,6 +112,11 @@
                       @endif
                     >
                       @if ($appointment)
+                        @php
+                          $appointmentCancelModalId = "appointmentCancelModal{$appointment->id}";
+                          $canCancelAppointment = in_array($appointment->status, \App\Models\Appointment::ACTIVE_SLOT_STATUSES, true)
+                            && $appointment->start_at->isFuture();
+                        @endphp
                         <div class="doctor-agenda-item__body">
                           <div class="doctor-agenda-item__main">
                             <div>
@@ -126,11 +131,28 @@
                                 data-bs-target="#appointmentInfoModal{{ $appointment->id }}"
                                 aria-label="Informazioni appuntamento"
                               ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg></button>
+                              @if ($canCancelAppointment)
+                                <button
+                                  class="btn btn-sm btn-outline-danger"
+                                  type="button"
+                                  data-bs-toggle="modal"
+                                  data-bs-target="#{{ $appointmentCancelModalId }}"
+                                  aria-label="Annulla appuntamento"
+                                  title="Annulla appuntamento"
+                                ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1h2.5a1 1 0 0 1 1 1M4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg></button>
+                              @endif
                             </div>
                           </div>
                         </div>
                         @push('modals')
                           @include('doctor.partials.appointment-info-modal', ['appointment' => $appointment])
+                          @if ($canCancelAppointment)
+                            <x-appointment-cancel-modal
+                              :appointment="$appointment"
+                              :action="'/doctor/appointments/'.$appointment->id.'/cancel'"
+                              :modal-id="$appointmentCancelModalId"
+                            />
+                          @endif
                         @endpush
                       @else
                         @php
@@ -159,13 +181,23 @@
                                 <form method="POST" action="/doctor/closures/{{ $closure->id }}">
                                   @csrf
                                   @method('DELETE')
-                                  <button type="submit" class="btn btn-sm btn-outline-primary">Riapri</button>
+                                  <button
+                                    type="submit"
+                                    class="btn btn-sm btn-outline-primary"
+                                    aria-label="Riapri disponibilita"
+                                    title="Riapri disponibilita"
+                                  ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M11 1a2 2 0 0 0-2 2v3h1V3a1 1 0 0 1 2 0v1.5a.5.5 0 0 0 1 0V3a2 2 0 0 0-2-2"/><path d="M4.5 6A1.5 1.5 0 0 0 3 7.5v6A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-6A1.5 1.5 0 0 0 11.5 6zm0 1h7a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5v-6a.5.5 0 0 1 .5-.5"/></svg></button>
                                 </form>
                               @elseif ($state === 'free' && ! $hasStarted)
                                 <form method="POST" action="/doctor/availability/block">
                                   @csrf
                                   <input type="hidden" name="slot_start" value="{{ $slot->key }}">
-                                  <button type="submit" class="btn btn-sm btn-outline-danger">Blocca</button>
+                                  <button
+                                    type="submit"
+                                    class="btn btn-sm btn-outline-danger"
+                                    aria-label="Blocca slot libero"
+                                    title="Blocca slot libero"
+                                  ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="M11.354 4.646a.5.5 0 0 0-.708-.708l-6.708 6.708a.5.5 0 0 0 .708.708z"/></svg></button>
                                 </form>
                               @endif
                             </div>
@@ -182,58 +214,54 @@
       </div>
     </section>
     
-    <section class="card border-0 shadow-sm mb-3">
-      <div class="card-body pb-2">
-        <div>
-          <h2 class="h4 fw-bold mb-0">Prossimi eventi</h2>
-          <small class="text-secondary">{{ $upcomingScheduleEvents->count() }} eventi programmati</small>
-        </div>
+    <section class="card mb-3">
+      <div class="card-header border-bottom-0">
+        <h2 class="h5 mb-0">Prossimi eventi</h2>
       </div>
 
       @if ($upcomingScheduleEvents->isEmpty())
-        <div class="card-body pt-0">
-          <p class="text-body-secondary mb-0">Nessun evento programmato.</p>
+        <div class="card-body">
+          <p class="card-text text-body-secondary mb-0">Nessun evento programmato.</p>
         </div>
       @else
-        <div class="list-group list-group-flush">
-          @foreach ($upcomingScheduleEvents as $event)
-            @php
-              $model = $event['model'];
-              $modalId = $event['type'].'Modal'.$model->id;
-              $deleteModalId = $event['type'] === 'closure'
-                ? "deleteScheduleEventModalClosure{$model->id}"
-                : "deleteScheduleEventModalSpecialOpening{$model->id}";
-              $timeLabel = $event['start_time']
-                ? "{$event['start_time']} - {$event['end_time']}"
-                : 'Tutto il giorno';
-            @endphp
-            <article class="list-group-item border-start-0 border-end-0 border-top-0 border-bottom border-primary border-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 p-3">
-              <div class="d-flex align-items-center gap-3 flex-grow-1">
-                <div class="text-center flex-shrink-0">
-                  <div class="text-primary small fw-bold text-uppercase">{{ ucfirst($event['date']->locale('it')->isoFormat('ddd')) }}</div>
-                  <div class="fs-4 fw-bold lh-1">{{ $event['date']->format('d') }}</div>
+        <div class="card-body">
+          <div class="vstack gap-3">
+            @foreach ($upcomingScheduleEvents as $event)
+              @php
+                $model = $event['model'];
+                $modalId = $event['type'].'Modal'.$model->id;
+                $deleteModalId = $event['type'] === 'closure'
+                  ? "deleteScheduleEventModalClosure{$model->id}"
+                  : "deleteScheduleEventModalSpecialOpening{$model->id}";
+                $timeLabel = $event['start_time']
+                  ? "{$event['start_time']} - {$event['end_time']}"
+                  : 'Tutto il giorno';
+              @endphp
+              <article class="card">
+                <div class="card-body d-flex flex-column flex-sm-row justify-content-between gap-3">
+                  <div class="flex-grow-1">
+                    <h3 class="h6 mb-1">{{ $event['title'] }}</h3>
+                    <p class="text-body-secondary small mb-0">
+                      {{ ucfirst($event['date']->locale('it')->isoFormat('ddd D MMM')) }} &middot; {{ $timeLabel }}
+                    </p>
+                  </div>
+                  <div class="btn-group btn-group-sm align-self-start align-self-sm-center flex-shrink-0" role="group" aria-label="Azioni evento">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}" aria-label="Modifica evento">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 3 10.707V13h2.293z"/>
+                      </svg>
+                    </button>
+                    <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#{{ $deleteModalId }}" aria-label="Elimina evento">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1h2.5a1 1 0 0 1 1 1M4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <div class="vr d-none d-sm-block"></div>
-                <div>
-                  <div class="fw-semibold">{{ $event['title'] }}</div>
-                  <small class="text-secondary">{{ $timeLabel }}</small>
-                </div>
-              </div>
-              <div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="Azioni evento">
-                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}" aria-label="Modifica evento">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 3 10.707V13h2.293z"/>
-                  </svg>
-                </button>
-                <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#{{ $deleteModalId }}" aria-label="Elimina evento">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-                    <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1h2.5a1 1 0 0 1 1 1M4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-                  </svg>
-                </button>
-              </div>
-            </article>
-          @endforeach
+              </article>
+            @endforeach
+          </div>
         </div>
       @endif
     </section>
