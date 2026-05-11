@@ -19,9 +19,7 @@ Route::get('/', function () {
     return redirect($user->portalRoute() ?? '/unsupported-role');
   }
 
-  return view('landing', [
-    'doctor' => \App\Models\DoctorProfile::first(),
-  ]);
+  return redirect('/login');
 })->name('home');
 
 Route::middleware('guest')->group(function (): void {
