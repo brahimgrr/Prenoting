@@ -44,6 +44,92 @@ class AuthTest extends TestCase
     $this->assertSame('CNTSRA90E61H501K', $profile->codice_fiscale);
   }
 
+  public function test_register_requires_first_and_last_name(): void
+  {
+    $response = $this->from('/register')->post('/register', [
+      'username' => 'missing-names@example.com',
+      'password' => 'strong-pass-123',
+      'password_confirmation' => 'strong-pass-123',
+      'date_of_birth' => '1990-05-21',
+      'place_of_birth' => 'Roma',
+      'gender' => 'M',
+      'phone' => '+390000001',
+    ]);
+
+    $response->assertRedirect('/register');
+    $response->assertSessionHasErrors(['first_name', 'last_name']);
+    $this->assertGuest();
+    $this->assertDatabaseMissing('users', [
+      'username' => 'missing-names@example.com',
+    ]);
+  }
+
+  public function test_register_rejects_numbers_and_symbols_in_first_and_last_name(): void
+  {
+    $response = $this->from('/register')->post('/register', [
+      'username' => 'invalid-names@example.com',
+      'password' => 'strong-pass-123',
+      'password_confirmation' => 'strong-pass-123',
+      'first_name' => 'Sara2',
+      'last_name' => "D'Angelo",
+      'date_of_birth' => '1990-05-21',
+      'place_of_birth' => 'Roma',
+      'gender' => 'F',
+      'phone' => '+390000002',
+    ]);
+
+    $response->assertRedirect('/register');
+    $response->assertSessionHasErrors(['first_name', 'last_name']);
+    $this->assertGuest();
+    $this->assertDatabaseMissing('users', [
+      'username' => 'invalid-names@example.com',
+    ]);
+  }
+
+  public function test_register_rejects_invalid_phone_numbers(): void
+  {
+    $response = $this->from('/register')->post('/register', [
+      'username' => 'invalid-phone@example.com',
+      'password' => 'strong-pass-123',
+      'password_confirmation' => 'strong-pass-123',
+      'first_name' => 'Sara',
+      'last_name' => 'Conti',
+      'date_of_birth' => '1990-05-21',
+      'place_of_birth' => 'Roma',
+      'gender' => 'F',
+      'phone' => 'telefono',
+    ]);
+
+    $response->assertRedirect('/register');
+    $response->assertSessionHasErrors('phone');
+    $this->assertGuest();
+    $this->assertDatabaseMissing('users', [
+      'username' => 'invalid-phone@example.com',
+    ]);
+  }
+
+  public function test_register_rejects_phone_numbers_with_too_few_digits(): void
+  {
+    $response = $this->from('/register')->post('/register', [
+      'username' => 'short-phone@example.com',
+      'password' => 'strong-pass-123',
+      'password_confirmation' => 'strong-pass-123',
+      'first_name' => 'Sara',
+      'last_name' => 'Conti',
+      'date_of_birth' => '1990-05-21',
+      'place_of_birth' => 'Roma',
+      'gender' => 'F',
+      'phone' => '+39',
+    ]);
+
+    $response->assertRedirect('/register');
+    $response->assertSessionHasErrors('phone');
+    $this->assertGuest();
+    $this->assertDatabaseMissing('users', [
+      'username' => 'short-phone@example.com',
+    ]);
+  }
+
   public function test_register_rejects_short_password(): void
   {
     $response = $this->from('/register')->post('/register', [
@@ -201,6 +287,64 @@ class AuthTest extends TestCase
     $this->assertSame('Via Milano 2', $profile->fresh()->address);
   }
 
+  public function test_patient_profile_rejects_invalid_phone_number(): void
+  {
+    $user = User::create([
+      'username' => 'patient@example.com',
+      'email' => 'patient@example.com',
+      'first_name' => 'Mario',
+      'last_name' => 'Rossi',
+      'password' => Hash::make('patient123'),
+      'role' => User::ROLE_PATIENT,
+    ]);
+    $profile = PatientProfile::create([
+      'user_id' => $user->id,
+      'phone' => '555-0100',
+      'address' => 'Via Roma 1',
+    ]);
+
+    $this->actingAs($user)
+      ->from('/patient/profile')
+      ->patch('/patient/profile', [
+        'email' => 'mario.rossi@example.com',
+        'phone' => 'telefono',
+        'address' => 'Via Milano 2',
+      ])
+      ->assertRedirect('/patient/profile')
+      ->assertSessionHasErrors('phone');
+
+    $this->assertSame('555-0100', $profile->fresh()->phone);
+  }
+
+  public function test_patient_profile_rejects_phone_number_with_too_few_digits(): void
+  {
+    $user = User::create([
+      'username' => 'patient@example.com',
+      'email' => 'patient@example.com',
+      'first_name' => 'Mario',
+      'last_name' => 'Rossi',
+      'password' => Hash::make('patient123'),
+      'role' => User::ROLE_PATIENT,
+    ]);
+    $profile = PatientProfile::create([
+      'user_id' => $user->id,
+      'phone' => '555-0100',
+      'address' => 'Via Roma 1',
+    ]);
+
+    $this->actingAs($user)
+      ->from('/patient/profile')
+      ->patch('/patient/profile', [
+        'email' => 'mario.rossi@example.com',
+        'phone' => '+39',
+        'address' => 'Via Milano 2',
+      ])
+      ->assertRedirect('/patient/profile')
+      ->assertSessionHasErrors('phone');
+
+    $this->assertSame('555-0100', $profile->fresh()->phone);
+  }
+
   public function test_patient_profiles_table_no_longer_has_identity_code_column(): void
   {
     $this->assertFalse(Schema::hasColumn('patient_profiles', 'identity_code'));
@@ -333,6 +477,10 @@ class AuthTest extends TestCase
     $response = $this->get('/register');
 
     $response->assertOk();
+    $response->assertSee('name="first_name"', false);
+    $response->assertSee('name="last_name"', false);
+    $response->assertSee('id="first_name" name="first_name" autocomplete="given-name" value="" required', false);
+    $response->assertSee('id="last_name" name="last_name" autocomplete="family-name" value="" required', false);
     $response->assertSee('data-comune-combobox', false);
     $response->assertSee('data-comune-input', false);
     $response->assertSee('data-comune-suggestions', false);

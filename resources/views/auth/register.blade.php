@@ -20,11 +20,13 @@
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label" for="first_name">Nome</label>
-            <input class="form-control" id="first_name" name="first_name" autocomplete="given-name" value="{{ old('first_name') }}">
+            <input class="form-control @error('first_name') is-invalid @enderror" id="first_name" name="first_name" autocomplete="given-name" value="{{ old('first_name') }}" required>
+            @error('first_name') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
           </div>
           <div class="col-md-6">
             <label class="form-label" for="last_name">Cognome</label>
-            <input class="form-control" id="last_name" name="last_name" autocomplete="family-name" value="{{ old('last_name') }}">
+            <input class="form-control @error('last_name') is-invalid @enderror" id="last_name" name="last_name" autocomplete="family-name" value="{{ old('last_name') }}" required>
+            @error('last_name') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
           </div>
           <div class="col-12">
             <label class="form-label" for="username">Email</label>

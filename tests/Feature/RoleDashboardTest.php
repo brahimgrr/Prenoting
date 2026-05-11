@@ -272,6 +272,46 @@ class RoleDashboardTest extends TestCase
     $this->assertSame('Via Milano 2', $doctor->fresh()->clinic_address);
   }
 
+  public function test_doctor_profile_rejects_invalid_phone_number(): void
+  {
+    [$doctorUser, $doctor] = $this->dashboardContext();
+    $doctor->forceFill([
+      'phone' => '555-1000',
+      'clinic_address' => 'Via Roma 1',
+    ])->save();
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/profile')
+      ->patch('/doctor/profile', [
+        'email' => 'doctor.new@example.com',
+        'phone' => 'telefono',
+        'clinic_address' => 'Via Milano 2',
+      ])
+      ->assertRedirect('/doctor/profile')
+      ->assertSessionHasErrors('phone');
+
+    $this->assertSame('555-1000', $doctor->fresh()->phone);
+  }
+
+  public function test_doctor_profile_allows_empty_phone_number(): void
+  {
+    [$doctorUser, $doctor] = $this->dashboardContext();
+    $doctor->forceFill([
+      'phone' => '555-1000',
+      'clinic_address' => 'Via Roma 1',
+    ])->save();
+
+    $this->actingAs($doctorUser)
+      ->patch('/doctor/profile', [
+        'email' => 'doctor.new@example.com',
+        'phone' => '',
+        'clinic_address' => 'Via Milano 2',
+      ])
+      ->assertRedirect('/doctor/profile');
+
+    $this->assertSame('', $doctor->fresh()->phone);
+  }
+
   public function test_doctor_profile_page_shows_password_change_form(): void
   {
     [$doctorUser] = $this->dashboardContext();

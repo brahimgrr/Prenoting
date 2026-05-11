@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\ScheduleAppointmentConflictsException;
 use App\Http\Controllers\Concerns\ConfirmsScheduleAppointmentCancellations;
 use App\Services\DoctorScheduleService;
+use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -34,8 +35,10 @@ class DoctorProfileController extends Controller
   {
     $validated = $request->validate([
       'email' => ['nullable', 'email', 'max:255', 'unique:users,email,'.$request->user()->id],
-      'phone' => ['nullable', 'string', 'max:32'],
+      'phone' => ValidationRules::phone(false),
       'clinic_address' => ['required', 'string', 'max:255'],
+    ], [
+      'phone.regex' => 'Inserisci un numero di telefono valido.',
     ]);
 
     $request->user()->forceFill([

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
+use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -42,8 +43,10 @@ class PatientDashboardController extends Controller
   {
     $validated = $request->validate([
       'email' => ['nullable', 'email', 'max:255', 'unique:users,email,'.$request->user()->id],
-      'phone' => ['required', 'string', 'max:32'],
+      'phone' => ValidationRules::phone(),
       'address' => ['nullable', 'string', 'max:255'],
+    ], [
+      'phone.regex' => 'Inserisci un numero di telefono valido.',
     ]);
 
     $request->user()->forceFill([

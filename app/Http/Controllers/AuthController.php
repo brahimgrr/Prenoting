@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PatientProfile;
 use App\Models\User;
 use App\Services\CodiceFiscaleService;
+use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -57,15 +58,18 @@ class AuthController extends Controller
   public function register(Request $request): RedirectResponse
   {
     $validated = $request->validate([
-      'first_name' => ['nullable', 'string', 'max:150'],
-      'last_name' => ['nullable', 'string', 'max:150'],
+      'first_name' => ['required', 'string', 'max:150', 'regex:/\A\pL+(?: \pL+)*\z/u'],
+      'last_name' => ['required', 'string', 'max:150', 'regex:/\A\pL+(?: \pL+)*\z/u'],
       'username' => ['required', 'email', 'max:150', 'unique:users,username'],
       'password' => ['required', 'string', 'min:8', 'confirmed'],
       'date_of_birth' => ['required', 'date', 'before:today'],
       'place_of_birth' => ['required', 'string', 'max:160'],
       'gender' => ['required', 'in:M,F'],
-      'phone' => ['required', 'string', 'max:32'],
+      'phone' => ValidationRules::phone(),
     ], [
+      'first_name.regex' => 'Il nome puo contenere solo lettere e spazi.',
+      'last_name.regex' => 'Il cognome puo contenere solo lettere e spazi.',
+      'phone.regex' => 'Inserisci un numero di telefono valido.',
       'username.unique' => 'Esiste gia un utente con questo username.',
       'password.min' => 'La password deve contenere almeno 8 caratteri.',
     ]);
