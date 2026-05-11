@@ -214,7 +214,7 @@
       </div>
     </section>
     
-    <section class="card mb-3">
+    <section class="card mb-3 schedule-events-panel">
       <div class="card-header border-bottom-0">
         <h2 class="h5 mb-0">Prossimi eventi</h2>
       </div>
@@ -236,22 +236,27 @@
                 $timeLabel = $event['start_time']
                   ? "{$event['start_time']} - {$event['end_time']}"
                   : 'Tutto il giorno';
+                $eventTypeClass = $event['type'] === 'closure' ? 'closure' : 'special-opening';
+                $eventTypeLabel = $event['type'] === 'closure' ? 'Chiusura' : 'Apertura extra';
               @endphp
-              <article class="card">
-                <div class="card-body d-flex flex-column flex-sm-row justify-content-between gap-3">
-                  <div class="flex-grow-1">
-                    <h3 class="h6 mb-1">{{ $event['title'] }}</h3>
-                    <p class="text-body-secondary small mb-0">
-                      {{ ucfirst($event['date']->locale('it')->isoFormat('ddd D MMM')) }} &middot; {{ $timeLabel }}
-                    </p>
+              <article class="schedule-event-card schedule-event-card--{{ $eventTypeClass }}">
+                <div class="schedule-event-card__main">
+                  <div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                      <span class="schedule-event-card__pill schedule-event-card__pill--{{ $eventTypeClass }}">{{ $eventTypeLabel }}</span>
+                      <span class="schedule-event-card__meta">
+                        {{ ucfirst($event['date']->locale('it')->isoFormat('ddd D MMM')) }} &middot; {{ $timeLabel }}
+                      </span>
+                    </div>
+                    <h3>{{ $event['title'] }}</h3>
                   </div>
-                  <div class="btn-group btn-group-sm align-self-start align-self-sm-center flex-shrink-0" role="group" aria-label="Azioni evento">
-                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}" aria-label="Modifica evento">
+                  <div class="schedule-event-card__actions" role="group" aria-label="Azioni evento">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}" aria-label="Modifica evento">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
                         <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 3 10.707V13h2.293z"/>
                       </svg>
                     </button>
-                    <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#{{ $deleteModalId }}" aria-label="Elimina evento">
+                    <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#{{ $deleteModalId }}" aria-label="Elimina evento">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
                         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
                         <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1h2.5a1 1 0 0 1 1 1M4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
