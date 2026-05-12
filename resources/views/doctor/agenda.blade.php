@@ -10,7 +10,7 @@
       </div>
       <div class="d-flex flex-wrap gap-2">
         <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#closureCreateModal">
-          Chiusura
+          Chiusura extra
         </button>
         <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#specialOpeningCreateModal">
           Apertura extra
@@ -213,7 +213,7 @@
         </div>
       </div>
     </section>
-    
+
     <section class="card mb-3 schedule-events-panel">
       <div class="card-header border-bottom-0">
         <h2 class="h5 mb-0">Prossimi eventi</h2>
@@ -271,7 +271,7 @@
       @endif
     </section>
 
-    
+
 
   </section>
 
