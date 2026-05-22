@@ -12,7 +12,6 @@ class User extends Authenticatable
   use HasFactory;
   use Notifiable;
 
-  public const ROLE_ADMIN = 'admin';
   public const ROLE_DOCTOR = 'doctor';
   public const ROLE_PATIENT = 'patient';
   public const ROLE_USER = 'user';
@@ -58,7 +57,6 @@ class User extends Authenticatable
   public function portalRole(): string
   {
     return match ($this->role) {
-      self::ROLE_ADMIN => self::ROLE_ADMIN,
       self::ROLE_DOCTOR => self::ROLE_DOCTOR,
       self::ROLE_PATIENT => self::ROLE_PATIENT,
       default => self::ROLE_USER,
@@ -68,7 +66,6 @@ class User extends Authenticatable
   public function portalRoute(): ?string
   {
     return match ($this->portalRole()) {
-      self::ROLE_ADMIN => '/admin',
       self::ROLE_DOCTOR => '/doctor/agenda',
       self::ROLE_PATIENT => '/patient',
       default => null,

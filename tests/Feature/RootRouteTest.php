@@ -30,11 +30,11 @@ class RootRouteTest extends TestCase
       ->assertRedirect('/doctor/agenda');
   }
 
-  public function test_authenticated_admin_is_redirected_to_portal(): void
+  public function test_authenticated_legacy_admin_is_redirected_to_unsupported_role(): void
   {
-    $this->actingAs($this->userWithRole(User::ROLE_ADMIN))
+    $this->actingAs($this->userWithRole('admin'))
       ->get('/')
-      ->assertRedirect('/admin');
+      ->assertRedirect('/unsupported-role');
   }
 
   private function userWithRole(string $role): User
