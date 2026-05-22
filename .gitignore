@@ -1,5 +1,6 @@
 .superpowers/
 .worktrees/
+.idea/
 __pycache__/
 *.pyc
 node_modules/
