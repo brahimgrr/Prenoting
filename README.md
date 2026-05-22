@@ -49,7 +49,6 @@ The Docker setup bind-mounts the project into the PHP and Vite containers, so Bl
 
 | Role | Username | Password |
 | --- | --- | --- |
-| Admin | `admin` | `admin123` |
 | Patient | `patient` | `patient123` |
 | Doctor | `doctor.derm` | `doctor123` |
 

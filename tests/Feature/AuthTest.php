@@ -187,25 +187,21 @@ class AuthTest extends TestCase
     $this->assertAuthenticatedAs($patient);
   }
 
-  public function test_admin_login_opens_local_portal_with_logout_and_phpmyadmin_link(): void
+  public function test_legacy_admin_login_is_unsupported_and_admin_route_is_removed(): void
   {
     $admin = User::create([
       'username' => 'admin',
       'password' => Hash::make('admin123'),
-      'role' => User::ROLE_ADMIN,
+      'role' => 'admin',
     ]);
 
     $this->post('/login', [
       'username' => 'admin',
       'password' => 'admin123',
-    ])->assertRedirect('/admin');
+    ])->assertRedirect('/unsupported-role');
     $this->assertAuthenticatedAs($admin);
 
-    $this->get('/admin')
-      ->assertOk()
-      ->assertSee('phpMyAdmin')
-      ->assertSee('href="http://127.0.0.1:8081"', false)
-      ->assertSee('action="/logout"', false);
+    $this->get('/admin')->assertNotFound();
   }
 
   public function test_login_accepts_email_when_form_invites_username_or_email(): void

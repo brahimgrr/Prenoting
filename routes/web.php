@@ -35,10 +35,6 @@ Route::get('/availability', [AvailabilityController::class, 'index']);
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/unsupported-role', [AuthController::class, 'unsupported']);
-    Route::get('/admin', fn () => view('admin.dashboard', [
-        'phpMyAdminUrl' => env('PHPMYADMIN_URL', 'http://127.0.0.1:8081'),
-    ]))
-        ->middleware('role:'.User::ROLE_ADMIN);
 
     Route::middleware('role:'.User::ROLE_PATIENT)->group(function (): void {
         Route::get('/patient', [PatientDashboardController::class, 'index']);
