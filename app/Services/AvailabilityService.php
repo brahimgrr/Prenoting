@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\Appointment;
 use App\Models\DoctorProfile;
 use App\Models\MedicalService;
-use App\Models\ScheduleClosure;
+use App\Support\ScheduleTime;
 use App\Support\VirtualAvailabilitySlot;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -14,6 +14,10 @@ class AvailabilityService
 {
   public const SLOT_STEP_MINUTES = 30;
   public const BOOKING_HORIZON_DAYS = 90;
+
+  public function __construct(private readonly ScheduleWindowService $windows)
+  {
+  }
 
   public function primaryDoctor(): DoctorProfile
   {
@@ -55,8 +59,10 @@ class AvailabilityService
     $dates = collect();
 
     for ($date = $today; $date->lessThanOrEqualTo($end); $date = $date->addDay()) {
-      $slots = $this->availableSlotsForDate($doctor, $service, $date, $excludingAppointment)
-        ->filter(fn (VirtualAvailabilitySlot $slot): bool => $this->matchesPeriod($slot, $selectedPeriod));
+      $slots = $this->filterSlotsByPeriod(
+        $this->availableSlotsForDate($doctor, $service, $date, $excludingAppointment),
+        $selectedPeriod,
+      );
 
       if ($slots->isNotEmpty()) {
         $dates->push($date);
@@ -83,33 +89,19 @@ class AvailabilityService
 
   public function parseSlotStart(string $slotStart): ?CarbonImmutable
   {
-    try {
-      return CarbonImmutable::parse($slotStart)->second(0)->microsecond(0);
-    } catch (\Throwable) {
-      return null;
-    }
+    return ScheduleTime::parseSlotStart($slotStart);
   }
 
   public function closuresForDate(DoctorProfile $doctor, CarbonImmutable|string $date): Collection
   {
-    $day = $this->normalizeDate($date);
+    return $this->windows->closuresForDate($doctor, $date);
+  }
 
-    return ScheduleClosure::query()
-      ->where('doctor_profile_id', $doctor->id)
-      ->whereDate('date', $day->toDateString())
-      ->orderBy('start_time')
-      ->get()
-      ->map(function (ScheduleClosure $closure) use ($day): array {
-        return [
-          'closure' => $closure,
-          'start_at' => $closure->start_time
-            ? $this->combineDateAndTime($day, $closure->start_time)
-            : $day->startOfDay(),
-          'end_at' => $closure->end_time
-            ? $this->combineDateAndTime($day, $closure->end_time)
-            : $day->endOfDay(),
-        ];
-      });
+  public function filterSlotsByPeriod(Collection $slots, string $selectedPeriod): Collection
+  {
+    return $slots
+      ->filter(fn (VirtualAvailabilitySlot $slot): bool => $this->matchesPeriod($slot, $selectedPeriod))
+      ->values();
   }
 
   private function generatedSlotsForDate(
@@ -119,9 +111,9 @@ class AvailabilityService
     ?Appointment $excludingAppointment = null,
     bool $includePast = false,
   ): Collection {
-    $day = $this->normalizeDate($date);
-    $windows = $this->openingWindowsForDate($doctor, $day);
-    $closures = $this->closureIntervalsForDate($doctor, $day);
+    $day = ScheduleTime::normalizeDate($date);
+    $windows = $this->windows->openingWindowsForDate($doctor, $day);
+    $closures = $this->windows->closureIntervalsForDate($doctor, $day);
     $appointments = $this->activeAppointmentsForDate($doctor, $day, $excludingAppointment);
     $now = CarbonImmutable::now();
     $slots = collect();
@@ -138,7 +130,7 @@ class AvailabilityService
           continue;
         }
 
-        if ($this->overlapsAny($start, $end, $closures) || $this->overlapsAny($start, $end, $appointments)) {
+        if ($this->windows->overlapsAny($start, $end, $closures) || $this->windows->overlapsAny($start, $end, $appointments)) {
           continue;
         }
 
@@ -154,47 +146,6 @@ class AvailabilityService
     return $slots
       ->sortBy(fn (VirtualAvailabilitySlot $slot): int => $slot->start_at->getTimestamp())
       ->values();
-  }
-
-  private function openingWindowsForDate(DoctorProfile $doctor, CarbonImmutable $day): Collection
-  {
-    $workingHours = $doctor->workingHours()
-      ->where('is_active', true)
-      ->where('weekday', $day->dayOfWeekIso)
-      ->where(function ($query) use ($day): void {
-        $query->whereNull('effective_from')->orWhereDate('effective_from', '<=', $day->toDateString());
-      })
-      ->where(function ($query) use ($day): void {
-        $query->whereNull('effective_until')->orWhereDate('effective_until', '>=', $day->toDateString());
-      })
-      ->get()
-      ->map(fn ($window): array => [
-        'start_at' => $this->combineDateAndTime($day, $window->start_time),
-        'end_at' => $this->combineDateAndTime($day, $window->end_time),
-      ]);
-
-    $specialOpenings = $doctor->specialOpenings()
-      ->whereDate('date', $day->toDateString())
-      ->get()
-      ->map(fn ($window): array => [
-        'start_at' => $this->combineDateAndTime($day, $window->start_time),
-        'end_at' => $this->combineDateAndTime($day, $window->end_time),
-      ]);
-
-    return $workingHours
-      ->concat($specialOpenings)
-      ->filter(fn (array $window): bool => $window['end_at']->greaterThan($window['start_at']))
-      ->sortBy(fn (array $window): int => $window['start_at']->getTimestamp())
-      ->values();
-  }
-
-  private function closureIntervalsForDate(DoctorProfile $doctor, CarbonImmutable $day): Collection
-  {
-    return $this->closuresForDate($doctor, $day)
-      ->map(fn (array $closure): array => [
-        'start_at' => $closure['start_at'],
-        'end_at' => $closure['end_at'],
-      ]);
   }
 
   private function activeAppointmentsForDate(
@@ -220,13 +171,6 @@ class AvailabilityService
       ]);
   }
 
-  private function overlapsAny(CarbonImmutable $start, CarbonImmutable $end, Collection $intervals): bool
-  {
-    return $intervals->contains(
-      fn (array $interval): bool => $start->lessThan($interval['end_at']) && $end->greaterThan($interval['start_at'])
-    );
-  }
-
   private function matchesPeriod(VirtualAvailabilitySlot $slot, string $selectedPeriod): bool
   {
     return match ($selectedPeriod) {
@@ -234,19 +178,5 @@ class AvailabilityService
       'pomeriggio' => $slot->start_at->hour >= 13,
       default => true,
     };
-  }
-
-  private function normalizeDate(CarbonImmutable|string $date): CarbonImmutable
-  {
-    return $date instanceof CarbonImmutable
-      ? $date->startOfDay()
-      : CarbonImmutable::parse($date)->startOfDay();
-  }
-
-  private function combineDateAndTime(CarbonImmutable $date, string $time): CarbonImmutable
-  {
-    [$hour, $minute] = array_map('intval', explode(':', substr($time, 0, 5)));
-
-    return $date->setTime($hour, $minute);
   }
 }
