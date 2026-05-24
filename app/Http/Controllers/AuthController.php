@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PatientProfile;
+use App\Support\ComuniItalianiCatalog;
 use App\Models\User;
 use App\Services\CodiceFiscaleService;
 use App\Support\ValidationRules;
@@ -51,7 +52,7 @@ class AuthController extends Controller
 
   public function showRegister(): View
   {
-    $comuni = array_keys(require app_path('Data/ComuniItaliani.php'));
+    $comuni = ComuniItalianiCatalog::names();
     return view('auth.register', compact('comuni'));
   }
 

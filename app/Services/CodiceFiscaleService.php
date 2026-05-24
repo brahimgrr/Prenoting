@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Carbon\CarbonInterface;
+use App\Support\ComuniItalianiCatalog;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
@@ -96,14 +97,14 @@ class CodiceFiscaleService
 
   private static function codiceLuogo(string $luogoNascita): string
   {
-    $comuni = require app_path('Data/ComuniItaliani.php');
     $normalizedPlace = self::normalizzaLuogo($luogoNascita);
+    $code = ComuniItalianiCatalog::codeFor($normalizedPlace);
 
-    if (! isset($comuni[$normalizedPlace])) {
+    if ($code === null) {
       throw new InvalidArgumentException('Luogo di nascita non trovato.');
     }
 
-    return $comuni[$normalizedPlace];
+    return $code;
   }
 
   private static function carattereDiControllo(string $partial): string

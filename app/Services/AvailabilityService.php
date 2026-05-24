@@ -12,7 +12,6 @@ use Illuminate\Support\Collection;
 
 class AvailabilityService
 {
-  public const SLOT_STEP_MINUTES = 30;
   public const BOOKING_HORIZON_DAYS = 90;
 
   public function __construct(private readonly ScheduleWindowService $windows)
@@ -33,6 +32,7 @@ class AvailabilityService
     CarbonImmutable|string $date,
     ?Appointment $excludingAppointment = null,
     bool $includePast = false,
+    string $selectedPeriod = 'all',
   ): Collection {
     return $this->generatedSlotsForDate(
       $doctor,
@@ -40,12 +40,14 @@ class AvailabilityService
       max(1, (int) $service->duration_minutes),
       $excludingAppointment,
       $includePast,
-    );
+    )
+      ->filter(fn (VirtualAvailabilitySlot $slot): bool => $this->matchesPeriod($slot, $selectedPeriod))
+      ->values();
   }
 
   public function agendaSlotsForDate(DoctorProfile $doctor, CarbonImmutable|string $date): Collection
   {
-    return $this->generatedSlotsForDate($doctor, $date, self::SLOT_STEP_MINUTES, null, true);
+    return $this->generatedSlotsForDate($doctor, $date, ScheduleTime::GRID_MINUTES, null, true);
   }
 
   public function availableDates(
@@ -59,10 +61,7 @@ class AvailabilityService
     $dates = collect();
 
     for ($date = $today; $date->lessThanOrEqualTo($end); $date = $date->addDay()) {
-      $slots = $this->filterSlotsByPeriod(
-        $this->availableSlotsForDate($doctor, $service, $date, $excludingAppointment),
-        $selectedPeriod,
-      );
+      $slots = $this->availableSlotsForDate($doctor, $service, $date, $excludingAppointment, selectedPeriod: $selectedPeriod);
 
       if ($slots->isNotEmpty()) {
         $dates->push($date);
@@ -78,30 +77,13 @@ class AvailabilityService
     string $slotKey,
     ?Appointment $excludingAppointment = null,
   ): ?VirtualAvailabilitySlot {
-    $start = $this->parseSlotStart($slotKey);
+    $start = ScheduleTime::parseSlotStart($slotKey);
     if (! $start) {
       return null;
     }
 
     return $this->availableSlotsForDate($doctor, $service, $start, $excludingAppointment)
       ->first(fn (VirtualAvailabilitySlot $slot): bool => $slot->key === $start->format('Y-m-d\TH:i'));
-  }
-
-  public function parseSlotStart(string $slotStart): ?CarbonImmutable
-  {
-    return ScheduleTime::parseSlotStart($slotStart);
-  }
-
-  public function closuresForDate(DoctorProfile $doctor, CarbonImmutable|string $date): Collection
-  {
-    return $this->windows->closuresForDate($doctor, $date);
-  }
-
-  public function filterSlotsByPeriod(Collection $slots, string $selectedPeriod): Collection
-  {
-    return $slots
-      ->filter(fn (VirtualAvailabilitySlot $slot): bool => $this->matchesPeriod($slot, $selectedPeriod))
-      ->values();
   }
 
   private function generatedSlotsForDate(
@@ -122,7 +104,7 @@ class AvailabilityService
       for (
         $start = $window['start_at'];
         $start->addMinutes($durationMinutes)->lessThanOrEqualTo($window['end_at']);
-        $start = $start->addMinutes(self::SLOT_STEP_MINUTES)
+        $start = $start->addMinutes(ScheduleTime::GRID_MINUTES)
       ) {
         $end = $start->addMinutes($durationMinutes);
 
@@ -155,7 +137,7 @@ class AvailabilityService
   ): Collection {
     $query = Appointment::query()
       ->where('doctor_profile_id', $doctor->id)
-      ->whereIn('status', Appointment::ACTIVE_SLOT_STATUSES)
+      ->activeSlot()
       ->where('start_at', '<', $day->endOfDay())
       ->where('end_at', '>', $day->startOfDay());
 

@@ -16,3 +16,4 @@ storage/logs/*
 
 .pytest_cache/
 .vite/
+.VSCodeCounter/

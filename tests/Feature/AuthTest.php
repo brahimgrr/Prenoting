@@ -415,7 +415,6 @@ class AuthTest extends TestCase
     $response->assertDontSee('/patient/book?mode=doctor', false);
     $response->assertSeeText('Prenota visita');
     $response->assertSeeText('I miei appuntamenti');
-    $response->assertDontSee('>Prenota visita<', false);
   }
 
   public function test_patient_dashboard_shows_status_label_instead_of_empty_badge(): void

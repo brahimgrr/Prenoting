@@ -66,8 +66,7 @@ class ScheduleAppointmentImpactService
   ): Collection {
     return Appointment::withPortalRelations()
       ->where('doctor_profile_id', $doctor->id)
-      ->whereIn('status', Appointment::ACTIVE_SLOT_STATUSES)
-      ->where('start_at', '>=', CarbonImmutable::now())
+      ->futureActiveSlot()
       ->orderBy('start_at')
       ->get()
       ->filter(fn (Appointment $appointment): bool => ! $this->appointmentCovered(
@@ -84,8 +83,7 @@ class ScheduleAppointmentImpactService
   {
     return Appointment::withPortalRelations()
       ->where('doctor_profile_id', $doctor->id)
-      ->whereIn('status', Appointment::ACTIVE_SLOT_STATUSES)
-      ->where('start_at', '>=', CarbonImmutable::now())
+      ->futureActiveSlot()
       ->where('start_at', '<', $end)
       ->where('end_at', '>', $start)
       ->orderBy('start_at')
@@ -102,8 +100,7 @@ class ScheduleAppointmentImpactService
 
     Appointment::query()
       ->whereKey($appointmentIds)
-      ->whereIn('status', Appointment::ACTIVE_SLOT_STATUSES)
-      ->where('start_at', '>=', CarbonImmutable::now())
+      ->futureActiveSlot()
       ->update([
         'status' => Appointment::STATUS_CANCELLED,
         'cancellation_reason' => $reason,

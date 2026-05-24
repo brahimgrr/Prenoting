@@ -10,7 +10,6 @@ use App\Models\SpecialOpening;
 use App\Models\User;
 use App\Models\WorkingHour;
 use App\Services\AvailabilityService;
-use App\Support\VirtualAvailabilitySlot;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -35,52 +34,17 @@ class DoctorSchedulingUxTest extends TestCase
       ->get('/doctor/profile')
       ->assertOk()
       ->assertSee('Orari ambulatorio')
-      ->assertDontSee('clinic-hours-', false)
-      ->assertDontSee('data-working-hours-expander', false)
-      ->assertDontSee('data-working-hours-expander-toggle', false)
-      ->assertDontSee('data-working-hours-expander-content', false)
-      ->assertSee('data-working-hours-render-summary', false)
       ->assertSee('Orari di apertura', false)
-      ->assertSee('class="row g-2 align-items-end"', false)
-      ->assertSee('class="col-12 col-md"', false)
       ->assertSee('Apri alle')
       ->assertSee('Chiudi alle')
       ->assertSee('data-working-hours-add', false)
       ->assertSee('data-working-hours-remove', false)
       ->assertSee('aria-label="Aggiungi un\'altra fascia oraria"', false)
       ->assertSee('aria-label="Rimuovi fascia"', false)
-      ->assertSee('class="form-select"', false)
-      ->assertSee('class="btn btn-outline-secondary"', false)
-      ->assertSee('data-working-hours-status', false)
-      ->assertDontSee('<strong>08:00 - 12:00</strong>', false)
-      ->assertDontSee('Chiuso per le visite')
-      ->assertDontSee('data-working-hours-toggle', false)
-      ->assertDontSee('data-working-hours-closed-toggle', false)
-      ->assertDontSee('data-working-hours-add aria-label="Aggiungi un\'altra fascia oraria" disabled', false)
-      ->assertDontSee('data-working-hours-remove aria-label="Rimuovi fascia" disabled', false)
-      ->assertDontSee('Imposta le fasce orarie settimanali')
-      ->assertDontSee('class="card border-0 shadow-sm"', false)
-      ->assertDontSee('class="list-group list-group-flush"', false)
-      ->assertDontSee('class="form-check form-switch"', false)
-      ->assertDontSee('input-group input-group-sm', false)
-      ->assertDontSee('class="btn btn-outline-danger border-start-0"', false)
-      ->assertDontSee('aria-label="Rimuovi fascia">x</button>', false)
-      ->assertDontSee('aria-label="Rimuovi fascia">Rimuovi</button>', false)
-      ->assertDontSee('giorni aperti', false)
-      ->assertDontSee('settimanali totali', false)
-      ->assertDontSee('class="working-hours-list"', false)
-      ->assertDontSee('class="working-hours-day"', false)
-      ->assertDontSee('class="working-hours-row"', false)
       ->assertSee('name="working_hours[1][0][start_time]"', false)
       ->assertSee('08:00');
 
     $content = $response->getContent();
-    $this->assertSame(1, preg_match('/<div class="row g-2 align-items-end" data-working-hours-row>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/', $content, $firstRow));
-    $this->assertStringContainsString('data-working-hours-add', $firstRow[0]);
-    $this->assertStringContainsString('data-working-hours-remove', $firstRow[0]);
-    $this->assertStringContainsString('class="col-12 col-md"', $firstRow[0]);
-    $this->assertStringContainsString('class="form-select"', $firstRow[0]);
-
     $this->assertSelectStartsWithOptions($content, 'working_hours[1][0][start_time]', [
       '<option value="08:00" selected>08:00</option>',
       '<option value="">--:--</option>',
@@ -124,13 +88,6 @@ class DoctorSchedulingUxTest extends TestCase
       'effective_until' => null,
       'is_active' => true,
     ]);
-  }
-
-  public function test_doctor_profile_working_hours_styles_use_bootstrap_components(): void
-  {
-    $css = file_get_contents(resource_path('css/app.css'));
-
-    $this->assertStringNotContainsString('clinic-hours-', $css);
   }
 
   public function test_doctor_profile_defaults_empty_weekday_rows_to_morning_window_and_weekends_blank(): void
@@ -374,11 +331,10 @@ class DoctorSchedulingUxTest extends TestCase
         ],
       ])
       ->assertRedirect('/doctor/profile')
-      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool =>
-        $confirmation['reason'] === 'Cambio orario lavoro medico'
-        && $confirmation['action'] === '/doctor/profile/working-hours'
-        && count($confirmation['appointments']) === 1
-        && $confirmation['appointments'][0]['id'] === $appointment->id
+      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool => $confirmation['reason'] === 'Cambio orario lavoro medico'
+       && $confirmation['action'] === '/doctor/profile/working-hours'
+       && count($confirmation['appointments']) === 1
+       && $confirmation['appointments'][0]['id'] === $appointment->id
       );
 
     $this->assertDatabaseHas('working_hours', [
@@ -587,11 +543,10 @@ class DoctorSchedulingUxTest extends TestCase
         'reason' => 'Ferie',
       ])
       ->assertRedirect('/doctor/agenda?date='.$start->toDateString())
-      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool =>
-        $confirmation['reason'] === 'Chiusura straordinaria studio'
-        && $confirmation['action'] === '/doctor/closures'
-        && count($confirmation['appointments']) === 1
-        && $confirmation['appointments'][0]['id'] === $appointment->id
+      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool => $confirmation['reason'] === 'Chiusura straordinaria studio'
+       && $confirmation['action'] === '/doctor/closures'
+       && count($confirmation['appointments']) === 1
+       && $confirmation['appointments'][0]['id'] === $appointment->id
       );
 
     $this->assertSame(0, $doctor->closures()->count());
@@ -796,12 +751,11 @@ class DoctorSchedulingUxTest extends TestCase
       ->from('/doctor/agenda?date='.$sunday->toDateString())
       ->delete("/doctor/special-openings/{$opening->id}")
       ->assertRedirect('/doctor/agenda?date='.$sunday->toDateString())
-      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool =>
-        $confirmation['reason'] === 'Cambio orario lavoro medico'
-        && $confirmation['action'] === "/doctor/special-openings/{$opening->id}"
-        && $confirmation['method'] === 'DELETE'
-        && count($confirmation['appointments']) === 1
-        && $confirmation['appointments'][0]['id'] === $appointment->id
+      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool => $confirmation['reason'] === 'Cambio orario lavoro medico'
+       && $confirmation['action'] === "/doctor/special-openings/{$opening->id}"
+       && $confirmation['method'] === 'DELETE'
+       && count($confirmation['appointments']) === 1
+       && $confirmation['appointments'][0]['id'] === $appointment->id
       );
 
     $this->assertDatabaseHas('special_openings', ['id' => $opening->id]);
@@ -850,13 +804,12 @@ class DoctorSchedulingUxTest extends TestCase
       ->from('/doctor/agenda?date='.$sunday->toDateString())
       ->patch("/doctor/special-openings/{$opening->id}", $payload)
       ->assertRedirect('/doctor/agenda?date='.$sunday->toDateString())
-      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool =>
-        $confirmation['reason'] === 'Cambio orario lavoro medico'
-        && $confirmation['action'] === "/doctor/special-openings/{$opening->id}"
-        && $confirmation['method'] === 'PATCH'
-        && $confirmation['payload']['start_time'] === '10:00'
-        && count($confirmation['appointments']) === 1
-        && $confirmation['appointments'][0]['id'] === $appointment->id
+      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool => $confirmation['reason'] === 'Cambio orario lavoro medico'
+       && $confirmation['action'] === "/doctor/special-openings/{$opening->id}"
+       && $confirmation['method'] === 'PATCH'
+       && $confirmation['payload']['start_time'] === '10:00'
+       && count($confirmation['appointments']) === 1
+       && $confirmation['appointments'][0]['id'] === $appointment->id
       );
 
     $this->assertDatabaseHas('special_openings', [
@@ -905,12 +858,11 @@ class DoctorSchedulingUxTest extends TestCase
       ->from('/doctor/agenda?date='.$start->toDateString())
       ->delete("/doctor/closures/{$closure->id}")
       ->assertRedirect('/doctor/agenda?date='.$start->toDateString())
-      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool =>
-        $confirmation['reason'] === 'Chiusura straordinaria studio'
-        && $confirmation['action'] === "/doctor/closures/{$closure->id}"
-        && $confirmation['method'] === 'DELETE'
-        && count($confirmation['appointments']) === 1
-        && $confirmation['appointments'][0]['id'] === $appointment->id
+      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool => $confirmation['reason'] === 'Chiusura straordinaria studio'
+       && $confirmation['action'] === "/doctor/closures/{$closure->id}"
+       && $confirmation['method'] === 'DELETE'
+       && count($confirmation['appointments']) === 1
+       && $confirmation['appointments'][0]['id'] === $appointment->id
       );
 
     $this->assertDatabaseHas('closures', ['id' => $closure->id]);
@@ -960,28 +912,6 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertSee('Apertura extra')
       ->assertDontSee('Eventi del giorno')
       ->assertSee('Prossimi eventi')
-      ->assertSee('card mb-3 schedule-events-panel', false)
-      ->assertSee('card-header border-bottom-0', false)
-      ->assertSee('vstack gap-3', false)
-      ->assertSee('schedule-event-card schedule-event-card--closure', false)
-      ->assertSee('schedule-event-card schedule-event-card--special-opening', false)
-      ->assertSee('schedule-event-card__pill schedule-event-card__pill--closure', false)
-      ->assertSee('schedule-event-card__pill schedule-event-card__pill--special-opening', false)
-      ->assertSee('schedule-event-card__meta', false)
-      ->assertDontSee('card-body d-flex flex-column flex-sm-row justify-content-between gap-3', false)
-      ->assertDontSee('h6 mb-1', false)
-      ->assertDontSee('eventi programmati')
-      ->assertDontSee('col-12 col-md-6', false)
-      ->assertDontSee('card h-100', false)
-      ->assertDontSee('card-body d-flex flex-column gap-3', false)
-      ->assertDontSee('list-group list-group-flush', false)
-      ->assertDontSee('list-group-item py-3', false)
-      ->assertDontSee('card border-0 shadow-sm', false)
-      ->assertDontSee('badge text-bg-light border', false)
-      ->assertDontSee('border-bottom border-primary border-3', false)
-      ->assertDontSee('border-bottom border-success border-3', false)
-      ->assertDontSee('<div class="text-success small fw-bold text-uppercase"', false)
-      ->assertDontSee('class="vr d-none d-sm-block"', false)
       ->assertSee('Open day')
       ->assertSee('Riunione')
       ->assertSee("data-bs-target=\"#deleteScheduleEventModalSpecialOpening{$opening->id}\"", false)

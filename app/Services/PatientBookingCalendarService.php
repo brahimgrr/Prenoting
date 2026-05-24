@@ -24,11 +24,14 @@ class PatientBookingCalendarService
     ?Appointment $excludingAppointment = null,
   ): array {
     $selectedPeriod = $this->selectedPeriod($query);
-    $selectedSlot = $service
-      ? $this->selectedSlotFor($doctor, $service, $this->stringQuery($query, 'slot_start'), $excludingAppointment)
+    $slotStart = $this->stringQuery($query, 'slot_start');
+    $selectedSlot = $service && $slotStart !== ''
+      ? $this->availability->availableSlotByKey($doctor, $service, $slotStart, $excludingAppointment)
       : null;
     $allAvailableDates = $service ? $this->availability->availableDates($doctor, $service, excludingAppointment: $excludingAppointment) : collect();
-    $filteredAvailableDates = $service ? $this->availability->availableDates($doctor, $service, $selectedPeriod, $excludingAppointment) : collect();
+    $filteredAvailableDates = $selectedPeriod === 'all'
+      ? $allAvailableDates
+      : ($service ? $this->availability->availableDates($doctor, $service, $selectedPeriod, $excludingAppointment) : collect());
     $visibleDates = $filteredAvailableDates->isNotEmpty() ? $filteredAvailableDates : $allAvailableDates;
     $weekStart = $this->weekStart($query, $selectedSlot, $visibleDates);
     $weekDays = $service ? $this->weekDaysFor($visibleDates, $weekStart) : collect();
@@ -60,7 +63,7 @@ class PatientBookingCalendarService
     }
 
     if ($selectedSlot) {
-      return CarbonImmutable::parse($selectedSlot->start_at)->startOfDay();
+      return $selectedSlot->start_at->startOfDay();
     }
 
     if ($this->stringQuery($query, 'month') !== '') {
@@ -82,7 +85,7 @@ class PatientBookingCalendarService
     }
 
     if ($selectedSlot) {
-      return CarbonImmutable::parse($selectedSlot->start_at)->startOfMonth();
+      return $selectedSlot->start_at->startOfMonth();
     }
 
     $firstVisibleDay = $weekDays->first();
@@ -143,33 +146,9 @@ class PatientBookingCalendarService
       $dateStr = $day['date']->toDateString();
 
       return [$dateStr => $service
-        ? $this->availableSlotsFor($doctor, $service, $dateStr, $excludingAppointment, $selectedPeriod)
+        ? $this->availability->availableSlotsForDate($doctor, $service, $dateStr, $excludingAppointment, selectedPeriod: $selectedPeriod)
         : collect()];
     });
-  }
-
-  private function availableSlotsFor(
-    DoctorProfile $doctor,
-    MedicalService $service,
-    string $date,
-    ?Appointment $excludingAppointment,
-    string $selectedPeriod,
-  ): Collection {
-    return $this->availability->filterSlotsByPeriod(
-      $this->availability->availableSlotsForDate($doctor, $service, $date, $excludingAppointment),
-      $selectedPeriod,
-    );
-  }
-
-  private function selectedSlotFor(
-    DoctorProfile $doctor,
-    MedicalService $service,
-    string $slotStart,
-    ?Appointment $excludingAppointment,
-  ): ?VirtualAvailabilitySlot {
-    return $slotStart === ''
-      ? null
-      : $this->availability->availableSlotByKey($doctor, $service, $slotStart, $excludingAppointment);
   }
 
   private function availableMonthsFor(Collection $availableDates): Collection
@@ -189,7 +168,7 @@ class PatientBookingCalendarService
     }
 
     if ($selectedSlot) {
-      return CarbonImmutable::parse($selectedSlot->start_at)->toDateString();
+      return $selectedSlot->start_at->toDateString();
     }
 
     $firstVisibleDay = $weekDays->first();

@@ -8,13 +8,14 @@ use App\Models\Appointment;
 use App\Models\DoctorProfile;
 use App\Models\ScheduleClosure;
 use App\Models\SpecialOpening;
-use App\Services\AvailabilityService;
 use App\Services\AppointmentService;
 use App\Services\DoctorAgendaViewService;
 use App\Services\DoctorScheduleService;
+use App\Support\ScheduleTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class DoctorDashboardController extends Controller
@@ -22,11 +23,9 @@ class DoctorDashboardController extends Controller
   use ConfirmsScheduleAppointmentCancellations;
 
   public function __construct(
-    private readonly AvailabilityService $availability,
     private readonly DoctorScheduleService $schedule,
     private readonly DoctorAgendaViewService $agendaView,
-  )
-  {
+  ) {
   }
 
   public function agenda(Request $request): View
@@ -66,15 +65,15 @@ class DoctorDashboardController extends Controller
     $validated = $request->validate([
       'slot_start' => ['required', 'date_format:Y-m-d\TH:i'],
     ]);
-    $slotStart = $this->availability->parseSlotStart($validated['slot_start']);
+    $slotStart = ScheduleTime::parseSlotStart($validated['slot_start']);
 
     if (! $slotStart || $slotStart->isPast()) {
-      throw \Illuminate\Validation\ValidationException::withMessages([
+      throw ValidationException::withMessages([
         'slot_start' => 'Le disponibilita passate non possono essere bloccate.',
       ]);
     }
 
-    $slotEnd = $slotStart->addMinutes(AvailabilityService::SLOT_STEP_MINUTES);
+    $slotEnd = $slotStart->addMinutes(ScheduleTime::GRID_MINUTES);
 
     $payload = [
       'date' => $slotStart->toDateString(),

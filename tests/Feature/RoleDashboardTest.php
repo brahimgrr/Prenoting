@@ -373,22 +373,19 @@ class RoleDashboardTest extends TestCase
     $this->actingAs($patientUser)->get('/doctor/profile')->assertForbidden();
   }
 
-  public function test_patient_dashboard_links_all_appointments_from_next_appointment_panel(): void
+  public function test_patient_dashboard_shows_next_appointment_and_appointments_link(): void
   {
     [, , $appointment] = $this->dashboardContext();
 
-    $response = $this->actingAs($appointment->patient->user)
+    $this->actingAs($appointment->patient->user)
       ->get('/patient')
-      ->assertOk();
-
-    $content = $response->getContent();
-
-    $this->assertMatchesRegularExpression(
-      '/<div class="section-heading">\s*<h2>Prossimo appuntamento<\/h2>\s*<a href="\/patient\/appointments">Vedi tutti<\/a>\s*<\/div>/',
-      $content,
-    );
-    $this->assertStringNotContainsString('Appuntamenti imminenti', $content);
-    $this->assertStringNotContainsString('patient-upcoming-panel', $content);
+      ->assertOk()
+      ->assertSeeText('Prossimo appuntamento')
+      ->assertSeeText('Visita dermatologica')
+      ->assertSeeText('I miei appuntamenti')
+      ->assertSee('href="/patient/appointments"', false)
+      ->assertDontSee('Appuntamenti imminenti')
+      ->assertDontSee('patient-upcoming-panel', false);
   }
 
   public function test_legacy_doctor_agendav2_url_redirects_to_agenda(): void

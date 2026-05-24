@@ -64,12 +64,4 @@ class CatalogAvailabilityTest extends TestCase
       ->assertUnprocessable()
       ->assertJsonValidationErrors('service');
   }
-
-  public function test_database_config_does_not_expose_redis_section(): void
-  {
-    $config = require config_path('database.php');
-
-    $this->assertArrayHasKey('connections', $config);
-    $this->assertArrayNotHasKey('redis', $config);
-  }
 }

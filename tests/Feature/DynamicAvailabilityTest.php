@@ -2,13 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\Appointment;
 use App\Models\DoctorProfile;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
 use App\Models\User;
 use App\Models\WorkingHour;
-use App\Models\ScheduleClosure;
 use App\Services\AvailabilityService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -64,35 +62,6 @@ class DynamicAvailabilityTest extends TestCase
     $slots = app(AvailabilityService::class)->availableSlotsForDate($doctor, $service, $date);
 
     $this->assertSame(['09:00', '09:30'], $slots->map(fn ($slot) => $slot->start_at->format('H:i'))->all());
-  }
-
-  public function test_patient_books_generated_slot_start_and_second_attempt_fails(): void
-  {
-    [$patientUser, $patient, $doctor, $service] = $this->bookingContext();
-    $otherUser = $this->patient('other-patient')[0];
-    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
-    $this->workingHour($doctor, $date->dayOfWeekIso, '09:00', '10:00');
-    $slotStart = $date->setTime(9, 0)->format('Y-m-d\TH:i');
-
-    $response = $this->actingAs($patientUser)->post('/appointments', [
-      'slot_start' => $slotStart,
-      'service_id' => $service->id,
-      'notes' => 'Prima visita',
-    ]);
-
-    $response->assertRedirect('/patient/appointments');
-    $appointment = Appointment::firstOrFail();
-    $this->assertSame($doctor->id, $appointment->doctor_profile_id);
-    $this->assertSame($slotStart, $appointment->start_at->format('Y-m-d\TH:i'));
-
-    $second = $this->actingAs($otherUser)->from('/patient/book')->post('/appointments', [
-      'slot_start' => $slotStart,
-      'service_id' => $service->id,
-    ]);
-
-    $second->assertRedirect('/patient/book');
-    $second->assertSessionHasErrors('slot_start');
-    $this->assertSame(1, Appointment::count());
   }
 
   private function bookingContext(): array

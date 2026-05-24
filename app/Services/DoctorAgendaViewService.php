@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\DoctorProfile;
 use App\Models\ScheduleClosure;
 use App\Models\SpecialOpening;
+use App\Support\ScheduleTime;
 use App\Support\VirtualAvailabilitySlot;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -14,6 +15,7 @@ class DoctorAgendaViewService
 {
   public function __construct(
     private readonly AvailabilityService $availability,
+    private readonly ScheduleWindowService $windows,
   ) {
   }
 
@@ -33,7 +35,7 @@ class DoctorAgendaViewService
 
     $isPastDay = $selectedDay->lessThan($currentTime->startOfDay());
     $daySlots = $isPastDay ? collect() : $this->availability->agendaSlotsForDate($doctor, $selectedDay);
-    $dayClosures = $isPastDay ? collect() : $this->availability->closuresForDate($doctor, $selectedDay);
+    $dayClosures = $isPastDay ? collect() : $this->windows->closuresForDate($doctor, $selectedDay);
     $upcomingScheduleEvents = $isPastDay ? collect() : $this->upcomingEvents($doctor, $selectedDay);
     $timelineItems = $this->timelineItems($appointments, $daySlots, $dayClosures);
     $weekStart = CarbonImmutable::parse($this->stringQuery($query, 'week_start') ?: $selectedDay->toDateString())
@@ -169,8 +171,8 @@ class DoctorAgendaViewService
     $end = $closure['end_at'];
     $durationSeconds = $end->greaterThan($start)
       ? $start->diffInSeconds($end)
-      : AvailabilityService::SLOT_STEP_MINUTES * 60;
-    $spanRows = max(1, (int) ceil($durationSeconds / (AvailabilityService::SLOT_STEP_MINUTES * 60)));
+      : ScheduleTime::GRID_MINUTES * 60;
+    $spanRows = max(1, (int) ceil($durationSeconds / (ScheduleTime::GRID_MINUTES * 60)));
 
     return [
       'type' => 'closure',
@@ -191,7 +193,7 @@ class DoctorAgendaViewService
     $itemsByRow = collect();
     foreach ($timelineItems as $item) {
       $minutesFromStart = max(0, min(1439, $selectedDay->diffInMinutes($item['start_at'], false)));
-      $rowIndex = intdiv((int) $minutesFromStart, AvailabilityService::SLOT_STEP_MINUTES);
+      $rowIndex = intdiv((int) $minutesFromStart, ScheduleTime::GRID_MINUTES);
       $rowItems = $itemsByRow->get($rowIndex, collect());
       $rowItems->push($item);
       $itemsByRow->put($rowIndex, $rowItems);
@@ -200,14 +202,14 @@ class DoctorAgendaViewService
     $isToday = $selectedDay->toDateString() === $currentTime->toDateString();
 
     return collect(range(0, 47))->map(function (int $rowIndex) use ($selectedDay, $itemsByRow, $currentTime, $isToday): array {
-      $start = $selectedDay->addMinutes($rowIndex * AvailabilityService::SLOT_STEP_MINUTES);
-      $end = $start->addMinutes(AvailabilityService::SLOT_STEP_MINUTES);
+      $start = $selectedDay->addMinutes($rowIndex * ScheduleTime::GRID_MINUTES);
+      $end = $start->addMinutes(ScheduleTime::GRID_MINUTES);
       $isCurrent = $isToday && $currentTime->greaterThanOrEqualTo($start) && $currentTime->lessThan($end);
       $nowPosition = null;
 
       if ($isCurrent) {
         $minutesIntoRow = $start->diffInMinutes($currentTime);
-        $nowPosition = min(100, max(0, ($minutesIntoRow / AvailabilityService::SLOT_STEP_MINUTES) * 100));
+        $nowPosition = min(100, max(0, ($minutesIntoRow / ScheduleTime::GRID_MINUTES) * 100));
       }
 
       return [

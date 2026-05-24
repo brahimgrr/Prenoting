@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Appointment extends Model
 {
+  public const PORTAL_RELATIONS = ['patient.user', 'service', 'doctor'];
+
   public const CANCELLED_BY_PATIENT = 'patient';
   public const CANCELLED_BY_DOCTOR = 'doctor';
   public const CANCELLED_BY_SYSTEM = 'system';
@@ -76,7 +78,17 @@ class Appointment extends Model
 
   public function scopeWithPortalRelations(Builder $query): Builder
   {
-    return $query->with(['patient.user', 'service', 'doctor']);
+    return $query->with(self::PORTAL_RELATIONS);
+  }
+
+  public function scopeActiveSlot(Builder $query): Builder
+  {
+    return $query->whereIn('status', self::ACTIVE_SLOT_STATUSES);
+  }
+
+  public function scopeFutureActiveSlot(Builder $query): Builder
+  {
+    return $query->activeSlot()->where('start_at', '>=', now());
   }
 
   public function patientName(): string

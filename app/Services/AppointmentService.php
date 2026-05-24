@@ -7,6 +7,8 @@ use App\Models\DoctorProfile;
 use App\Models\MedicalService;
 use App\Models\PatientProfile;
 use App\Models\User;
+use App\Support\ScheduleTime;
+use App\Support\VirtualAvailabilitySlot;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -43,7 +45,7 @@ class AppointmentService
         'notes' => $notes,
       ]);
 
-      return $appointment->load(['patient.user', 'service', 'doctor']);
+      return $appointment->load(Appointment::PORTAL_RELATIONS);
     });
   }
 
@@ -61,7 +63,7 @@ class AppointmentService
         'cancelled_at' => now(),
       ])->save();
 
-      return $locked->fresh(['patient.user', 'service', 'doctor']);
+      return $this->freshPortalAppointment($locked);
     });
   }
 
@@ -79,7 +81,7 @@ class AppointmentService
         'cancelled_at' => now(),
       ])->save();
 
-      return $locked->fresh(['patient.user', 'service', 'doctor']);
+      return $this->freshPortalAppointment($locked);
     });
   }
 
@@ -90,7 +92,7 @@ class AppointmentService
       $this->validateFutureConfirmed($locked, 'rescheduled');
 
       $doctor = DoctorProfile::query()->lockForUpdate()->findOrFail($locked->doctor_profile_id);
-      $parsedStart = $this->availability->parseSlotStart($newSlotStart);
+      $parsedStart = ScheduleTime::parseSlotStart($newSlotStart);
 
       if ($parsedStart && $locked->start_at->format('Y-m-d\TH:i') === $parsedStart->format('Y-m-d\TH:i')) {
         throw ValidationException::withMessages([
@@ -110,7 +112,7 @@ class AppointmentService
         'cancelled_at' => null,
       ])->save();
 
-      return $locked->fresh(['patient.user', 'service', 'doctor']);
+      return $this->freshPortalAppointment($locked);
     });
   }
 
@@ -130,7 +132,7 @@ class AppointmentService
     MedicalService $service,
     string $slotStart,
     ?Appointment $excludingAppointment = null,
-  ): \App\Support\VirtualAvailabilitySlot {
+  ): VirtualAvailabilitySlot {
     $errors = [];
 
     if (! $service->is_active) {
@@ -166,13 +168,18 @@ class AppointmentService
       $this->validateTransition($locked, $nextStatus, $transitions);
 
       if ($locked->status === $nextStatus) {
-        return $locked->fresh(['patient.user', 'service', 'doctor']);
+        return $this->freshPortalAppointment($locked);
       }
 
       $locked->forceFill(['status' => $nextStatus])->save();
 
-      return $locked->fresh(['patient.user', 'service', 'doctor']);
+      return $this->freshPortalAppointment($locked);
     });
+  }
+
+  private function freshPortalAppointment(Appointment $appointment): Appointment
+  {
+    return $appointment->fresh(Appointment::PORTAL_RELATIONS);
   }
 
   private function validateFutureConfirmed(Appointment $appointment, string $action): void
