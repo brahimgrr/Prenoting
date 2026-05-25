@@ -15,20 +15,19 @@
       usecase "UC02 Effettuare login" as UC02
       usecase "UC03 Effettuare logout" as UC03
       usecase "UC04 Modifica password" as UC04
-      usecase "UC05 Eliminare account" as UC05
     }
     package "Area Paziente" {
-      usecase "UC06 Visualizzare dashboard paziente" as UC06
-      usecase "UC07 Aggiornare info paziente" as UC07
-      usecase "UC08 Avviare prenotazione guidata" as UC08
-      usecase "UC09 Modificare appuntamento" as UC09
-      usecase "UC10 Annullare appuntamento" as UC10
+      usecase "UC05 Visualizzare dashboard paziente" as UC05
+      usecase "UC06 Aggiornare info paziente" as UC06
+      usecase "UC07 Avviare prenotazione guidata" as UC07
+      usecase "UC08 Modificare appuntamento" as UC08
+      usecase "UC09 Annullare appuntamento" as UC09
     }
     package "Area Medico" {
-      usecase "UC11 Visualizzare calendario" as UC11
-      usecase "UC12 Visualizzare dettaglio appuntamento\ne dati paziente" as UC12
-      usecase "UC13 Gestione disponibilità" as UC13
-      usecase "UC14 Gestione tipi di visita" as UC14
+      usecase "UC10 Visualizzare calendario" as UC10
+      usecase "UC11 Visualizzare dettaglio appuntamento\ne dati paziente" as UC11
+      usecase "UC12 Gestione disponibilità" as UC12
+      usecase "UC13 Gestione tipi di visita" as UC13
     }
   }
   ' Paziente
@@ -41,13 +40,12 @@
   P --> UC07
   P --> UC08
   P --> UC09
-  P --> UC10
   ' Medico
   D --> UC02
   D --> UC03
   D --> UC04
+  D --> UC10
   D --> UC11
   D --> UC12
   D --> UC13
-  D --> UC14
 @enduml

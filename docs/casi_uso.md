@@ -41,20 +41,9 @@ UC04 — Modifica password
   b. Inserisce password attuale, nuova password e conferma.
   c. Il sistema verifica la password attuale e, se corretta, salva la nuova password.
 
-UC05 — Eliminare account
-
-- Attore: Paziente
-- Precondizione: Utente autenticato.
-- Flusso principale:
-  a. Il paziente apre la sezione profilo.
-  b. Inserisce la password attuale e clicca elimina account.
-  c. Il sistema verifica la password attuale e chiede conferma dell'eliminazione.
-  d. Il paziente conferma.
-  e. Il sistema elimina il profilo del paziente e le sue prenotazioni.
-
 Area Paziente
 
-UC06 — Visualizzare dashboard paziente
+UC05 — Visualizzare dashboard paziente
 
 - Attore: Paziente
 - Precondizione: Login con ruolo `patient`.
@@ -62,7 +51,7 @@ UC06 — Visualizzare dashboard paziente
   a. Il paziente apre la dashboard paziente.
   b. Il sistema recupera tutti i suoi appuntamenti, separa quelli futuri attivi da quelli passati o cancellati ed evidenzia il prossimo appuntamento.
 
-UC07 — Aggiornare info paziente
+UC06 — Aggiornare info paziente
 
 - Attore: Paziente
 - Precondizione: Login con ruolo `patient`.
@@ -72,7 +61,7 @@ UC07 — Aggiornare info paziente
   c. Il sistema valida e salva i dati su `User` e `PatientProfile`.
 - Nota: i dati anagrafici fissi sono in sola lettura.
 
-UC08 — Avviare prenotazione guidata
+UC07 — Avviare prenotazione guidata
 
 - Attore: Paziente
 - Precondizione: Login con ruolo `patient`; esistono prestazioni attive e regole di disponibilita future.
@@ -86,7 +75,7 @@ UC08 — Avviare prenotazione guidata
   g. Redirige alla sezione appuntamenti con messaggio "Appuntamento confermato.".
 - Eccezioni: orario non piu disponibile o prestazione disattivata -> errore di validazione.
 
-UC09 — Modificare appuntamento
+UC08 — Modificare appuntamento
 
 - Attore: Paziente
 - Precondizione: Appuntamento del paziente, con stato `confirmed` e in data futura, non entro meno di 24 ore.
@@ -96,7 +85,7 @@ UC09 — Modificare appuntamento
   c. Seleziona un nuovo orario e conferma.
   d. Il sistema, in transazione, aggiorna `inizio_il` e `fine_il` dell'appuntamento dopo aver riverificato l'orario.
 
-UC10 — Annullare appuntamento
+UC09 — Annullare appuntamento
 
 - Attore: Paziente
 - Precondizione: Appuntamento del paziente, `confirmed` e futuro.
@@ -108,7 +97,7 @@ UC10 — Annullare appuntamento
 
 Area Medico
 
-UC11 — Visualizzare calendario
+UC10 — Visualizzare calendario
 
 - Attore: Medico
 - Precondizione: Login con ruolo `doctor`.
@@ -117,14 +106,14 @@ UC11 — Visualizzare calendario
   b. Il sistema costruisce una timeline a 30 minuti che integra orari generati, chiusure e appuntamenti, evidenziando l'ora corrente.
   c. Mostra il fatturato della giornata.
 
-UC12 — Visualizzare dettaglio appuntamento e dati paziente
+UC11 — Visualizzare dettaglio appuntamento e dati paziente
 
 - Attore: Medico
 - Precondizione: Login con ruolo `doctor`; appuntamento esistente.
 - Flusso principale:
   a. Dall'agenda il medico apre il dettaglio dell'appuntamento con paziente, prestazione, orario e note.
 
-UC13 — Gestione disponibilità
+UC12 — Gestione disponibilità
 
 - Attore: Medico
 - Precondizione: Login con ruolo `doctor`.
@@ -134,7 +123,7 @@ UC13 — Gestione disponibilità
   c. Il salvataggio sostituisce le righe `working_hours` attive e valide per sempre, salvo conflitti con appuntamenti futuri attivi.
   d. Dall'agenda il medico gestisce solo eventi non ricorrenti: `closures` per ferie/blocchi/chiusure e `special_openings` per aperture extra.
 
-UC14 — Gestione tipi di visita
+UC13 — Gestione tipi di visita
 
 - Attore: Medico
 - Precondizione: Login con ruolo `doctor`.
