@@ -1,0 +1,63 @@
+.appointment-details dt,
+.next-appointment dt {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.appointment-details dd,
+.next-appointment dd {
+  color: var(--color-ink);
+}
+
+.appointment-card__notice {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: var(--app-inner-radius);
+  color: #9a3412;
+  font-weight: 700;
+}
+
+.appointment-card__title,
+.treatment-card__header > div:first-child {
+  min-width: 0;
+}
+
+.appointment-status-badge {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.appointment-status-badge--past {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.appointment-status-badge--cancelled {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+.card-action-menu__trigger {
+  line-height: 1;
+  min-width: 2.25rem;
+}
+
+.card-action-menu .dropdown-menu {
+  border-color: var(--color-border);
+  border-radius: var(--app-card-radius);
+  box-shadow: var(--shadow-panel);
+  min-width: 13rem;
+}
+
+.card-action-menu .dropdown-item {
+  border-radius: var(--app-inner-radius);
+  font-weight: 650;
+}

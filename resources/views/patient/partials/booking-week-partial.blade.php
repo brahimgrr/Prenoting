@@ -35,27 +35,27 @@
   $currentDate = $selectedDate ?? $weekStart->toDateString();
 @endphp
 
-<section id="booking-step-day" class="portal-panel booking-step">
-  <div class="section-heading">
+<section id="booking-step-day" class="portal-panel booking-step d-grid gap-3 p-4">
+  <div class="section-heading d-flex align-items-center justify-content-between gap-3">
     <h2>2. Scegli il giorno</h2>
   </div>
 
-  <div class="week-strip-wrapper">
+  <div class="week-strip-wrapper d-flex align-items-center gap-2">
     @if ($prevPageUrl && $prevPartialUrl)
-      <a class="btn btn-outline-secondary week-nav-arrow"
+      <a class="btn btn-outline-secondary week-nav-arrow flex-shrink-0 px-2"
         href="{{ $prevPageUrl }}"
         data-week-url="{{ $prevPartialUrl }}"
         data-page-url="{{ $prevPageUrl }}"
         aria-label="Settimana precedente">‹</a>
     @endif
 
-    <div class="week-strip">
+    <div class="week-strip row g-2 flex-fill flex-nowrap overflow-auto">
       @foreach ($weekDays as $day)
         @php
           $date = $day['date'];
           $dateStr = $date->toDateString();
           $isSelectedDate = $selectedDate === $dateStr;
-          $dayClasses = 'week-day'.($isSelectedDate ? ' week-day--selected' : '').($day['hasSlots'] ? '' : ' week-day--disabled');
+          $dayClasses = 'week-day col-5 col-sm d-flex flex-column align-items-center justify-content-center gap-1 text-center p-3'.($isSelectedDate ? ' week-day--selected' : '').($day['hasSlots'] ? '' : ' week-day--disabled');
           $dayPageUrl = $buildUrl($baseUrl, ['week_start' => $weekStart->toDateString(), 'date' => $dateStr], 'booking-step-day');
         @endphp
         @if ($day['hasSlots'])
@@ -76,7 +76,7 @@
     </div>
 
     @if ($nextPageUrl && $nextPartialUrl)
-      <a class="btn btn-outline-secondary week-nav-arrow"
+      <a class="btn btn-outline-secondary week-nav-arrow flex-shrink-0 px-2"
         href="{{ $nextPageUrl }}"
         data-week-url="{{ $nextPartialUrl }}"
         data-page-url="{{ $nextPageUrl }}"
@@ -86,8 +86,8 @@
 </section>
 
 @if ($weekDays->isEmpty())
-  <section class="slot-day-block portal-panel booking-step">
-    <div class="section-heading">
+  <section class="slot-day-block portal-panel booking-step d-grid gap-3 p-4">
+    <div class="section-heading d-flex align-items-center justify-content-between gap-3">
       <div>
         <h2>3. Scegli l'orario</h2>
         <span>Nessuna disponibilita trovata</span>
@@ -105,16 +105,16 @@
       $daySlots = $weekSlots[$dateStr] ?? collect();
       $isVisible = $selectedDate === $dateStr;
     @endphp
-    <section class="slot-day-block portal-panel booking-step {{ $isVisible ? '' : 'd-none' }}" data-date="{{ $dateStr }}">
+    <section class="slot-day-block portal-panel booking-step d-grid gap-3 p-4 {{ $isVisible ? '' : 'd-none' }}" data-date="{{ $dateStr }}">
       @if ($day['hasSlots'])
-        <div class="section-heading">
+        <div class="section-heading d-flex align-items-center justify-content-between gap-3">
           <div>
             <h2>3. Scegli l'orario</h2>
             <span>{{ ucfirst($day['date']->locale('it')->isoFormat('dddd D MMMM')) }} · {{ $daySlots->count() }} slot liberi</span>
           </div>
         </div>
 
-        <div class="slot-period-filter" role="group" aria-label="Filtra orari">
+        <div class="slot-period-filter d-flex flex-wrap gap-2" role="group" aria-label="Filtra orari">
           @foreach ($periods as $period => $label)
             @php
               $periodUrl = $buildUrl($baseUrl, [
@@ -148,7 +148,7 @@
               @endphp
               <div class="col-4 col-md-3 col-xl-2 slot-choice-col" data-period="{{ $slotPeriod }}">
                 <a
-                  class="slot-time-button {{ $isSelectedSlot ? 'slot-time-button--selected' : '' }}"
+                  class="slot-time-button d-grid align-items-center justify-content-center w-100 p-2 {{ $isSelectedSlot ? 'slot-time-button--selected' : '' }}"
                   href="{{ $slotPageUrl }}"
                 >
                   <span>{{ $slot->start_at->format('H:i') }}</span>
@@ -163,7 +163,7 @@
           </div>
         @endif
       @else
-        <div class="section-heading">
+        <div class="section-heading d-flex align-items-center justify-content-between gap-3">
           <div>
             <h2>3. Scegli l'orario</h2>
             <span>{{ ucfirst($day['date']->locale('it')->isoFormat('dddd D MMMM')) }}</span>
@@ -177,3 +177,88 @@
     </section>
   @endforeach
 @endif
+
+@once
+  <script>
+    (() => {
+      document.addEventListener("click", (event) => {
+        const arrow = event.target.closest("[data-week-url]");
+        const isDisabled = arrow
+          ? (arrow.tagName === "BUTTON" ? arrow.disabled : arrow.getAttribute("aria-disabled") === "true")
+          : false;
+
+        if (arrow && !isDisabled) {
+          event.preventDefault();
+          const weekUrl = arrow.getAttribute("data-week-url");
+          const pageUrl = arrow.getAttribute("data-page-url");
+          const region = document.getElementById("booking-week-region");
+          if (!region) return;
+
+          document.querySelectorAll("[data-week-url]").forEach((button) => {
+            if (button.tagName === "BUTTON") {
+              button.disabled = true;
+            } else {
+              button.setAttribute("aria-disabled", "true");
+            }
+          });
+
+          fetch(weekUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+            .then((response) => {
+              if (!response.ok) throw new Error();
+              return response.text();
+            })
+            .then((html) => {
+              region.innerHTML = html;
+              history.pushState({}, "", pageUrl);
+            })
+            .catch(() => {
+              window.location.href = pageUrl;
+            });
+          return;
+        }
+
+        const filterButton = event.target.closest("[data-slot-period-filter]");
+        if (filterButton) {
+          const period = filterButton.getAttribute("data-slot-period-filter");
+          const dayBlock = filterButton.closest(".slot-day-block");
+          if (!dayBlock) return;
+
+          dayBlock.querySelectorAll("[data-slot-period-filter]").forEach((button) => {
+            button.classList.toggle("btn-primary", button === filterButton);
+            button.classList.toggle("btn-outline-primary", button !== filterButton);
+          });
+
+          dayBlock.querySelectorAll(".slot-choice-col").forEach((column) => {
+            column.classList.toggle(
+              "d-none",
+              period !== "all" && column.getAttribute("data-period") !== period
+            );
+          });
+          return;
+        }
+
+        const dayCard = event.target.closest(".week-day[data-date]");
+        if (dayCard) {
+          event.preventDefault();
+          const date = dayCard.getAttribute("data-date");
+          const region = document.getElementById("booking-week-region");
+          if (!region) return;
+
+          region.querySelectorAll(".week-day").forEach((card) => {
+            card.classList.remove("week-day--selected");
+          });
+          dayCard.classList.add("week-day--selected");
+
+          region.querySelectorAll(".slot-day-block").forEach((block) => {
+            block.classList.toggle(
+              "d-none",
+              block.getAttribute("data-date") !== date
+            );
+          });
+
+          history.pushState({}, "", dayCard.href);
+        }
+      });
+    })();
+  </script>
+@endonce

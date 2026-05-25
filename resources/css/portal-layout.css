@@ -1,0 +1,84 @@
+.app-sidebar {
+  background: var(--color-navy);
+  color: #f8fafc;
+}
+
+.app-brand {
+  color: inherit;
+}
+
+.app-brand:hover {
+  color: inherit;
+}
+
+.app-brand__mark {
+  background: var(--color-teal);
+  border-radius: var(--app-control-radius);
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: 800;
+  height: 2.6rem;
+  width: 2.6rem;
+}
+
+.app-brand__name {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.app-brand__subline,
+.app-user__role {
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.app-nav__link {
+  border-radius: var(--app-control-radius);
+  color: #cbd5e1;
+  font-weight: 650;
+}
+
+.app-nav__link:hover,
+.app-nav__link.is-active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.app-user__avatar {
+  background: #ffffff;
+  border-radius: 999px;
+  color: var(--color-navy);
+  font-weight: 800;
+  height: 2.35rem;
+  width: 2.35rem;
+}
+
+.app-user__name {
+  color: #ffffff;
+  font-weight: 750;
+}
+
+.app-topbar {
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid var(--color-border);
+  min-height: 4.5rem;
+}
+
+.app-brand--mobile {
+  color: var(--color-ink);
+}
+
+.app-mobile-nav {
+  background: #ffffff;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-mobile-nav .app-nav__link {
+  color: var(--color-muted);
+}
+
+.app-mobile-nav .app-nav__link:hover,
+.app-mobile-nav .app-nav__link.is-active {
+  background: #e8f0ff;
+  color: var(--color-blue);
+}

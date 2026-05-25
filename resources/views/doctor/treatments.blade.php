@@ -9,28 +9,28 @@
 @endphp
 
 @section('content')
-  <section class="portal-section operations-dashboard">
-    <div class="portal-page-heading portal-heading-row">
+  <section class="portal-section operations-dashboard container-xxl">
+    <div class="portal-page-heading portal-heading-row d-flex align-items-center justify-content-between gap-3 mb-4">
       <div>
         <span class="portal-eyebrow">Portale medico</span>
         <h1>Trattamenti</h1>
       </div>
     </div>
 
-    <section class="portal-panel dashboard-filter-panel">
-      <div class="section-heading">
+    <section class="portal-panel dashboard-filter-panel p-4 mb-3">
+      <div class="section-heading d-flex align-items-center justify-content-between gap-3">
         <h2>{{ $editing ? 'Modifica trattamento' : 'Aggiungi trattamento' }}</h2>
       </div>
-      <form class="treatment-form-grid" method="POST" action="{{ $editing ? "/doctor/treatments/{$editing->id}" : '/doctor/treatments' }}">
+      <form class="treatment-form-grid row g-3 align-items-end mt-3" method="POST" action="{{ $editing ? "/doctor/treatments/{$editing->id}" : '/doctor/treatments' }}">
         @csrf
         @if ($editing)
           @method('PATCH')
         @endif
-        <label class="form-label">
+        <label class="form-label col-12 col-md-4 d-grid gap-2 mb-0">
           Nome
           <input class="form-control" name="name" value="{{ old('name', $editing?->name) }}" placeholder="Es. Visita cardiologica di controllo" required>
         </label>
-        <label class="form-label">
+        <label class="form-label col-12 col-md-4 d-grid gap-2 mb-0">
           Categoria
           <select class="form-select" name="category" required>
             @foreach ($categoryLabels as $categoryValue => $categoryLabel)
@@ -40,11 +40,11 @@
             @endforeach
           </select>
         </label>
-        <label class="form-label">
+        <label class="form-label col-12 col-md-4 d-grid gap-2 mb-0">
           Prezzo
           <input class="form-control" type="number" name="price" step="0.01" min="0" value="{{ old('price', $editing?->price) }}" placeholder="Es. 90.00">
         </label>
-        <div class="treatment-form-actions">
+        <div class="treatment-form-actions col-12 d-grid gap-2">
           <button type="submit" class="btn btn-primary">{{ $editing ? 'Salva modifiche' : 'Aggiungi trattamento' }}</button>
           @if ($editing)
             <a href="/doctor/treatments" class="btn btn-outline-secondary">Annulla modifica</a>
@@ -53,23 +53,24 @@
       </form>
     </section>
 
-    <section class="portal-panel dashboard-table-panel treatments-list-panel">
-      <div class="section-heading">
+    <section class="portal-panel dashboard-table-panel treatments-list-panel p-4 mb-3">
+      <div class="section-heading d-flex align-items-center justify-content-between gap-3 mb-3">
         <h2>I tuoi trattamenti</h2>
       </div>
 
       @if ($offerings->isNotEmpty())
-        <div class="treatment-card-grid">
+        <div class="treatment-card-grid row g-3">
           @foreach ($offerings as $offering)
-            <article class="treatment-card">
-              <div class="treatment-card__header">
+            <div class="col-12 col-md-6">
+            <article class="treatment-card d-grid gap-3 p-3 h-100">
+              <div class="treatment-card__header d-flex align-items-start justify-content-between gap-2">
                 <div>
-                  <h3>{{ $offering->name }}</h3>
+                  <h3 class="mb-0">{{ $offering->name }}</h3>
                   <span>{{ $categoryLabels[$offering->category] ?? $offering->category }}</span>
                 </div>
-                <div class="card-action-menu dropdown">
+                <div class="card-action-menu dropdown ms-auto flex-shrink-0">
                   <button
-                    class="btn btn-sm btn-outline-secondary card-action-menu__trigger"
+                    class="btn btn-sm btn-outline-secondary card-action-menu__trigger d-inline-flex align-items-center justify-content-center px-2"
                     type="button"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
@@ -90,10 +91,10 @@
                   </ul>
                 </div>
               </div>
-              <dl class="treatment-card__facts">
-                <div>
+              <dl class="treatment-card__facts row g-3 mb-0">
+                <div class="treatment-card__facts-item col-12 p-3">
                   <dt>Prezzo</dt>
-                  <dd>{{ $offering->price !== null ? 'EUR '.number_format((float) $offering->price, 2, ',', '.') : 'Da definire' }}</dd>
+                  <dd class="mt-1 mb-0">{{ $offering->price !== null ? 'EUR '.number_format((float) $offering->price, 2, ',', '.') : 'Da definire' }}</dd>
                 </div>
               </dl>
               <div class="modal fade" id="deleteTreatmentModal{{ $offering->id }}" tabindex="-1" aria-labelledby="deleteTreatmentModal{{ $offering->id }}Label" aria-hidden="true">
@@ -118,6 +119,7 @@
                 </div>
               </div>
             </article>
+            </div>
           @endforeach
         </div>
       @else

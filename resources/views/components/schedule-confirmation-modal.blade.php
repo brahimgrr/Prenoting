@@ -61,4 +61,15 @@
       </div>
     </div>
   </div>
+
+  <script>
+    (() => {
+      document.addEventListener("DOMContentLoaded", () => {
+        const modalEl = document.querySelector("[data-auto-show-modal]");
+        if (!modalEl || !window.bootstrap?.Modal) return;
+
+        window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      });
+    })();
+  </script>
 @endif

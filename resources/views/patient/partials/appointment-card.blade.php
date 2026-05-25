@@ -12,18 +12,18 @@
   $changeLocked = ($manageable ?? false) && $appointment->start_at->lte(now()->addDay());
 @endphp
 
-<article class="appointment-card {{ ($muted ?? false) ? 'appointment-card--muted' : '' }}">
-  <div class="appointment-card__header">
+<article class="appointment-card d-grid gap-3 p-3 mb-3 {{ ($muted ?? false) ? 'appointment-card--muted' : '' }}">
+  <div class="appointment-card__header d-flex align-items-center justify-content-between gap-3">
     <div class="appointment-card__title">
       <h3>{{ $appointment->service?->name ?? 'Appuntamento' }}</h3>
     </div>
     @if ($muted ?? false)
-      <span class="appointment-status-badge appointment-status-badge--{{ $historyStatusClass }}">{{ $historyStatusLabel }}</span>
+      <span class="appointment-status-badge appointment-status-badge--{{ $historyStatusClass }} d-inline-flex align-items-center flex-shrink-0 px-2 py-1">{{ $historyStatusLabel }}</span>
     @endif
     @if ($manageable && ! $changeLocked)
-      <div class="card-action-menu dropdown">
+      <div class="card-action-menu dropdown ms-auto flex-shrink-0">
         <button
-          class="btn btn-sm btn-outline-secondary card-action-menu__trigger"
+          class="btn btn-sm btn-outline-secondary card-action-menu__trigger d-inline-flex align-items-center justify-content-center px-2"
           type="button"
           data-bs-toggle="dropdown"
           aria-expanded="false"
@@ -46,31 +46,31 @@
     @endif
   </div>
   @if ($manageable && $changeLocked)
-    <p class="appointment-card__notice">Modifiche e cancellazioni non disponibili nelle 24 ore precedenti.</p>
+    <p class="appointment-card__notice m-0 px-3 py-2">Modifiche e cancellazioni non disponibili nelle 24 ore precedenti.</p>
   @endif
-  <dl class="appointment-details">
-    <div>
+  <dl class="appointment-details row g-3 mb-0">
+    <div class="col-12 col-md-6">
       <dt>Prestazione</dt>
       <dd>{{ $serviceCategoryLabel }}</dd>
     </div>
-    <div>
+    <div class="col-12 col-md-6">
       <dt>Orario</dt>
       <dd>{{ $appointment->start_at->format('d/m/Y H:i') }} - {{ $appointment->end_at->format('H:i') }}</dd>
     </div>
-    <div>
+    <div class="col-12 col-md-6">
       <dt>Prezzo visita</dt>
       <dd>{{ $priceLabel }}</dd>
     </div>
-    <div>
+    <div class="col-12 col-md-6">
       <dt>Note</dt>
       <dd>{{ filled($appointment->notes) ? $appointment->notes : 'Nessuna nota' }}</dd>
     </div>
     @if ($appointment->status === \App\Models\Appointment::STATUS_CANCELLED)
-      <div>
+      <div class="col-12 col-md-6">
         <dt>Annullamento</dt>
         <dd>{{ $appointment->cancellationActorLabel() }}</dd>
       </div>
-      <div>
+      <div class="col-12 col-md-6">
         <dt>Motivo annullamento</dt>
         <dd>{{ filled($appointment->cancellation_reason) ? $appointment->cancellation_reason : 'Non indicato' }}</dd>
       </div>

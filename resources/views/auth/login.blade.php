@@ -4,7 +4,7 @@
   <main class="auth-page">
     <section class="auth-panel">
       <div class="auth-panel__header">
-        <span class="app-brand__mark">M</span>
+        <span class="app-brand__mark d-inline-flex align-items-center justify-content-center flex-shrink-0">M</span>
         <div>
           <h1>Accedi</h1>
           <p>Accedi al portale delle prenotazioni mediche.</p>

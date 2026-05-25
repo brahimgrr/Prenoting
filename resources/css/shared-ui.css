@@ -1,0 +1,49 @@
+.portal-eyebrow {
+  color: var(--color-teal);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.portal-page-heading h1 {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 800;
+  line-height: 1;
+  margin: 0;
+}
+
+.portal-page-heading p,
+.portal-panel p,
+.appointment-card p,
+.empty-state p {
+  color: var(--color-muted);
+}
+
+.portal-panel h2,
+.section-heading h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.service-choice-card:hover,
+.week-day:hover,
+.week-day--selected,
+.slot-time-button:hover,
+.slot-time-button--selected {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  color: var(--color-ink);
+}
+
+.booking-confirm-summary dt,
+.appointment-info-summary span,
+.appointment-info-card__list dt {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

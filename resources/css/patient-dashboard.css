@@ -1,0 +1,35 @@
+.metric-panel {
+  background: var(--color-teal);
+  border-radius: var(--app-card-radius);
+  box-shadow: var(--shadow-panel);
+  color: #ffffff;
+}
+
+.metric-panel__label,
+.metric-panel__caption {
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 700;
+}
+
+.metric-panel strong {
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.quick-action {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--app-card-radius);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.quick-action:hover {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.quick-action span {
+  color: var(--color-muted);
+  font-weight: 700;
+}

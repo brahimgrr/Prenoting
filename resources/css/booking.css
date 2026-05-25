@@ -1,0 +1,107 @@
+.booking-step {
+  scroll-margin-top: 1rem;
+}
+
+.service-choice-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--app-card-radius);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.service-choice-card--disabled {
+  opacity: 0.55;
+}
+
+.service-choice-card__name,
+.service-choice-card__price {
+  font-weight: 800;
+}
+
+.service-choice-card__meta,
+.week-day__name,
+.week-day__month {
+  color: var(--color-muted);
+}
+
+.week-nav-arrow {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.week-day {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--app-card-radius);
+  color: var(--color-ink);
+  min-height: 6.5rem;
+  text-decoration: none;
+}
+
+.week-strip--agenda .week-day {
+  min-height: 5.75rem;
+}
+
+.week-day__month {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.week-day--disabled {
+  background: #ffffff;
+  opacity: 0.5;
+}
+
+.availability-dot {
+  border-radius: 999px;
+  display: inline-block;
+  height: 0.65rem;
+  width: 0.65rem;
+}
+
+.availability-dot--open {
+  background: #16a34a;
+}
+
+.availability-dot--booked {
+  background: var(--color-blue);
+}
+
+.availability-dot--closed {
+  background: #dc2626;
+}
+
+.slot-time-button {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--app-card-radius);
+  color: var(--color-ink);
+  min-height: 4.75rem;
+  text-align: center;
+  text-decoration: none;
+}
+
+.slot-time-button span {
+  font-weight: 800;
+}
+
+.slot-time-button small {
+  color: var(--color-muted);
+}
+
+.booking-confirm-panel {
+  border-color: rgba(37, 99, 235, 0.35);
+}
+
+.booking-confirm-summary__item {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--app-inner-radius);
+  min-height: 100%;
+}
+
+.booking-confirm-summary dd {
+  font-weight: 750;
+}

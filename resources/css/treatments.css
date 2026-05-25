@@ -1,0 +1,39 @@
+.treatment-form-grid .form-label {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.treatment-card {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--app-card-radius);
+}
+
+.treatment-card h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.treatment-card__header span:not(.badge),
+.treatment-card__facts dt {
+  color: var(--color-muted);
+}
+
+.treatment-card__facts-item {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--app-inner-radius);
+}
+
+.treatment-card__facts dt {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.treatment-card__facts dd {
+  font-weight: 800;
+}

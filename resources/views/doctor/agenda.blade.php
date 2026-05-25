@@ -1,9 +1,9 @@
 @extends('layouts.portal', ['title' => 'Agenda - MedPortal'])
 
 @section('content')
-  <section class="portal-section operations-dashboard">
+  <section class="portal-section operations-dashboard container-xxl">
 
-    <div class="portal-page-heading portal-heading-row">
+    <div class="portal-page-heading portal-heading-row d-flex align-items-center justify-content-between gap-3 mb-4">
       <div>
         <span class="portal-eyebrow">Portale medico</span>
         <h1>Agenda</h1>
@@ -42,18 +42,18 @@
         </section>
       </div>
     </div>
-<section class="portal-panel doctor-agenda-panel">
-      <div class="week-strip-wrapper mb-3">
-        <a class="btn btn-outline-secondary week-nav-arrow"
+<section class="portal-panel doctor-agenda-panel p-4 mb-3">
+      <div class="week-strip-wrapper d-flex align-items-center gap-2 mb-3">
+        <a class="btn btn-outline-secondary week-nav-arrow flex-shrink-0 px-2"
            href="/doctor/agenda?date={{ $previousWeekStart->toDateString() }}&week_start={{ $previousWeekStart->toDateString() }}"
            aria-label="Settimana precedente">&#8249;</a>
 
-        <div class="week-strip week-strip--agenda">
+        <div class="week-strip week-strip--agenda row g-2 flex-fill flex-nowrap overflow-auto">
           @foreach ($weekDays as $weekDay)
             @php
               $dayDateStr = $weekDay['date']->toDateString();
               $isSelected = $dayDateStr === $date;
-              $dayClass   = 'week-day' . ($isSelected ? ' week-day--selected' : '');
+              $dayClass   = 'week-day col-4 col-sm d-flex flex-column align-items-center justify-content-center gap-1 text-center p-2' . ($isSelected ? ' week-day--selected' : '');
             @endphp
             <a class="{{ $dayClass }}"
                href="/doctor/agenda?date={{ $dayDateStr }}&week_start={{ $weekStart->toDateString() }}">
@@ -65,7 +65,7 @@
           @endforeach
         </div>
 
-        <a class="btn btn-outline-secondary week-nav-arrow"
+        <a class="btn btn-outline-secondary week-nav-arrow flex-shrink-0 px-2"
            href="/doctor/agenda?date={{ $nextWeekStart->toDateString() }}&week_start={{ $nextWeekStart->toDateString() }}"
            aria-label="Settimana successiva">&#8250;</a>
       </div>
@@ -118,12 +118,12 @@
                             && $appointment->start_at->isFuture();
                         @endphp
                         <div class="doctor-agenda-item__body">
-                          <div class="doctor-agenda-item__main">
+                          <div class="doctor-agenda-item__main d-flex align-items-center justify-content-between gap-3">
                             <div>
                               <h3>{{ $appointment->patientName() }}</h3>
                               <p>{{ $appointment->service?->name ?? 'Appuntamento' }}</p>
                             </div>
-                            <div class="doctor-agenda-item__actions">
+                            <div class="doctor-agenda-item__actions d-flex align-items-center justify-content-end gap-2">
                               <button
                                 class="btn btn-sm btn-outline-secondary"
                                 type="button"
@@ -167,14 +167,14 @@
                           }
                         @endphp
                         <div class="doctor-agenda-item__body">
-                          <div class="doctor-agenda-item__main">
+                          <div class="doctor-agenda-item__main d-flex align-items-center justify-content-between gap-3">
                             <div>
                               <h3>{{ $slotTitle }}</h3>
                               @if ($closureRange)
                                 <p>{{ $closureRange }}</p>
                               @endif
                             </div>
-                            <div class="doctor-agenda-item__actions">
+                            <div class="doctor-agenda-item__actions d-flex align-items-center justify-content-end gap-2">
                               @if ($showPassatoBadge)
                                 <span class="badge badge-neutral">Passato</span>
                               @elseif ($state === 'blocked' && ! $hasStarted && $closure)
@@ -240,7 +240,7 @@
                 $eventTypeLabel = $event['type'] === 'closure' ? 'Chiusura' : 'Apertura extra';
               @endphp
               <article class="schedule-event-card schedule-event-card--{{ $eventTypeClass }}">
-                <div class="schedule-event-card__main">
+                <div class="schedule-event-card__main d-flex align-items-center justify-content-between gap-3">
                   <div>
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
                       <span class="schedule-event-card__pill schedule-event-card__pill--{{ $eventTypeClass }}">{{ $eventTypeLabel }}</span>
@@ -479,4 +479,92 @@
       </div>
     </div>
   @endforeach
+
+  <script>
+    (() => {
+      function posizionaScrollAgenda() {
+        const container = document.querySelector("[data-agenda-scroll-container]");
+        const marker = container?.querySelector("[data-agenda-now-marker]");
+        const firstOccupiedRow = container?.querySelector("[data-agenda-occupied-row]");
+        if (!container || (!marker && !firstOccupiedRow)) return;
+
+        requestAnimationFrame(() => {
+          const containerRect = container.getBoundingClientRect();
+          const targetRect = (marker ?? firstOccupiedRow).getBoundingClientRect();
+          const targetTop = targetRect.top - containerRect.top + container.scrollTop;
+
+          if (marker) {
+            const markerCenter = targetTop + targetRect.height / 2;
+            container.scrollTop = Math.max(0, markerCenter - container.clientHeight / 2);
+            return;
+          }
+
+          container.scrollTop = Math.max(0, targetTop);
+        });
+      }
+
+      function aggiornaIndicatoreOraAgenda() {
+        const container = document.querySelector("[data-agenda-scroll-container]");
+        if (!container) return;
+
+        const now = new Date();
+        const rows = Array.from(container.querySelectorAll(".doctor-agenda-row"));
+
+        let currentRow = null;
+        rows.forEach((row) => {
+          const timeEl = row.querySelector("time[datetime]");
+          if (!timeEl) return;
+          const rowStart = new Date(timeEl.getAttribute("datetime"));
+          const rowEnd = new Date(rowStart.getTime() + 30 * 60 * 1000);
+          row.classList.toggle("doctor-agenda-row--past", now >= rowEnd);
+          if (now >= rowStart && now < rowEnd) currentRow = row;
+        });
+
+        let marker = container.querySelector("[data-agenda-now-marker]");
+
+        if (!currentRow) {
+          marker?.remove();
+          return;
+        }
+
+        const contentDiv = currentRow.querySelector(".doctor-agenda-row__content");
+        if (!contentDiv) return;
+
+        contentDiv.removeAttribute("aria-hidden");
+
+        if (!marker) {
+          marker = document.createElement("div");
+          marker.className = "doctor-agenda-now-marker";
+          marker.setAttribute("data-agenda-now-marker", "");
+          marker.innerHTML = "<span></span>";
+          contentDiv.prepend(marker);
+        } else if (!contentDiv.contains(marker)) {
+          const oldContent = marker.parentElement;
+          marker.remove();
+          if (oldContent && !oldContent.querySelector(".doctor-agenda-item")) {
+            oldContent.setAttribute("aria-hidden", "true");
+          }
+          contentDiv.prepend(marker);
+        }
+
+        const rowStart = new Date(currentRow.querySelector("time[datetime]").getAttribute("datetime"));
+        const minutesIntoRow = (now - rowStart) / 60000;
+        marker.style.setProperty("--now-position", `${Math.min(100, Math.max(0, (minutesIntoRow / 30) * 100))}%`);
+
+        const label = marker.querySelector("span");
+        if (label) {
+          const hh = String(now.getHours()).padStart(2, "0");
+          const mm = String(now.getMinutes()).padStart(2, "0");
+          label.textContent = `Ora ${hh}:${mm}`;
+        }
+      }
+
+      posizionaScrollAgenda();
+      aggiornaIndicatoreOraAgenda();
+
+      if (document.querySelector("[data-agenda-scroll-container]")) {
+        setInterval(aggiornaIndicatoreOraAgenda, 30_000);
+      }
+    })();
+  </script>
 @endsection
