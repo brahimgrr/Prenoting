@@ -34,6 +34,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--app-card-radius);
   color: var(--color-ink);
+  flex: 1 0 9.25rem;
   min-height: 6.5rem;
   text-decoration: none;
 }
@@ -104,4 +105,8 @@
 
 .booking-confirm-summary dd {
   font-weight: 750;
+}
+
+.booking-confirm-actions .btn {
+  min-width: 11rem;
 }

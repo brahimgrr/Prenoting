@@ -49,13 +49,13 @@
         aria-label="Settimana precedente">‹</a>
     @endif
 
-    <div class="week-strip row g-2 flex-fill flex-nowrap overflow-auto">
+    <div class="week-strip d-flex gap-2 flex-fill overflow-auto p-1">
       @foreach ($weekDays as $day)
         @php
           $date = $day['date'];
           $dateStr = $date->toDateString();
           $isSelectedDate = $selectedDate === $dateStr;
-          $dayClasses = 'week-day col-5 col-sm d-flex flex-column align-items-center justify-content-center gap-1 text-center p-3'.($isSelectedDate ? ' week-day--selected' : '').($day['hasSlots'] ? '' : ' week-day--disabled');
+          $dayClasses = 'week-day d-flex flex-column align-items-center justify-content-center gap-1 text-center p-2'.($isSelectedDate ? ' week-day--selected border-primary bg-primary bg-opacity-10' : '').($day['hasSlots'] ? '' : ' week-day--disabled');
           $dayPageUrl = $buildUrl($baseUrl, ['week_start' => $weekStart->toDateString(), 'date' => $dateStr], 'booking-step-day');
         @endphp
         @if ($day['hasSlots'])
@@ -148,7 +148,7 @@
               @endphp
               <div class="col-4 col-md-3 col-xl-2 slot-choice-col" data-period="{{ $slotPeriod }}">
                 <a
-                  class="slot-time-button d-grid align-items-center justify-content-center w-100 p-2 {{ $isSelectedSlot ? 'slot-time-button--selected' : '' }}"
+                  class="slot-time-button d-grid align-items-center justify-content-center w-100 p-2 {{ $isSelectedSlot ? 'slot-time-button--selected border-primary bg-primary bg-opacity-10' : '' }}"
                   href="{{ $slotPageUrl }}"
                 >
                   <span>{{ $slot->start_at->format('H:i') }}</span>
@@ -178,87 +178,3 @@
   @endforeach
 @endif
 
-@once
-  <script>
-    (() => {
-      document.addEventListener("click", (event) => {
-        const arrow = event.target.closest("[data-week-url]");
-        const isDisabled = arrow
-          ? (arrow.tagName === "BUTTON" ? arrow.disabled : arrow.getAttribute("aria-disabled") === "true")
-          : false;
-
-        if (arrow && !isDisabled) {
-          event.preventDefault();
-          const weekUrl = arrow.getAttribute("data-week-url");
-          const pageUrl = arrow.getAttribute("data-page-url");
-          const region = document.getElementById("booking-week-region");
-          if (!region) return;
-
-          document.querySelectorAll("[data-week-url]").forEach((button) => {
-            if (button.tagName === "BUTTON") {
-              button.disabled = true;
-            } else {
-              button.setAttribute("aria-disabled", "true");
-            }
-          });
-
-          fetch(weekUrl, { headers: { "X-Requested-With": "XMLHttpRequest" } })
-            .then((response) => {
-              if (!response.ok) throw new Error();
-              return response.text();
-            })
-            .then((html) => {
-              region.innerHTML = html;
-              history.pushState({}, "", pageUrl);
-            })
-            .catch(() => {
-              window.location.href = pageUrl;
-            });
-          return;
-        }
-
-        const filterButton = event.target.closest("[data-slot-period-filter]");
-        if (filterButton) {
-          const period = filterButton.getAttribute("data-slot-period-filter");
-          const dayBlock = filterButton.closest(".slot-day-block");
-          if (!dayBlock) return;
-
-          dayBlock.querySelectorAll("[data-slot-period-filter]").forEach((button) => {
-            button.classList.toggle("btn-primary", button === filterButton);
-            button.classList.toggle("btn-outline-primary", button !== filterButton);
-          });
-
-          dayBlock.querySelectorAll(".slot-choice-col").forEach((column) => {
-            column.classList.toggle(
-              "d-none",
-              period !== "all" && column.getAttribute("data-period") !== period
-            );
-          });
-          return;
-        }
-
-        const dayCard = event.target.closest(".week-day[data-date]");
-        if (dayCard) {
-          event.preventDefault();
-          const date = dayCard.getAttribute("data-date");
-          const region = document.getElementById("booking-week-region");
-          if (!region) return;
-
-          region.querySelectorAll(".week-day").forEach((card) => {
-            card.classList.remove("week-day--selected");
-          });
-          dayCard.classList.add("week-day--selected");
-
-          region.querySelectorAll(".slot-day-block").forEach((block) => {
-            block.classList.toggle(
-              "d-none",
-              block.getAttribute("data-date") !== date
-            );
-          });
-
-          history.pushState({}, "", dayCard.href);
-        }
-      });
-    })();
-  </script>
-@endonce

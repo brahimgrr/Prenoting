@@ -64,6 +64,10 @@ The Docker setup bind-mounts the project into the PHP and Vite containers, so Bl
 - Staff operations: `/staff`
 - Staff appointments: `/staff/appointments`
 
+## Study Guide
+
+For a two-person presentation split, see [`CODEBASE_STUDY_SPLIT.md`](CODEBASE_STUDY_SPLIT.md).
+
 ## Verification
 
 Frontend assets:

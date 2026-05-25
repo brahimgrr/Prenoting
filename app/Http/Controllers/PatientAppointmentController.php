@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
-use App\Models\MedicalService;
-use App\Services\AvailabilityService;
 use App\Services\AppointmentService;
-use App\Services\PatientBookingCalendarService;
+use App\Services\PatientBookingWizardViewData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,8 +12,7 @@ use Illuminate\View\View;
 class PatientAppointmentController extends Controller
 {
   public function __construct(
-    private readonly AvailabilityService $availability,
-    private readonly PatientBookingCalendarService $calendar,
+    private readonly PatientBookingWizardViewData $bookingWizard,
   )
   {
   }
@@ -41,19 +38,22 @@ class PatientAppointmentController extends Controller
   public function edit(Request $request, Appointment $appointment): View
   {
     $this->authorizePatientAppointment($request, $appointment);
-    $appointment->loadMissing(['service']);
-    $doctor = $appointment->doctor ?? $this->availability->primaryDoctor();
-    $service = $appointment->service;
+    $viewData = $this->bookingWizard->reschedule($request, $appointment);
 
-    return view('patient.appointment-edit', $this->calendar->build($doctor, $service, $request->query(), $appointment) + [
-      'appointment' => $appointment,
-      'services' => MedicalService::where('is_active', true)->orderBy('name')->get(),
-      'weekPartialUrl' => null,
-      'baseUrl' => url("/appointments/{$appointment->id}/edit"),
-      'formAction' => "/appointments/{$appointment->id}/reschedule",
-      'formMethod' => 'POST',
-      'submitLabel' => 'Sposta',
-    ]);
+    if ($request->ajax()) {
+      return view('patient.partials.booking-wizard', $viewData);
+    }
+
+    return view('patient.appointment-edit', $viewData);
+  }
+
+  public function editWeek(Request $request, Appointment $appointment): View
+  {
+    $this->authorizePatientAppointment($request, $appointment);
+
+    return view('patient.partials.booking-week-partial', array_replace($this->bookingWizard->reschedule($request, $appointment), [
+      'selectedSlot' => null,
+    ]));
   }
 
   public function cancel(Request $request, Appointment $appointment, AppointmentService $appointments): RedirectResponse

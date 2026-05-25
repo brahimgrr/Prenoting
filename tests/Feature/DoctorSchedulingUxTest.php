@@ -460,7 +460,8 @@ class DoctorSchedulingUxTest extends TestCase
     $response = $this->actingAs($doctorUser)
       ->get('/doctor/agenda?date='.$date->toDateString())
       ->assertOk()
-      ->assertSee('week-day--selected', false);
+      ->assertSee('week-strip week-strip--agenda d-flex gap-2 flex-fill overflow-auto p-1', false)
+      ->assertSee('week-day d-flex flex-column align-items-center justify-content-center gap-1 text-center p-2 week-day--selected border-primary bg-primary bg-opacity-10', false);
 
     $this->assertStringNotContainsString('week-day--weekend', $response->getContent());
   }
@@ -780,10 +781,10 @@ class DoctorSchedulingUxTest extends TestCase
     ]);
   }
 
-  public function test_updating_special_opening_that_supports_active_appointment_requires_confirmation_to_cancel_it(): void
+  public function test_exception_events_do_not_accept_update_requests(): void
   {
-    [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
-    $sunday = CarbonImmutable::now()->next(CarbonImmutable::SUNDAY)->setTime(9, 0);
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $sunday = CarbonImmutable::now()->next(CarbonImmutable::SUNDAY);
     $opening = SpecialOpening::create([
       'doctor_profile_id' => $doctor->id,
       'date' => $sunday->toDateString(),
@@ -791,54 +792,40 @@ class DoctorSchedulingUxTest extends TestCase
       'end_time' => '10:00',
       'note' => 'Apertura domenicale',
     ]);
-    $appointment = $this->appointment($patient, $doctor, $service, $sunday);
-
-    $payload = [
+    $closure = $doctor->closures()->create([
       'date' => $sunday->toDateString(),
-      'start_time' => '10:00',
-      'end_time' => '11:00',
-      'note' => 'Nuovo turno',
-    ];
+      'start_time' => '11:00',
+      'end_time' => '12:00',
+      'reason' => 'Chiusura domenicale',
+    ]);
 
     $this->actingAs($doctorUser)
-      ->from('/doctor/agenda?date='.$sunday->toDateString())
-      ->patch("/doctor/special-openings/{$opening->id}", $payload)
-      ->assertRedirect('/doctor/agenda?date='.$sunday->toDateString())
-      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool => $confirmation['reason'] === 'Cambio orario lavoro medico'
-       && $confirmation['action'] === "/doctor/special-openings/{$opening->id}"
-       && $confirmation['method'] === 'PATCH'
-       && $confirmation['payload']['start_time'] === '10:00'
-       && count($confirmation['appointments']) === 1
-       && $confirmation['appointments'][0]['id'] === $appointment->id
-      );
+      ->patch("/doctor/special-openings/{$opening->id}", [
+        'date' => $sunday->toDateString(),
+        'start_time' => '10:00',
+        'end_time' => '11:00',
+        'note' => 'Nuovo turno',
+      ])
+      ->assertStatus(405);
+
+    $this->actingAs($doctorUser)
+      ->patch("/doctor/closures/{$closure->id}", [
+        'date' => $sunday->toDateString(),
+        'start_time' => '12:00',
+        'end_time' => '13:00',
+        'reason' => 'Nuova chiusura',
+      ])
+      ->assertStatus(405);
 
     $this->assertDatabaseHas('special_openings', [
       'id' => $opening->id,
       'start_time' => '09:00',
       'end_time' => '10:00',
     ]);
-    $this->assertDatabaseHas('appointments', [
-      'id' => $appointment->id,
-      'status' => Appointment::STATUS_CONFIRMED,
-      'cancellation_reason' => null,
-    ]);
-
-    $this->actingAs($doctorUser)
-      ->patch("/doctor/special-openings/{$opening->id}", $payload + [
-        'confirm_appointment_cancellations' => '1',
-      ])
-      ->assertRedirect('/doctor/agenda?date='.$sunday->toDateString())
-      ->assertSessionHas('status', 'Apertura extra aggiornata.');
-
-    $this->assertDatabaseHas('special_openings', [
-      'id' => $opening->id,
-      'start_time' => '10:00',
-      'end_time' => '11:00',
-    ]);
-    $this->assertDatabaseHas('appointments', [
-      'id' => $appointment->id,
-      'status' => Appointment::STATUS_CANCELLED,
-      'cancellation_reason' => 'Cambio orario lavoro medico',
+    $this->assertDatabaseHas('closures', [
+      'id' => $closure->id,
+      'start_time' => '11:00',
+      'end_time' => '12:00',
     ]);
   }
 
@@ -914,6 +901,10 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertSee('Prossimi eventi')
       ->assertSee('Open day')
       ->assertSee('Riunione')
+      ->assertDontSee('aria-label="Modifica evento"', false)
+      ->assertDontSee('Modifica chiusura')
+      ->assertDontSee('Modifica apertura extra')
+      ->assertDontSee('value="PATCH"', false)
       ->assertSee("data-bs-target=\"#deleteScheduleEventModalSpecialOpening{$opening->id}\"", false)
       ->assertSee("data-bs-target=\"#deleteScheduleEventModalClosure{$closure->id}\"", false)
       ->assertSee("id=\"deleteScheduleEventModalSpecialOpening{$opening->id}\"", false)

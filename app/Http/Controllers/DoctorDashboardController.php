@@ -132,38 +132,6 @@ class DoctorDashboardController extends Controller
     return redirect('/doctor/agenda?date='.$validated['date'])->with('status', 'Chiusura creata.');
   }
 
-  public function updateClosure(Request $request, ScheduleClosure $closure): RedirectResponse
-  {
-    $doctor = $this->doctorFor($request);
-    $validated = $request->validate([
-      'date' => ['required', 'date_format:Y-m-d'],
-      'end_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date'],
-      'all_day' => ['nullable', 'string'],
-      'start_time' => ['nullable', 'string', 'max:5'],
-      'end_time' => ['nullable', 'string', 'max:5'],
-      'reason' => ['nullable', 'string', 'max:255'],
-    ]);
-
-    try {
-      $this->schedule->updateClosure(
-        $doctor,
-        $closure,
-        $validated,
-        $request->boolean(DoctorScheduleService::CONFIRM_APPOINTMENT_CANCELLATIONS_FIELD),
-      );
-    } catch (ScheduleAppointmentConflictsException $exception) {
-      return $this->redirectWithScheduleConfirmation('/doctor/agenda?date='.$validated['date'], [
-        'title' => 'Conferma modifica chiusura',
-        'message' => 'Questi appuntamenti verranno annullati per modificare la chiusura.',
-        'action' => "/doctor/closures/{$closure->id}",
-        'method' => 'PATCH',
-        'payload' => $validated,
-      ], $exception);
-    }
-
-    return redirect('/doctor/agenda?date='.$validated['date'])->with('status', 'Chiusura aggiornata.');
-  }
-
   public function destroyClosure(Request $request, ScheduleClosure $closure): RedirectResponse
   {
     $doctor = $this->doctorFor($request);
@@ -201,36 +169,6 @@ class DoctorDashboardController extends Controller
     $this->schedule->createSpecialOpening($doctor, $validated);
 
     return redirect('/doctor/agenda?date='.$validated['date'])->with('status', 'Apertura extra creata.');
-  }
-
-  public function updateSpecialOpening(Request $request, SpecialOpening $specialOpening): RedirectResponse
-  {
-    $doctor = $this->doctorFor($request);
-    $validated = $request->validate([
-      'date' => ['required', 'date_format:Y-m-d'],
-      'start_time' => ['required', 'string', 'max:5'],
-      'end_time' => ['required', 'string', 'max:5'],
-      'note' => ['nullable', 'string', 'max:255'],
-    ]);
-
-    try {
-      $this->schedule->updateSpecialOpening(
-        $doctor,
-        $specialOpening,
-        $validated,
-        $request->boolean(DoctorScheduleService::CONFIRM_APPOINTMENT_CANCELLATIONS_FIELD),
-      );
-    } catch (ScheduleAppointmentConflictsException $exception) {
-      return $this->redirectWithScheduleConfirmation('/doctor/agenda?date='.$validated['date'], [
-        'title' => 'Conferma modifica apertura extra',
-        'message' => 'Questi appuntamenti verranno annullati per modificare l\'apertura extra.',
-        'action' => "/doctor/special-openings/{$specialOpening->id}",
-        'method' => 'PATCH',
-        'payload' => $validated,
-      ], $exception);
-    }
-
-    return redirect('/doctor/agenda?date='.$validated['date'])->with('status', 'Apertura extra aggiornata.');
   }
 
   public function destroySpecialOpening(Request $request, SpecialOpening $specialOpening): RedirectResponse

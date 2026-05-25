@@ -62,7 +62,6 @@ class ScheduleAppointmentImpactService
     DoctorProfile $doctor,
     ?array $weeklyWindows,
     ?SpecialOpening $excludingSpecialOpening = null,
-    ?array $replacementSpecialOpening = null,
   ): Collection {
     return Appointment::withPortalRelations()
       ->where('doctor_profile_id', $doctor->id)
@@ -74,7 +73,6 @@ class ScheduleAppointmentImpactService
         $appointment,
         $weeklyWindows,
         $excludingSpecialOpening,
-        $replacementSpecialOpening,
       ))
       ->values();
   }
@@ -115,7 +113,6 @@ class ScheduleAppointmentImpactService
     Appointment $appointment,
     ?array $weeklyWindows,
     ?SpecialOpening $excludingSpecialOpening,
-    ?array $replacementSpecialOpening,
   ): bool {
     $start = CarbonImmutable::parse($appointment->start_at);
     $end = CarbonImmutable::parse($appointment->end_at);
@@ -123,16 +120,6 @@ class ScheduleAppointmentImpactService
     $windows = $weeklyWindows === null
       ? $this->windows->openingWindowsForDate($doctor, $date, $excludingSpecialOpening)
       : $this->windows->openingWindowsFromTemplate($doctor, $date, $weeklyWindows, $excludingSpecialOpening);
-
-    if (
-      $replacementSpecialOpening &&
-      CarbonImmutable::parse($replacementSpecialOpening['date'])->toDateString() === $date->toDateString()
-    ) {
-      $windows->push([
-        'start_at' => ScheduleTime::combine($date, $replacementSpecialOpening['start_time']),
-        'end_at' => ScheduleTime::combine($date, $replacementSpecialOpening['end_time']),
-      ]);
-    }
 
     return $windows->contains(
       fn (array $window): bool => $window['start_at']->lessThanOrEqualTo($start) && $window['end_at']->greaterThanOrEqualTo($end)

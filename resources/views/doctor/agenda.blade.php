@@ -48,12 +48,12 @@
            href="/doctor/agenda?date={{ $previousWeekStart->toDateString() }}&week_start={{ $previousWeekStart->toDateString() }}"
            aria-label="Settimana precedente">&#8249;</a>
 
-        <div class="week-strip week-strip--agenda row g-2 flex-fill flex-nowrap overflow-auto">
+        <div class="week-strip week-strip--agenda d-flex gap-2 flex-fill overflow-auto p-1">
           @foreach ($weekDays as $weekDay)
             @php
               $dayDateStr = $weekDay['date']->toDateString();
               $isSelected = $dayDateStr === $date;
-              $dayClass   = 'week-day col-4 col-sm d-flex flex-column align-items-center justify-content-center gap-1 text-center p-2' . ($isSelected ? ' week-day--selected' : '');
+              $dayClass   = 'week-day d-flex flex-column align-items-center justify-content-center gap-1 text-center p-2' . ($isSelected ? ' week-day--selected border-primary bg-primary bg-opacity-10' : '');
             @endphp
             <a class="{{ $dayClass }}"
                href="/doctor/agenda?date={{ $dayDateStr }}&week_start={{ $weekStart->toDateString() }}">
@@ -130,7 +130,7 @@
                                 data-bs-toggle="modal"
                                 data-bs-target="#appointmentInfoModal{{ $appointment->id }}"
                                 aria-label="Informazioni appuntamento"
-                              ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg></button>
+                              ><x-icons.info-circle /></button>
                               @if ($canCancelAppointment)
                                 <button
                                   class="btn btn-sm btn-outline-danger"
@@ -139,7 +139,7 @@
                                   data-bs-target="#{{ $appointmentCancelModalId }}"
                                   aria-label="Annulla appuntamento"
                                   title="Annulla appuntamento"
-                                ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1h2.5a1 1 0 0 1 1 1M4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg></button>
+                                ><x-icons.trash /></button>
                               @endif
                             </div>
                           </div>
@@ -186,7 +186,7 @@
                                     class="btn btn-sm btn-outline-primary"
                                     aria-label="Riapri disponibilita"
                                     title="Riapri disponibilita"
-                                  ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M11 1a2 2 0 0 0-2 2v3h1V3a1 1 0 0 1 2 0v1.5a.5.5 0 0 0 1 0V3a2 2 0 0 0-2-2"/><path d="M4.5 6A1.5 1.5 0 0 0 3 7.5v6A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-6A1.5 1.5 0 0 0 11.5 6zm0 1h7a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5v-6a.5.5 0 0 1 .5-.5"/></svg></button>
+                                  ><x-icons.unlock /></button>
                                 </form>
                               @elseif ($state === 'free' && ! $hasStarted)
                                 <form method="POST" action="/doctor/availability/block">
@@ -197,7 +197,7 @@
                                     class="btn btn-sm btn-outline-danger"
                                     aria-label="Blocca slot libero"
                                     title="Blocca slot libero"
-                                  ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="M11.354 4.646a.5.5 0 0 0-.708-.708l-6.708 6.708a.5.5 0 0 0 .708.708z"/></svg></button>
+                                  ><x-icons.ban /></button>
                                 </form>
                               @endif
                             </div>
@@ -229,7 +229,6 @@
             @foreach ($upcomingScheduleEvents as $event)
               @php
                 $model = $event['model'];
-                $modalId = $event['type'].'Modal'.$model->id;
                 $deleteModalId = $event['type'] === 'closure'
                   ? "deleteScheduleEventModalClosure{$model->id}"
                   : "deleteScheduleEventModalSpecialOpening{$model->id}";
@@ -251,16 +250,8 @@
                     <h3>{{ $event['title'] }}</h3>
                   </div>
                   <div class="schedule-event-card__actions" role="group" aria-label="Azioni evento">
-                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}" aria-label="Modifica evento">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                        <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 3 10.707V13h2.293z"/>
-                      </svg>
-                    </button>
                     <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#{{ $deleteModalId }}" aria-label="Elimina evento">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1h2.5a1 1 0 0 1 1 1M4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-                      </svg>
+                      <x-icons.trash />
                     </button>
                   </div>
                 </div>
@@ -366,7 +357,6 @@
   @foreach ($upcomingScheduleEvents as $event)
     @php
       $model = $event['model'];
-      $modalId = $event['type'].'Modal'.$model->id;
       $deleteModalId = $event['type'] === 'closure'
         ? "deleteScheduleEventModalClosure{$model->id}"
         : "deleteScheduleEventModalSpecialOpening{$model->id}";
@@ -395,86 +385,6 @@
               <button type="submit" class="btn btn-danger">Sì, elimina</button>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-labelledby="{{ $modalId }}Label" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          @if ($event['type'] === 'closure')
-            <form method="POST" action="/doctor/closures/{{ $model->id }}">
-              @csrf
-              @method('PATCH')
-              <div class="modal-header">
-                <h2 class="modal-title h5" id="{{ $modalId }}Label">Modifica chiusura</h2>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
-              </div>
-              <div class="modal-body">
-                <div class="row g-3">
-                  <div class="col-12">
-                    <label class="form-label">Data</label>
-                    <input class="form-control" type="date" name="date" value="{{ $event['date']->toDateString() }}" required>
-                  </div>
-                  <div class="col-12">
-                    <div class="form-check form-switch">
-                      <input class="form-check-input" id="{{ $modalId }}AllDay" type="checkbox" name="all_day" value="1" @checked(! $event['start_time'])>
-                      <label class="form-check-label" for="{{ $modalId }}AllDay">Tutto il giorno</label>
-                    </div>
-                  </div>
-                  <div class="col-sm-6">
-                    <label class="form-label">Ora inizio</label>
-                    <x-time-select class="form-control" name="start_time" :value="$event['start_time']" />
-                  </div>
-                  <div class="col-sm-6">
-                    <label class="form-label">Ora fine</label>
-                    <x-time-select class="form-control" name="end_time" :value="$event['end_time']" :include-end-of-day="true" />
-                  </div>
-                  <div class="col-12">
-                    <label class="form-label">Motivo</label>
-                    <input class="form-control" name="reason" value="{{ $model->reason }}">
-                  </div>
-                </div>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
-                <button type="submit" class="btn btn-primary">Salva</button>
-              </div>
-            </form>
-          @else
-            <form method="POST" action="/doctor/special-openings/{{ $model->id }}">
-              @csrf
-              @method('PATCH')
-              <div class="modal-header">
-                <h2 class="modal-title h5" id="{{ $modalId }}Label">Modifica apertura extra</h2>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
-              </div>
-              <div class="modal-body">
-                <div class="row g-3">
-                  <div class="col-12">
-                    <label class="form-label">Data</label>
-                    <input class="form-control" type="date" name="date" value="{{ $event['date']->toDateString() }}" required>
-                  </div>
-                  <div class="col-sm-6">
-                    <label class="form-label">Ora inizio</label>
-                    <x-time-select class="form-control" name="start_time" :value="$event['start_time']" required />
-                  </div>
-                  <div class="col-sm-6">
-                    <label class="form-label">Ora fine</label>
-                    <x-time-select class="form-control" name="end_time" :value="$event['end_time']" :include-end-of-day="true" required />
-                  </div>
-                  <div class="col-12">
-                    <label class="form-label">Nota</label>
-                    <input class="form-control" name="note" value="{{ $model->note }}">
-                  </div>
-                </div>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
-                <button type="submit" class="btn btn-primary">Salva</button>
-              </div>
-            </form>
-          @endif
         </div>
       </div>
     </div>

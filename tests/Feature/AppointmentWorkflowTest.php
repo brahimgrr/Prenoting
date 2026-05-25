@@ -44,7 +44,10 @@ class AppointmentWorkflowTest extends TestCase
 
     $response->assertOk();
     $response->assertSee('Scegli la prestazione');
+    $response->assertSee('class="service-choice-card d-grid gap-2 h-100 p-3 border-primary bg-primary bg-opacity-10" href=', false);
     $response->assertSee('Scegli il giorno');
+    $response->assertSee('week-strip d-flex gap-2 flex-fill overflow-auto p-1', false);
+    $response->assertSee('week-day d-flex flex-column align-items-center justify-content-center gap-1 text-center p-2 week-day--selected border-primary bg-primary bg-opacity-10', false);
     $response->assertSee("Scegli l'orario", false);
     $response->assertSee($service->name);
     $response->assertSee($slot->start_at->locale('it')->isoFormat('D MMM'), false);
@@ -206,10 +209,28 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertOk();
     $response->assertSee('Conferma prenotazione');
     $response->assertSee('name="slot_start" value="'.$slot->key.'"', false);
+    $response->assertSee('slot-time-button d-grid align-items-center justify-content-center w-100 p-2 slot-time-button--selected border-primary bg-primary bg-opacity-10', false);
     $response->assertSee('action="/appointments"', false);
     $response->assertSee($slot->start_at->format('H:i').' - '.$slot->end_at->format('H:i'));
     $response->assertDontSee('Medico');
     $response->assertDontSee('Ambulatorio');
+  }
+
+  public function test_selected_booking_slot_ajax_request_returns_booking_wizard_partial(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
+    $anchor = $slot->start_at->toDateString();
+
+    $response = $this->actingAs($patientUser)
+      ->withHeader('X-Requested-With', 'XMLHttpRequest')
+      ->get("/patient/book?service_id={$service->id}&week_start={$anchor}&date={$slot->start_at->toDateString()}&slot_start={$slot->key}");
+
+    $response->assertOk();
+    $response->assertSee('class="booking-wizard', false);
+    $response->assertSee('Conferma prenotazione');
+    $response->assertSee('name="slot_start" value="'.$slot->key.'"', false);
+    $response->assertDontSee('<!doctype html>', false);
+    $response->assertDontSee('<main class="app-content', false);
   }
 
   public function test_patient_appointments_page_renders_compact_action_menu_and_cancel_modal(): void
@@ -314,9 +335,60 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertOk();
     $response->assertSee('Stai riprogrammando');
     $response->assertSee($service->name);
+    $response->assertSee('Prestazione selezionata');
+    $response->assertSee('class="service-choice-card d-grid gap-2 h-100 p-3 border-primary bg-primary bg-opacity-10"', false);
+    $response->assertDontSee('service-choice-card--disabled');
+    $response->assertDontSee('href="/appointments/'.$appointment->id.'/edit?service_id=', false);
     $response->assertSee($newSlot->start_at->format('H:i'));
     $response->assertSee('Conferma spostamento');
     $response->assertSee("/appointments/{$appointment->id}/reschedule", false);
+    $response->assertSee('<a class="btn btn-outline-secondary" href="/patient/appointments">', false);
+    $response->assertSee('Annulla spostamento');
+  }
+
+  public function test_patient_can_navigate_reschedule_wizard_weeks(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $oldSlot] = $this->bookingContext();
+    for ($daysFromNow = 3; $daysFromNow <= 7; $daysFromNow++) {
+      $this->slotAt($doctor, CarbonImmutable::now()->addDays($daysFromNow)->setTime(10, 0));
+    }
+    $farSlot = $this->slotAt($doctor, CarbonImmutable::now()->addDays(8)->setTime(10, 0));
+    $appointment = $this->appointment($patient, $doctor, $service, $oldSlot);
+    $nextWeekStart = CarbonImmutable::now()->addDays(7)->startOfDay()->toDateString();
+
+    $response = $this->actingAs($patientUser)->get("/appointments/{$appointment->id}/edit");
+
+    $response->assertOk();
+    $response->assertSee('Settimana successiva');
+    $response->assertSee("/appointments/{$appointment->id}/edit/week?service_id={$service->id}&amp;week_start={$nextWeekStart}", false);
+    $response->assertSee("/appointments/{$appointment->id}/edit?service_id={$service->id}&amp;week_start={$nextWeekStart}#booking-step-day", false);
+
+    $partial = $this->actingAs($patientUser)
+      ->withHeader('X-Requested-With', 'XMLHttpRequest')
+      ->get("/appointments/{$appointment->id}/edit/week?service_id={$service->id}&week_start={$nextWeekStart}");
+
+    $partial->assertOk();
+    $partial->assertSee($farSlot->start_at->format('H:i'));
+    $partial->assertDontSee('<!doctype', false);
+  }
+
+  public function test_reschedule_slot_ajax_request_returns_booking_wizard_partial(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $oldSlot] = $this->bookingContext();
+    $newSlot = $this->slotAt($doctor, CarbonImmutable::now()->addDays(2)->setTime(10, 0));
+    $appointment = $this->appointment($patient, $doctor, $service, $oldSlot);
+    $weekStart = $newSlot->start_at->toDateString();
+
+    $response = $this->actingAs($patientUser)
+      ->withHeader('X-Requested-With', 'XMLHttpRequest')
+      ->get("/appointments/{$appointment->id}/edit?week_start={$weekStart}&date={$newSlot->start_at->toDateString()}&slot_start={$newSlot->key}");
+
+    $response->assertOk();
+    $response->assertSee('class="booking-wizard', false);
+    $response->assertSee('Conferma spostamento');
+    $response->assertSee('name="slot_start" value="'.$newSlot->key.'"', false);
+    $response->assertDontSee('<!doctype', false);
+    $response->assertDontSee('<main class="app-content', false);
   }
 
   public function test_patient_cannot_open_another_patients_reschedule_wizard(): void

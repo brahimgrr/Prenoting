@@ -25,7 +25,7 @@ class FrontendScriptPlacementTest extends TestCase
       resource_path('views/auth/register.blade.php') => 'data-comune-input',
       resource_path('views/doctor/profile.blade.php') => 'data-working-hours-row',
       resource_path('views/doctor/agenda.blade.php') => 'data-agenda-scroll-container',
-      resource_path('views/patient/partials/booking-week-partial.blade.php') => 'data-week-url',
+      resource_path('views/patient/partials/booking-interactions.blade.php') => 'data-week-url',
       resource_path('views/components/schedule-confirmation-modal.blade.php') => 'data-auto-show-modal',
     ] as $bladePath => $scriptHook) {
       $blade = file_get_contents($bladePath);
@@ -33,6 +33,28 @@ class FrontendScriptPlacementTest extends TestCase
       $this->assertStringContainsString('<script>', $blade, "{$bladePath} should contain an inline script tag.");
       $this->assertStringContainsString($scriptHook, $blade, "{$bladePath} should own the script for {$scriptHook}.");
     }
+  }
+
+  public function test_booking_slot_selection_is_enhanced_without_full_page_navigation(): void
+  {
+    $blade = file_get_contents(resource_path('views/patient/partials/booking-interactions.blade.php'));
+    $weekPartial = file_get_contents(resource_path('views/patient/partials/booking-week-partial.blade.php'));
+
+    $this->assertStringContainsString('const slotButton = event.target.closest(".slot-time-button")', $blade);
+    $this->assertStringContainsString('fetchAndReplace(slotButton.href, ".booking-wizard", "booking-confirm")', $blade);
+    $this->assertStringContainsString('"X-Requested-With": "XMLHttpRequest"', $blade);
+    $this->assertStringNotContainsString('<script>', $weekPartial);
+  }
+
+  public function test_booking_service_selection_is_enhanced_without_full_page_navigation(): void
+  {
+    $blade = file_get_contents(resource_path('views/patient/partials/booking-interactions.blade.php'));
+    $wizard = file_get_contents(resource_path('views/patient/partials/booking-wizard.blade.php'));
+
+    $this->assertStringContainsString('const serviceCard = event.target.closest(".service-choice-card[href]")', $blade);
+    $this->assertStringContainsString('fetchAndReplace(serviceCard.href, ".booking-wizard", "booking-step-day")', $blade);
+    $this->assertStringContainsString('"X-Requested-With": "XMLHttpRequest"', $blade);
+    $this->assertStringNotContainsString('<script>', $wizard);
   }
 
   public function test_inline_javascript_function_names_are_italian(): void

@@ -42,6 +42,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/patient/book/week', [BookingController::class, 'week']);
     Route::post('/appointments', [BookingController::class, 'store']);
     Route::get('/patient/appointments', [PatientAppointmentController::class, 'index']);
+    Route::get('/appointments/{appointment}/edit/week', [PatientAppointmentController::class, 'editWeek']);
     Route::get('/appointments/{appointment}/edit', [PatientAppointmentController::class, 'edit']);
     Route::post('/appointments/{appointment}/cancel', [PatientAppointmentController::class, 'cancel']);
     Route::post('/appointments/{appointment}/reschedule', [PatientAppointmentController::class, 'reschedule']);
@@ -56,10 +57,8 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/doctor/agendav2', fn () => redirect('/doctor/agenda'.(request()->getQueryString() ? '?'.request()->getQueryString() : '')));
     Route::post('/doctor/availability/block', [DoctorDashboardController::class, 'blockAvailability']);
     Route::post('/doctor/closures', [DoctorDashboardController::class, 'storeClosure']);
-    Route::patch('/doctor/closures/{closure}', [DoctorDashboardController::class, 'updateClosure']);
     Route::delete('/doctor/closures/{closure}', [DoctorDashboardController::class, 'destroyClosure']);
     Route::post('/doctor/special-openings', [DoctorDashboardController::class, 'storeSpecialOpening']);
-    Route::patch('/doctor/special-openings/{specialOpening}', [DoctorDashboardController::class, 'updateSpecialOpening']);
     Route::delete('/doctor/special-openings/{specialOpening}', [DoctorDashboardController::class, 'destroySpecialOpening']);
     Route::get('/doctor/treatments', [DoctorTreatmentController::class, 'index']);
     Route::post('/doctor/treatments', [DoctorTreatmentController::class, 'store']);

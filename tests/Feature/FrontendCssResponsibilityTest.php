@@ -54,6 +54,9 @@ class FrontendCssResponsibilityTest extends TestCase
       'resources/views/patient/profile.blade.php',
     ] as $viewPath) {
       $view = file_get_contents(base_path($viewPath));
+      if (str_contains($view, "patient.partials.booking-page")) {
+        $view .= "\n".file_get_contents(resource_path('views/patient/partials/booking-page.blade.php'));
+      }
 
       preg_match_all('/class="([^"]*\bportal-page-heading\b[^"]*)"/', $view, $matches);
 

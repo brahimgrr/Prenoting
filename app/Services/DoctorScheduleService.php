@@ -94,7 +94,7 @@ class DoctorScheduleService
 
   public function createClosure(DoctorProfile $doctor, array $input, bool $confirmed = false): Collection
   {
-    $closures = $this->normalizeClosureInput($input, allowRange: true);
+    $closures = $this->normalizeClosureInput($input);
     $this->rejectPastClosureDates($closures);
 
     return DB::transaction(function () use ($doctor, $closures, $confirmed): Collection {
@@ -115,23 +115,6 @@ class DoctorScheduleService
           'reason' => $closure['reason'],
         ]);
       });
-    });
-  }
-
-  public function updateClosure(DoctorProfile $doctor, ScheduleClosure $closure, array $input, bool $confirmed = false): void
-  {
-    $this->authorizeOwner($doctor, $closure);
-    $closures = $this->normalizeClosureInput($input, allowRange: false);
-    $normalized = $closures[0];
-
-    DB::transaction(function () use ($doctor, $closure, $closures, $normalized, $confirmed): void {
-      $this->appointments->cancelOrRequestConfirmation(
-        $this->appointments->closureConflicts($doctor, $closures),
-        ScheduleAppointmentImpactService::CLOSURE_CANCELLATION_REASON,
-        $confirmed,
-      );
-
-      $closure->forceFill($normalized)->save();
     });
   }
 
@@ -163,27 +146,6 @@ class DoctorScheduleService
       'end_time' => $opening['end_time'],
       'note' => $opening['note'],
     ]);
-  }
-
-  public function updateSpecialOpening(
-    DoctorProfile $doctor,
-    SpecialOpening $specialOpening,
-    array $input,
-    bool $confirmed = false,
-  ): void {
-    $this->authorizeOwner($doctor, $specialOpening);
-    $opening = $this->normalizeSpecialOpeningInput($input);
-    $this->rejectRedundantSpecialOpening($doctor, $opening, $specialOpening);
-
-    DB::transaction(function () use ($doctor, $specialOpening, $opening, $confirmed): void {
-      $this->appointments->cancelOrRequestConfirmation(
-        $this->appointments->appointmentsUnsupportedBy($doctor, null, $specialOpening, $opening),
-        ScheduleAppointmentImpactService::WORKING_HOURS_CANCELLATION_REASON,
-        $confirmed,
-      );
-
-      $specialOpening->forceFill($opening)->save();
-    });
   }
 
   public function deleteSpecialOpening(DoctorProfile $doctor, SpecialOpening $specialOpening, bool $confirmed = false): void
@@ -248,7 +210,7 @@ class DoctorScheduleService
     }
   }
 
-  private function normalizeClosureInput(array $input, bool $allowRange): array
+  private function normalizeClosureInput(array $input): array
   {
     $startDate = CarbonImmutable::parse((string) $input['date'])->startOfDay();
     $endDate = CarbonImmutable::parse((string) ($input['end_date'] ?? $input['date']))->startOfDay();
@@ -256,10 +218,6 @@ class DoctorScheduleService
 
     if ($endDate->lessThan($startDate)) {
       throw ValidationException::withMessages(['closure' => 'La data finale deve essere successiva alla data iniziale.']);
-    }
-
-    if (! $allowRange && ! $endDate->equalTo($startDate)) {
-      throw ValidationException::withMessages(['closure' => 'La modifica di una chiusura riguarda una sola data.']);
     }
 
     if (! $allDay && ! $endDate->equalTo($startDate)) {
