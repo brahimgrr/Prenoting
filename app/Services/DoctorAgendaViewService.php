@@ -36,7 +36,7 @@ class DoctorAgendaViewService
     $isPastDay = $selectedDay->lessThan($currentTime->startOfDay());
     $daySlots = $isPastDay ? collect() : $this->availability->agendaSlotsForDate($doctor, $selectedDay);
     $dayClosures = $isPastDay ? collect() : $this->windows->closuresForDate($doctor, $selectedDay);
-    $upcomingScheduleEvents = $isPastDay ? collect() : $this->upcomingEvents($doctor, $selectedDay);
+    $upcomingScheduleEvents = $this->upcomingEvents($doctor, $currentTime->startOfDay());
     $timelineItems = $this->timelineItems($appointments, $daySlots, $dayClosures);
     $weekStart = CarbonImmutable::parse($this->stringQuery($query, 'week_start') ?: $selectedDay->toDateString())
       ->startOfWeek(CarbonImmutable::MONDAY);
@@ -126,10 +126,7 @@ class DoctorAgendaViewService
 
     return $closures
       ->concat($specialOpenings)
-      ->sortBy([
-        fn (array $event): int => $event['date']->getTimestamp(),
-        fn (array $event): string => $event['start_time'] ?? '00:00',
-      ])
+      ->sortBy(fn (array $event): string => $event['date']->toDateString().' '.($event['start_time'] ?? '00:00'))
       ->take($limit)
       ->values();
   }

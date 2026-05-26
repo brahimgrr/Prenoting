@@ -513,6 +513,12 @@ class DoctorSchedulingUxTest extends TestCase
       'end_time' => '10:00',
       'reason' => 'Riunione passata',
     ]);
+    $futureClosure = $doctor->closures()->create([
+      'date' => CarbonImmutable::now()->addWeek()->toDateString(),
+      'start_time' => '11:00',
+      'end_time' => '12:00',
+      'reason' => 'Congresso',
+    ]);
     $this->appointment($patient, $doctor, $service, $date->setTime(10, 0));
 
     $response = $this->actingAs($doctorUser)
@@ -520,9 +526,12 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertOk()
       ->assertViewHas('daySlots', fn ($slots): bool => $slots->isEmpty())
       ->assertViewHas('dayClosures', fn ($closures): bool => $closures->isEmpty())
-      ->assertViewHas('upcomingScheduleEvents', fn ($events): bool => $events->isEmpty())
+      ->assertViewHas('upcomingScheduleEvents', fn ($events): bool => $events->contains(
+        fn (array $event): bool => $event['type'] === 'closure' && $event['model']->is($futureClosure)
+      ))
       ->assertSee('patient')
       ->assertSee('Visita dermatologica')
+      ->assertSee('Congresso')
       ->assertDontSee('Slot libero')
       ->assertDontSee('Riunione passata')
       ->assertDontSee('data-agenda-closure-id="'.$closure->id.'"', false);
@@ -666,6 +675,34 @@ class DoctorSchedulingUxTest extends TestCase
     $this->assertDatabaseHas('closures', ['id' => $existing->id]);
   }
 
+  public function test_creating_closure_that_partially_overlaps_existing_closure_is_rejected(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    $existing = $doctor->closures()->create([
+      'date' => $date->toDateString(),
+      'start_time' => '09:00',
+      'end_time' => '11:00',
+      'reason' => 'Riunione',
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/agenda?date='.$date->toDateString())
+      ->post('/doctor/closures', [
+        'date' => $date->toDateString(),
+        'start_time' => '10:30',
+        'end_time' => '12:00',
+        'reason' => 'Pausa',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$date->toDateString())
+      ->assertSessionHasErrors([
+        'closure' => 'Questa chiusura si sovrappone a una chiusura esistente.',
+      ]);
+
+    $this->assertSame(1, $doctor->closures()->whereDate('date', $date->toDateString())->count());
+    $this->assertDatabaseHas('closures', ['id' => $existing->id]);
+  }
+
   public function test_creating_closure_in_the_past_is_rejected(): void
   {
     [$doctorUser, $doctor] = $this->doctorContext();
@@ -713,6 +750,35 @@ class DoctorSchedulingUxTest extends TestCase
       ])
       ->assertRedirect('/doctor/agenda?date='.$sunday->toDateString())
       ->assertSessionHasErrors('special_opening');
+  }
+
+  public function test_creating_special_opening_that_overlaps_existing_special_opening_is_rejected(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $sunday = CarbonImmutable::now()->next(CarbonImmutable::SUNDAY);
+    $existing = SpecialOpening::create([
+      'doctor_profile_id' => $doctor->id,
+      'date' => $sunday->toDateString(),
+      'start_time' => '09:00',
+      'end_time' => '11:00',
+      'note' => 'Apertura domenicale',
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/agenda?date='.$sunday->toDateString())
+      ->post('/doctor/special-openings', [
+        'date' => $sunday->toDateString(),
+        'start_time' => '10:30',
+        'end_time' => '12:00',
+        'note' => 'Secondo turno',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$sunday->toDateString())
+      ->assertSessionHasErrors([
+        'special_opening' => 'Questa apertura extra si sovrappone a un\'apertura extra esistente.',
+      ]);
+
+    $this->assertSame(1, $doctor->specialOpenings()->whereDate('date', $sunday->toDateString())->count());
+    $this->assertDatabaseHas('special_openings', ['id' => $existing->id]);
   }
 
   public function test_creating_special_opening_in_the_past_is_rejected(): void
@@ -916,6 +982,77 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertSee("action=\"/doctor/closures/{$closure->id}\"", false)
       ->assertDontSee('Crea disponibilita')
       ->assertDontSee('/doctor/availability/batch', false);
+  }
+
+  public function test_agenda_orders_upcoming_events_chronologically_across_event_types(): void
+  {
+    $this->travelTo(CarbonImmutable::parse('2026-05-26 09:00:00'));
+
+    [$doctorUser, $doctor] = $this->doctorContext();
+
+    SpecialOpening::create([
+      'doctor_profile_id' => $doctor->id,
+      'date' => '2026-05-30',
+      'start_time' => '09:00',
+      'end_time' => '12:00',
+    ]);
+    SpecialOpening::create([
+      'doctor_profile_id' => $doctor->id,
+      'date' => '2026-05-31',
+      'start_time' => '09:00',
+      'end_time' => '12:00',
+    ]);
+    $doctor->closures()->create([
+      'date' => '2026-06-07',
+      'start_time' => null,
+      'end_time' => null,
+    ]);
+    SpecialOpening::create([
+      'doctor_profile_id' => $doctor->id,
+      'date' => '2026-06-06',
+      'start_time' => '11:00',
+      'end_time' => '13:00',
+      'note' => 'b',
+    ]);
+    SpecialOpening::create([
+      'doctor_profile_id' => $doctor->id,
+      'date' => '2026-06-06',
+      'start_time' => '09:00',
+      'end_time' => '12:00',
+      'note' => 'a',
+    ]);
+    $doctor->closures()->create([
+      'date' => '2026-06-02',
+      'start_time' => null,
+      'end_time' => null,
+      'reason' => 'congresso medico',
+    ]);
+    $doctor->closures()->create([
+      'date' => '2026-05-29',
+      'start_time' => null,
+      'end_time' => null,
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/agenda')
+      ->assertOk()
+      ->assertViewHas('upcomingScheduleEvents', function ($events): bool {
+        return $events
+          ->map(fn (array $event): string => implode('|', [
+            $event['title'],
+            $event['date']->toDateString(),
+            $event['start_time'] ?? '00:00',
+          ]))
+          ->all() === [
+            'Chiusura|2026-05-29|00:00',
+            'Apertura extra|2026-05-30|09:00',
+            'Apertura extra|2026-05-31|09:00',
+            'congresso medico|2026-06-02|00:00',
+            'a|2026-06-06|09:00',
+            'b|2026-06-06|11:00',
+            'Chiusura|2026-06-07|00:00',
+          ];
+      });
   }
 
   private function doctorContext(bool $withPatient = false): array

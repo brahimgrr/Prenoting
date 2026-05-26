@@ -140,14 +140,12 @@
   opacity: 0.9;
 }
 
-.doctor-agenda-item__main > div:first-child,
-.schedule-event-card__main > div:first-child {
+.doctor-agenda-item__main > div:first-child {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.doctor-agenda-item__main h3,
-.schedule-event-card h3 {
+.doctor-agenda-item__main h3 {
   color: var(--color-navy);
   font-size: 1rem;
   font-weight: 850;
@@ -161,8 +159,7 @@
   overflow-wrap: anywhere;
 }
 
-.doctor-agenda-item__actions,
-.schedule-event-card__actions {
+.doctor-agenda-item__actions {
   align-items: center;
   display: flex;
   flex: 0 0 auto;
@@ -175,53 +172,52 @@
   margin: 0;
 }
 
-.schedule-events-panel {
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+.schedule-event-list {
+  display: grid;
+  gap: 0.45rem;
 }
 
 .schedule-event-card {
+  align-items: center;
   background: #ffffff;
   border: 1px solid var(--color-border);
   border-left: 4px solid #94a3b8;
   border-radius: var(--app-inner-radius);
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+  display: flex;
+  gap: 0.55rem;
+  justify-content: space-between;
   min-width: 0;
   padding: 0.85rem 1rem;
 }
 
 .schedule-event-card--closure {
-  background: #fff7f7;
-  border-color: #fecdd3;
-  border-left-color: #fb7185;
+  border-left-color: #dc2626;
 }
 
 .schedule-event-card--special-opening {
-  background: #f3fffc;
-  border-color: #bdeee6;
-  border-left-color: #14b8a6;
+  border-left-color: #16a34a;
 }
 
-.schedule-event-card__meta {
-  color: var(--color-muted);
-  font-size: 0.86rem;
-  font-weight: 750;
+.schedule-event-row__content {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-.schedule-event-card__pill {
-  border-radius: 999px;
-  display: inline-flex;
-  font-size: 0.72rem;
+.schedule-event-card h3 {
+  color: var(--color-navy);
+  font-size: 1rem;
   font-weight: 850;
-  line-height: 1;
-  padding: 0.35rem 0.55rem;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
-.schedule-event-card__pill--closure {
-  background: rgba(251, 113, 133, 0.14);
-  color: #be123c;
+.schedule-event-card p {
+  color: var(--color-muted);
+  font-weight: 700;
+  margin: 0.15rem 0 0;
+  overflow-wrap: anywhere;
 }
 
-.schedule-event-card__pill--special-opening {
-  background: rgba(20, 184, 166, 0.14);
-  color: #0f766e;
+.schedule-event-row__actions {
+  flex: 0 0 auto;
 }

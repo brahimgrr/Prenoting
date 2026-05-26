@@ -137,6 +137,7 @@ class DoctorScheduleService
   {
     $opening = $this->normalizeSpecialOpeningInput($input);
     $this->rejectPastDate($opening['date'], 'special_opening', 'Non puoi creare aperture extra in date passate.');
+    $this->rejectOverlappingSpecialOpening($doctor, $opening);
     $this->rejectRedundantSpecialOpening($doctor, $opening);
 
     return SpecialOpening::create([
@@ -279,9 +280,20 @@ class DoctorScheduleService
       ->get();
 
     foreach ($existingClosures as $existingClosure) {
-      if ($this->containsClosureWindow($this->closureModelWindow($existingClosure), $newWindow)) {
+      $existingWindow = $this->closureModelWindow($existingClosure);
+
+      if ($this->containsClosureWindow($existingWindow, $newWindow)) {
         throw ValidationException::withMessages([
           'closure' => 'Questa chiusura e gia coperta da una chiusura esistente.',
+        ]);
+      }
+
+      if (
+        $this->windowsOverlap($existingWindow, $newWindow)
+        && ! $this->containsClosureWindow($newWindow, $existingWindow)
+      ) {
+        throw ValidationException::withMessages([
+          'closure' => 'Questa chiusura si sovrappone a una chiusura esistente.',
         ]);
       }
     }
@@ -313,6 +325,11 @@ class DoctorScheduleService
   private function containsClosureWindow(array $outer, array $inner): bool
   {
     return $outer['start'] <= $inner['start'] && $outer['end'] >= $inner['end'];
+  }
+
+  private function windowsOverlap(array $first, array $second): bool
+  {
+    return $first['start'] < $second['end'] && $first['end'] > $second['start'];
   }
 
   private function normalizeSpecialOpeningInput(array $input): array
@@ -353,6 +370,37 @@ class DoctorScheduleService
           'special_opening' => 'Questa apertura e gia coperta dagli orari esistenti.',
         ]);
       }
+    }
+  }
+
+  private function rejectOverlappingSpecialOpening(
+    DoctorProfile $doctor,
+    array $opening,
+    ?SpecialOpening $excluding = null,
+  ): void {
+    $date = CarbonImmutable::parse($opening['date'])->startOfDay();
+    $newWindow = [
+      'start' => ScheduleTime::toMinutes($opening['start_time']),
+      'end' => ScheduleTime::toMinutes($opening['end_time']),
+    ];
+
+    $overlapsExisting = $doctor->specialOpenings()
+      ->whereDate('date', $date->toDateString())
+      ->when($excluding, fn ($query) => $query->whereKeyNot($excluding->id))
+      ->get()
+      ->contains(function (SpecialOpening $existingOpening) use ($newWindow): bool {
+        $existingWindow = [
+          'start' => ScheduleTime::toMinutes((string) $existingOpening->start_time),
+          'end' => ScheduleTime::toMinutes((string) $existingOpening->end_time),
+        ];
+
+        return $this->windowsOverlap($existingWindow, $newWindow);
+      });
+
+    if ($overlapsExisting) {
+      throw ValidationException::withMessages([
+        'special_opening' => 'Questa apertura extra si sovrappone a un\'apertura extra esistente.',
+      ]);
     }
   }
 

@@ -214,50 +214,38 @@
       </div>
     </section>
 
-    <section class="card mb-3 schedule-events-panel">
-      <div class="card-header border-bottom-0">
+    <section class="portal-panel schedule-events-panel p-4 mb-3">
+      <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
         <h2 class="h5 mb-0">Prossimi eventi</h2>
       </div>
 
       @if ($upcomingScheduleEvents->isEmpty())
-        <div class="card-body">
-          <p class="card-text text-body-secondary mb-0">Nessun evento programmato.</p>
-        </div>
+        <p class="text-body-secondary mb-0">Nessun evento programmato.</p>
       @else
-        <div class="card-body">
-          <div class="vstack gap-3">
-            @foreach ($upcomingScheduleEvents as $event)
-              @php
-                $model = $event['model'];
-                $deleteModalId = $event['type'] === 'closure'
-                  ? "deleteScheduleEventModalClosure{$model->id}"
-                  : "deleteScheduleEventModalSpecialOpening{$model->id}";
-                $timeLabel = $event['start_time']
-                  ? "{$event['start_time']} - {$event['end_time']}"
-                  : 'Tutto il giorno';
-                $eventTypeClass = $event['type'] === 'closure' ? 'closure' : 'special-opening';
-                $eventTypeLabel = $event['type'] === 'closure' ? 'Chiusura' : 'Apertura extra';
-              @endphp
-              <article class="schedule-event-card schedule-event-card--{{ $eventTypeClass }}">
-                <div class="schedule-event-card__main d-flex align-items-center justify-content-between gap-3">
-                  <div>
-                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                      <span class="schedule-event-card__pill schedule-event-card__pill--{{ $eventTypeClass }}">{{ $eventTypeLabel }}</span>
-                      <span class="schedule-event-card__meta">
-                        {{ ucfirst($event['date']->locale('it')->isoFormat('ddd D MMM')) }} &middot; {{ $timeLabel }}
-                      </span>
-                    </div>
-                    <h3>{{ $event['title'] }}</h3>
-                  </div>
-                  <div class="schedule-event-card__actions" role="group" aria-label="Azioni evento">
-                    <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#{{ $deleteModalId }}" aria-label="Elimina evento">
-                      <x-icons.trash />
-                    </button>
-                  </div>
-                </div>
-              </article>
-            @endforeach
-          </div>
+        <div class="schedule-event-list">
+          @foreach ($upcomingScheduleEvents as $event)
+            @php
+              $model = $event['model'];
+              $deleteModalId = $event['type'] === 'closure'
+                ? "deleteScheduleEventModalClosure{$model->id}"
+                : "deleteScheduleEventModalSpecialOpening{$model->id}";
+              $timeLabel = $event['start_time']
+                ? "{$event['start_time']} - {$event['end_time']}"
+                : 'Tutto il giorno';
+              $eventTypeClass = $event['type'] === 'closure' ? 'closure' : 'special-opening';
+            @endphp
+            <article class="schedule-event-card schedule-event-card--{{ $eventTypeClass }}">
+              <div class="schedule-event-row__content">
+                <h3>{{ $event['title'] }}</h3>
+                <p>{{ ucfirst($event['date']->locale('it')->isoFormat('ddd D MMM')) }} &middot; {{ $timeLabel }}</p>
+              </div>
+              <div class="schedule-event-row__actions" role="group" aria-label="Azioni evento">
+                <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#{{ $deleteModalId }}" aria-label="Elimina evento">
+                  <x-icons.trash />
+                </button>
+              </div>
+            </article>
+          @endforeach
         </div>
       @endif
     </section>
