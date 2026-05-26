@@ -24,19 +24,25 @@
   min-width: 0;
 }
 
+.appointment-card__title h3 {
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
 .appointment-status-badge {
-  border: 1px solid transparent;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
   border-radius: 999px;
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
-  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 .appointment-status-badge--past {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-  color: #1d4ed8;
+  background: #ffffff;
+  color: var(--color-muted);
 }
 
 .appointment-status-badge--cancelled {

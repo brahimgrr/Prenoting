@@ -3,6 +3,10 @@
   color: #f8fafc;
 }
 
+.app-main {
+  min-width: 0;
+}
+
 .app-brand {
   color: inherit;
 }

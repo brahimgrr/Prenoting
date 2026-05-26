@@ -65,7 +65,7 @@
             </dl>
           </section>
 
-          <section class="appointment-info-card" aria-labelledby="appointmentInfoService{{ $appointment->id }}">
+          <section class="appointment-info-card mt-3" aria-labelledby="appointmentInfoService{{ $appointment->id }}">
             <div class="appointment-info-card__header">
               <h3 id="appointmentInfoService{{ $appointment->id }}">Prestazione</h3>
             </div>

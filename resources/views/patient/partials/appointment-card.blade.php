@@ -7,7 +7,7 @@
   $priceLabel = $appointment->service?->price !== null
     ? 'EUR ' . number_format((float) $appointment->service->price, 2, ',', '.')
     : 'Da definire';
-  $historyStatusLabel = $appointment->status === \App\Models\Appointment::STATUS_CANCELLED ? 'Annullato' : 'Passato';
+  $historyStatusLabel = $appointment->status === \App\Models\Appointment::STATUS_CANCELLED ? $appointment->cancellationActorLabel() : 'Passato';
   $historyStatusClass = $appointment->status === \App\Models\Appointment::STATUS_CANCELLED ? 'cancelled' : 'past';
   $changeLocked = ($manageable ?? false) && $appointment->start_at->lte(now()->addDay());
 @endphp
@@ -15,7 +15,7 @@
 <article class="appointment-card d-grid gap-3 p-3 mb-3 {{ ($muted ?? false) ? 'appointment-card--muted' : '' }}">
   <div class="appointment-card__header d-flex align-items-center justify-content-between gap-3">
     <div class="appointment-card__title">
-      <h3>{{ $appointment->service?->name ?? 'Appuntamento' }}</h3>
+      <h3 class="mb-0">{{ $appointment->service?->name ?? 'Appuntamento' }}</h3>
     </div>
     @if ($muted ?? false)
       <span class="appointment-status-badge appointment-status-badge--{{ $historyStatusClass }} d-inline-flex align-items-center flex-shrink-0 px-2 py-1">{{ $historyStatusLabel }}</span>
@@ -66,10 +66,6 @@
       <dd>{{ filled($appointment->notes) ? $appointment->notes : 'Nessuna nota' }}</dd>
     </div>
     @if ($appointment->status === \App\Models\Appointment::STATUS_CANCELLED)
-      <div class="col-12 col-md-6">
-        <dt>Annullamento</dt>
-        <dd>{{ $appointment->cancellationActorLabel() }}</dd>
-      </div>
       <div class="col-12 col-md-6">
         <dt>Motivo annullamento</dt>
         <dd>{{ filled($appointment->cancellation_reason) ? $appointment->cancellation_reason : 'Non indicato' }}</dd>

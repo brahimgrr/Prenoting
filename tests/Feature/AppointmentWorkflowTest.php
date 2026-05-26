@@ -297,6 +297,12 @@ class AppointmentWorkflowTest extends TestCase
       CarbonImmutable::now()->addDays(4)->setTime(11, 30),
       $doctor->id,
     );
+    $doctorCancelledSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->addDays(5)->setTime(12, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->addDays(5)->setTime(12, 0),
+      CarbonImmutable::now()->addDays(5)->setTime(12, 30),
+      $doctor->id,
+    );
 
     $this->appointment($patient, $doctor, $service, $pastSlot, Appointment::STATUS_COMPLETED, 'Controllo nei prossimi mesi');
     $this->appointment(
@@ -309,17 +315,29 @@ class AppointmentWorkflowTest extends TestCase
       'Imprevisto personale',
       Appointment::CANCELLED_BY_PATIENT,
     );
+    $this->appointment(
+      $patient,
+      $doctor,
+      $service,
+      $doctorCancelledSlot,
+      Appointment::STATUS_CANCELLED,
+      '',
+      'Indisponibilita del medico',
+      Appointment::CANCELLED_BY_DOCTOR,
+    );
 
     $response = $this->actingAs($patientUser)->get('/patient/appointments');
 
     $response->assertOk();
     $response->assertSeeText('Passato');
-    $response->assertSeeText('Annullato');
     $response->assertSeeText('Annullato da te');
+    $response->assertSeeText('Annullato dal medico');
     $response->assertSeeText('EUR 95,50');
     $response->assertSeeText('Controllo nei prossimi mesi');
     $response->assertSeeText('Portare referti precedenti');
     $response->assertSeeText('Imprevisto personale');
+    $response->assertSeeText('Indisponibilita del medico');
+    $response->assertDontSee('<dt>Annullamento</dt>', false);
     $response->assertSee('<dt>Motivo annullamento</dt>', false);
   }
 

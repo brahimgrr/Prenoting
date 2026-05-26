@@ -3,7 +3,7 @@
     <span class="portal-eyebrow">{{ $eyebrow }}</span>
     <h1>{{ $heading }}</h1>
     @isset($appointment)
-      <p>
+      <p class="mt-3">
         Stai riprogrammando:
         <strong>{{ $appointment->service?->name ?? 'Appuntamento' }}</strong>
         del {{ $appointment->start_at->format('d/m/Y H:i') }}.

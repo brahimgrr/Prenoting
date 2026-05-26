@@ -89,7 +89,7 @@ class AuthController extends Controller
         $profile = PatientProfile::create([
           'user_id' => $user->id,
           'date_of_birth' => $validated['date_of_birth'],
-          'place_of_birth' => $validated['place_of_birth'],
+          'place_of_birth' => Str::upper($validated['place_of_birth']),
           'gender' => $validated['gender'],
           'phone' => $validated['phone'],
         ]);

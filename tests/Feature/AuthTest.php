@@ -38,7 +38,7 @@ class AuthTest extends TestCase
     ]);
     $profile = PatientProfile::firstOrFail();
     $this->assertSame('1990-05-21', $profile->date_of_birth?->toDateString());
-    $this->assertSame('Roma', $profile->place_of_birth);
+    $this->assertSame('ROMA', $profile->place_of_birth);
     $this->assertSame('F', $profile->gender);
     $this->assertSame('+390000000', $profile->phone);
     $this->assertSame('CNTSRA90E61H501K', $profile->codice_fiscale);

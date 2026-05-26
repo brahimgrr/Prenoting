@@ -105,8 +105,7 @@ class Appointment extends Model
   {
     return match ($this->cancelled_by_role) {
       self::CANCELLED_BY_PATIENT => 'Annullato da te',
-      self::CANCELLED_BY_DOCTOR => 'Annullato dallo studio',
-      self::CANCELLED_BY_SYSTEM => 'Annullato dal sistema',
+      self::CANCELLED_BY_DOCTOR => 'Annullato dal medico',
       default => 'Annullato',
     };
   }

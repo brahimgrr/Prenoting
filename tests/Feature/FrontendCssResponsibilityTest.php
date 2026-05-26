@@ -41,6 +41,20 @@ class FrontendCssResponsibilityTest extends TestCase
     $this->assertStringNotContainsString('./responsive.css', file_get_contents(resource_path('css/app.css')));
   }
 
+  public function test_scrollable_week_strips_can_shrink_inside_portal_layout(): void
+  {
+    $bookingCss = file_get_contents(resource_path('css/booking.css'));
+
+    $this->assertMatchesRegularExpression('/\.week-strip\s*\{[^}]*min-width:\s*0;/s', $bookingCss);
+  }
+
+  public function test_portal_main_column_can_shrink_next_to_desktop_sidebar(): void
+  {
+    $portalCss = file_get_contents(resource_path('css/portal-layout.css'));
+
+    $this->assertMatchesRegularExpression('/\.app-main\s*\{[^}]*min-width:\s*0;/s', $portalCss);
+  }
+
   public function test_portal_page_headings_use_bootstrap_spacing_from_following_content(): void
   {
     foreach ([
