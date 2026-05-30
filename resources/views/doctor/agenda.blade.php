@@ -130,7 +130,7 @@
                                 data-bs-toggle="modal"
                                 data-bs-target="#appointmentInfoModal{{ $appointment->id }}"
                                 aria-label="Informazioni appuntamento"
-                              ><x-icons.info-circle /></button>
+                              ><i class="bi bi-info-circle" aria-hidden="true"></i></button>
                               @if ($canCancelAppointment)
                                 <button
                                   class="btn btn-sm btn-outline-danger"
@@ -139,7 +139,7 @@
                                   data-bs-target="#{{ $appointmentCancelModalId }}"
                                   aria-label="Annulla appuntamento"
                                   title="Annulla appuntamento"
-                                ><x-icons.trash /></button>
+                                ><i class="bi bi-trash" aria-hidden="true"></i></button>
                               @endif
                             </div>
                           </div>
@@ -186,7 +186,7 @@
                                     class="btn btn-sm btn-outline-primary"
                                     aria-label="Riapri disponibilita"
                                     title="Riapri disponibilita"
-                                  ><x-icons.unlock /></button>
+                                  ><i class="bi bi-unlock" aria-hidden="true"></i></button>
                                 </form>
                               @elseif ($state === 'free' && ! $hasStarted)
                                 <form method="POST" action="/doctor/availability/block">
@@ -197,7 +197,7 @@
                                     class="btn btn-sm btn-outline-danger"
                                     aria-label="Blocca slot libero"
                                     title="Blocca slot libero"
-                                  ><x-icons.ban /></button>
+                                  ><i class="bi bi-slash-circle" aria-hidden="true"></i></button>
                                 </form>
                               @endif
                             </div>
@@ -241,7 +241,7 @@
               </div>
               <div class="schedule-event-row__actions" role="group" aria-label="Azioni evento">
                 <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#{{ $deleteModalId }}" aria-label="Elimina evento">
-                  <x-icons.trash />
+                  <i class="bi bi-trash" aria-hidden="true"></i>
                 </button>
               </div>
             </article>
@@ -255,6 +255,13 @@
   </section>
 
   <div class="modal fade" id="closureCreateModal" tabindex="-1" aria-labelledby="closureCreateModalLabel" aria-hidden="true">
+    @php
+      $closureAllDay = old('all_day') !== null
+        ? (bool) old('all_day')
+        : blank(old('start_time')) && blank(old('end_time'));
+      $closureStartTime = $closureAllDay ? '' : old('start_time');
+      $closureEndTime = $closureAllDay ? '' : old('end_time');
+    @endphp
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <form method="POST" action="/doctor/closures">
@@ -276,17 +283,17 @@
               </div>
               <div class="col-12">
                 <div class="form-check form-switch">
-                  <input class="form-check-input" id="closure-all-day" type="checkbox" name="all_day" value="1" checked>
+                  <input class="form-check-input" id="closure-all-day" type="checkbox" name="all_day" value="1" data-closure-all-day-toggle @checked($closureAllDay)>
                   <label class="form-check-label" for="closure-all-day">Tutto il giorno</label>
                 </div>
               </div>
               <div class="col-sm-6">
                 <label class="form-label" for="closure-start-time">Ora inizio</label>
-                <x-time-select class="form-control" id="closure-start-time" name="start_time" :value="old('start_time')" />
+                <x-time-select class="form-control" id="closure-start-time" name="start_time" :value="$closureStartTime" data-closure-time-field :disabled="$closureAllDay" />
               </div>
               <div class="col-sm-6">
                 <label class="form-label" for="closure-end-time">Ora fine</label>
-                <x-time-select class="form-control" id="closure-end-time" name="end_time" :value="old('end_time')" :include-end-of-day="true" />
+                <x-time-select class="form-control" id="closure-end-time" name="end_time" :value="$closureEndTime" :include-end-of-day="true" data-closure-time-field :disabled="$closureAllDay" />
               </div>
               <div class="col-12">
                 <label class="form-label" for="closure-reason">Motivo</label>
@@ -457,8 +464,33 @@
         }
       }
 
+      function sincronizzaCampiOrarioChiusura() {
+        const allDayToggle = document.querySelector("[data-closure-all-day-toggle]");
+        const timeFields = Array.from(document.querySelectorAll("[data-closure-time-field]"));
+        if (!allDayToggle || timeFields.length === 0) return;
+
+        const applicaStatoTuttoIlGiorno = () => {
+          timeFields.forEach((field) => {
+            field.disabled = allDayToggle.checked;
+            if (allDayToggle.checked) field.value = "";
+          });
+        };
+
+        allDayToggle.addEventListener("change", applicaStatoTuttoIlGiorno);
+        timeFields.forEach((field) => {
+          field.addEventListener("change", () => {
+            if (field.value === "") return;
+            allDayToggle.checked = false;
+            applicaStatoTuttoIlGiorno();
+          });
+        });
+
+        applicaStatoTuttoIlGiorno();
+      }
+
       posizionaScrollAgenda();
       aggiornaIndicatoreOraAgenda();
+      sincronizzaCampiOrarioChiusura();
 
       if (document.querySelector("[data-agenda-scroll-container]")) {
         setInterval(aggiornaIndicatoreOraAgenda, 30_000);

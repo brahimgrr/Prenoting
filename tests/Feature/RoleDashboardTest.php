@@ -73,12 +73,15 @@ class RoleDashboardTest extends TestCase
       ->assertSee('action="/doctor/availability/block"', false)
       ->assertSee('name="slot_start"', false)
       ->assertSee('aria-label="Blocca slot libero"', false)
-      ->assertSee('<svg', false)
+      ->assertSee('class="bi bi-slash-circle"', false)
+      ->assertDontSee('<svg', false)
       ->assertDontSee('>Blocca</button>', false)
       ->assertSee("action=\"/doctor/closures/{$closure->id}\"", false)
       ->assertSee('aria-label="Riapri disponibilita"', false)
+      ->assertSee('class="bi bi-unlock"', false)
       ->assertDontSee('>Riapri</button>', false)
       ->assertSee('aria-label="Informazioni appuntamento"', false)
+      ->assertSee('class="bi bi-info-circle"', false)
       ->assertSee("data-bs-target=\"#appointmentInfoModal{$bookedAppointment->id}\"", false);
   }
 
@@ -388,13 +391,13 @@ class RoleDashboardTest extends TestCase
       ->assertDontSee('patient-upcoming-panel', false);
   }
 
-  public function test_legacy_doctor_agendav2_url_redirects_to_agenda(): void
+  public function test_legacy_doctor_agendav2_url_is_not_registered(): void
   {
     [$doctorUser] = $this->dashboardContext();
 
     $this->actingAs($doctorUser)
       ->get('/doctor/agendav2?date=2030-04-29')
-      ->assertRedirect('/doctor/agenda?date=2030-04-29');
+      ->assertNotFound();
   }
 
   private function dashboardContext(string $status = Appointment::STATUS_CONFIRMED): array

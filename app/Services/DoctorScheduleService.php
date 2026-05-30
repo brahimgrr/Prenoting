@@ -53,11 +53,26 @@ class DoctorScheduleService
           ->values()
           ->all();
 
-        $rows[] = ['start_time' => '', 'end_time' => ''];
+        $fields = [
+          'open_time' => '',
+          'close_time' => '',
+          'break_start_time' => '',
+          'break_end_time' => '',
+        ];
+
+        if (count($rows) === 1) {
+          $fields['open_time'] = $rows[0]['start_time'];
+          $fields['close_time'] = $rows[0]['end_time'];
+        } elseif (count($rows) >= 2) {
+          $fields['open_time'] = $rows[0]['start_time'];
+          $fields['break_start_time'] = $rows[0]['end_time'];
+          $fields['break_end_time'] = $rows[1]['start_time'];
+          $fields['close_time'] = $rows[1]['end_time'];
+        }
 
         return [$weekday => [
           'label' => $label,
-          'rows' => $rows,
+          'fields' => $fields,
         ]];
       })
       ->all();
@@ -169,28 +184,52 @@ class DoctorScheduleService
     $windows = [];
 
     foreach (self::WEEKDAYS as $weekday => $label) {
+      $row = $input[$weekday] ?? $input[(string) $weekday] ?? [];
+      $open = trim((string) ($row['open_time'] ?? ''));
+      $close = trim((string) ($row['close_time'] ?? ''));
+      $breakStart = trim((string) ($row['break_start_time'] ?? ''));
+      $breakEnd = trim((string) ($row['break_end_time'] ?? ''));
+
+      if ($open === '' && $close === '' && $breakStart === '' && $breakEnd === '') {
+        continue;
+      }
+
+      if ($open === '' || $close === '') {
+        throw ValidationException::withMessages([
+          'working_hours' => "{$label}: compila sia apertura sia chiusura.",
+        ]);
+      }
+
+      ScheduleTime::assertRange($open, $close, 'working_hours', "{$label}: la chiusura deve essere successiva all'apertura.");
+
+      $hasBreakStart = $breakStart !== '';
+      $hasBreakEnd = $breakEnd !== '';
+
+      if ($hasBreakStart xor $hasBreakEnd) {
+        throw ValidationException::withMessages([
+          'working_hours' => "{$label}: compila sia inizio sia fine pausa pranzo.",
+        ]);
+      }
+
       $dayWindows = [];
 
-      foreach ($input[$weekday] ?? $input[(string) $weekday] ?? [] as $row) {
-        $start = trim((string) ($row['start_time'] ?? ''));
-        $end = trim((string) ($row['end_time'] ?? ''));
+      if ($hasBreakStart && $hasBreakEnd) {
+        ScheduleTime::assertRange($breakStart, $breakEnd, 'working_hours', "{$label}: la fine pausa pranzo deve essere successiva all'inizio.");
 
-        if ($start === '' && $end === '') {
-          continue;
-        }
-
-        if ($start === '' || $end === '') {
+        if (
+          ScheduleTime::toMinutes($breakStart) <= ScheduleTime::toMinutes($open)
+          || ScheduleTime::toMinutes($breakEnd) >= ScheduleTime::toMinutes($close)
+        ) {
           throw ValidationException::withMessages([
-            'working_hours' => "{$label}: compila sia inizio sia fine.",
+            'working_hours' => "{$label}: la pausa pranzo deve essere compresa negli orari di apertura.",
           ]);
         }
 
-        ScheduleTime::assertRange($start, $end, 'working_hours', "{$label}: la fine deve essere successiva all'inizio.");
-        $dayWindows[] = ['start_time' => $start, 'end_time' => $end];
+        $dayWindows[] = ['start_time' => $open, 'end_time' => $breakStart];
+        $dayWindows[] = ['start_time' => $breakEnd, 'end_time' => $close];
+      } else {
+        $dayWindows[] = ['start_time' => $open, 'end_time' => $close];
       }
-
-      usort($dayWindows, fn (array $a, array $b): int => ScheduleTime::toMinutes($a['start_time']) <=> ScheduleTime::toMinutes($b['start_time']));
-      $this->rejectOverlappingWindows($dayWindows, $label);
 
       if ($dayWindows !== []) {
         $windows[$weekday] = $dayWindows;
@@ -198,17 +237,6 @@ class DoctorScheduleService
     }
 
     return $windows;
-  }
-
-  private function rejectOverlappingWindows(array $dayWindows, string $label): void
-  {
-    for ($i = 1; $i < count($dayWindows); $i++) {
-      if (ScheduleTime::toMinutes($dayWindows[$i]['start_time']) < ScheduleTime::toMinutes($dayWindows[$i - 1]['end_time'])) {
-        throw ValidationException::withMessages([
-          'working_hours' => "{$label}: le fasce orarie non possono sovrapporsi.",
-        ]);
-      }
-    }
   }
 
   private function normalizeClosureInput(array $input): array

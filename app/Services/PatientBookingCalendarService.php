@@ -29,10 +29,7 @@ class PatientBookingCalendarService
       ? $this->availability->availableSlotByKey($doctor, $service, $slotStart, $excludingAppointment)
       : null;
     $allAvailableDates = $service ? $this->availability->availableDates($doctor, $service, excludingAppointment: $excludingAppointment) : collect();
-    $filteredAvailableDates = $selectedPeriod === 'all'
-      ? $allAvailableDates
-      : ($service ? $this->availability->availableDates($doctor, $service, $selectedPeriod, $excludingAppointment) : collect());
-    $visibleDates = $filteredAvailableDates->isNotEmpty() ? $filteredAvailableDates : $allAvailableDates;
+    $visibleDates = $allAvailableDates;
     $weekStart = $this->weekStart($query, $selectedSlot, $visibleDates);
     $weekDays = $service ? $this->weekDaysFor($visibleDates, $weekStart) : collect();
 

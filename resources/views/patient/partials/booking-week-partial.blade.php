@@ -32,7 +32,6 @@
     ? $buildUrl($weekPartialUrl, ['week_start' => $nextWeekStart->toDateString()])
     : null;
 
-  $currentDate = $selectedDate ?? $weekStart->toDateString();
 @endphp
 
 <section id="booking-step-day" class="portal-panel booking-step d-grid gap-3 p-4">
@@ -120,7 +119,7 @@
               $periodUrl = $buildUrl($baseUrl, [
                 'period' => $period === 'all' ? null : $period,
                 'week_start' => $weekStart->toDateString(),
-                'date' => $currentDate,
+                'date' => $dateStr,
                 'slot_start' => null,
               ], 'booking-step-day');
             @endphp
@@ -177,4 +176,3 @@
     </section>
   @endforeach
 @endif
-

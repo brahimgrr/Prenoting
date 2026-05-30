@@ -19,7 +19,7 @@ class DoctorSchedulingUxTest extends TestCase
 {
   use RefreshDatabase;
 
-  public function test_doctor_profile_shows_and_saves_forever_working_hours_template(): void
+  public function test_doctor_profile_shows_and_saves_simplified_working_hours_template(): void
   {
     [$doctorUser, $doctor] = $this->doctorContext();
     WorkingHour::create([
@@ -37,15 +37,14 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertSee('Orari di apertura', false)
       ->assertSee('Apri alle')
       ->assertSee('Chiudi alle')
-      ->assertSee('data-working-hours-add', false)
-      ->assertSee('data-working-hours-remove', false)
-      ->assertSee('aria-label="Aggiungi un\'altra fascia oraria"', false)
-      ->assertSee('aria-label="Rimuovi fascia"', false)
-      ->assertSee('name="working_hours[1][0][start_time]"', false)
+      ->assertSee('Pausa pranzo')
+      ->assertDontSee('data-working-hours-add', false)
+      ->assertDontSee('data-working-hours-remove', false)
+      ->assertSee('name="working_hours[1][open_time]"', false)
       ->assertSee('08:00');
 
     $content = $response->getContent();
-    $this->assertSelectStartsWithOptions($content, 'working_hours[1][0][start_time]', [
+    $this->assertSelectStartsWithOptions($content, 'working_hours[1][open_time]', [
       '<option value="08:00" selected>08:00</option>',
       '<option value="">--:--</option>',
     ]);
@@ -54,11 +53,14 @@ class DoctorSchedulingUxTest extends TestCase
       ->patch('/doctor/profile/working-hours', [
         'working_hours' => [
           1 => [
-            ['start_time' => '09:00', 'end_time' => '13:00'],
-            ['start_time' => '14:00', 'end_time' => '18:00'],
+            'open_time' => '09:00',
+            'break_start_time' => '13:00',
+            'break_end_time' => '14:00',
+            'close_time' => '18:00',
           ],
           6 => [
-            ['start_time' => '09:00', 'end_time' => '12:00'],
+            'open_time' => '09:00',
+            'close_time' => '12:00',
           ],
         ],
       ])
@@ -81,6 +83,15 @@ class DoctorSchedulingUxTest extends TestCase
     ]);
     $this->assertDatabaseHas('working_hours', [
       'doctor_profile_id' => $doctor->id,
+      'weekday' => 1,
+      'start_time' => '14:00',
+      'end_time' => '18:00',
+      'effective_from' => null,
+      'effective_until' => null,
+      'is_active' => true,
+    ]);
+    $this->assertDatabaseHas('working_hours', [
+      'doctor_profile_id' => $doctor->id,
       'weekday' => 6,
       'start_time' => '09:00',
       'end_time' => '12:00',
@@ -97,17 +108,17 @@ class DoctorSchedulingUxTest extends TestCase
     $response = $this->actingAs($doctorUser)
       ->get('/doctor/profile')
       ->assertOk()
-      ->assertSee('name="working_hours[1][0][start_time]"', false)
+      ->assertSee('name="working_hours[1][open_time]"', false)
       ->assertSee('<option value="09:00" selected>09:00</option>', false)
-      ->assertSee('name="working_hours[1][0][end_time]"', false)
+      ->assertSee('name="working_hours[1][close_time]"', false)
       ->assertSee('<option value="12:00" selected>12:00</option>', false);
 
     $content = $response->getContent();
-    $this->assertSelectStartsWithOptions($content, 'working_hours[6][0][start_time]', [
+    $this->assertSelectStartsWithOptions($content, 'working_hours[6][open_time]', [
       '<option value="">--:--</option>',
       '<option value="00:00" >00:00</option>',
     ]);
-    $this->assertSelectStartsWithOptions($content, 'working_hours[7][0][end_time]', [
+    $this->assertSelectStartsWithOptions($content, 'working_hours[7][close_time]', [
       '<option value="">--:--</option>',
       '<option value="00:00" >00:00</option>',
     ]);
@@ -135,7 +146,7 @@ class DoctorSchedulingUxTest extends TestCase
     $profile = $this->actingAs($doctorUser)->get('/doctor/profile');
     $profile->assertOk()
       ->assertSee('<select', false)
-      ->assertSee('name="working_hours[1][0][start_time]"', false)
+      ->assertSee('name="working_hours[1][open_time]"', false)
       ->assertSee('<option value="08:00" selected>08:00</option>', false)
       ->assertSee('<option value="08:30"', false)
       ->assertDontSee('type="time"', false)
@@ -170,8 +181,8 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertOk()
       ->getContent();
 
-    $this->assertSelectDoesNotContainOption($profileContent, 'working_hours[1][0][start_time]', '24:00');
-    $this->assertSelectContainsOption($profileContent, 'working_hours[1][0][end_time]', '24:00');
+    $this->assertSelectDoesNotContainOption($profileContent, 'working_hours[1][open_time]', '24:00');
+    $this->assertSelectContainsOption($profileContent, 'working_hours[1][close_time]', '24:00');
 
     $agendaContent = $this->actingAs($doctorUser)
       ->get('/doctor/agenda?date='.$date->toDateString())
@@ -184,6 +195,32 @@ class DoctorSchedulingUxTest extends TestCase
     $this->assertSelectByIdDoesNotContainOption($agendaContent, 'special-opening-start', '24:00');
   }
 
+  public function test_closure_all_day_toggle_controls_time_fields_consistently(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    WorkingHour::create([
+      'doctor_profile_id' => $doctor->id,
+      'weekday' => $date->dayOfWeekIso,
+      'start_time' => '09:00',
+      'end_time' => '12:00',
+      'is_active' => true,
+    ]);
+
+    $content = $this->actingAs($doctorUser)
+      ->get('/doctor/agenda?date='.$date->toDateString())
+      ->assertOk()
+      ->getContent();
+
+    $this->assertStringContainsString('data-closure-all-day-toggle', $content);
+    $this->assertStringContainsString('data-closure-time-field', $this->selectById($content, 'closure-start-time'));
+    $this->assertStringContainsString('data-closure-time-field', $this->selectById($content, 'closure-end-time'));
+    $this->assertStringContainsString('disabled', $this->selectById($content, 'closure-start-time'));
+    $this->assertStringContainsString('disabled', $this->selectById($content, 'closure-end-time'));
+    $this->assertStringContainsString('function sincronizzaCampiOrarioChiusura', $content);
+    $this->assertStringContainsString('allDayToggle.checked = false', $content);
+  }
+
   public function test_doctor_can_save_working_hours_until_midnight_and_generate_the_last_slot(): void
   {
     [$doctorUser, $doctor] = $this->doctorContext();
@@ -193,7 +230,8 @@ class DoctorSchedulingUxTest extends TestCase
       ->patch('/doctor/profile/working-hours', [
         'working_hours' => [
           $date->dayOfWeekIso => [
-            ['start_time' => '23:00', 'end_time' => '24:00'],
+            'open_time' => '23:00',
+            'close_time' => '24:00',
           ],
         ],
       ])
@@ -287,8 +325,10 @@ class DoctorSchedulingUxTest extends TestCase
       ->patch('/doctor/profile/working-hours', [
         'working_hours' => [
           1 => [
-            ['start_time' => '09:00', 'end_time' => '12:00'],
-            ['start_time' => '11:30', 'end_time' => '13:00'],
+            'open_time' => '09:00',
+            'break_start_time' => '12:00',
+            'break_end_time' => '11:30',
+            'close_time' => '13:00',
           ],
         ],
       ])
@@ -300,7 +340,27 @@ class DoctorSchedulingUxTest extends TestCase
       ->patch('/doctor/profile/working-hours', [
         'working_hours' => [
           1 => [
-            ['start_time' => '09:15', 'end_time' => '12:00'],
+            'open_time' => '09:15',
+            'close_time' => '12:00',
+          ],
+        ],
+      ])
+      ->assertRedirect('/doctor/profile')
+      ->assertSessionHasErrors('working_hours');
+  }
+
+  public function test_working_hours_template_rejects_incomplete_lunch_break(): void
+  {
+    [$doctorUser] = $this->doctorContext();
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/profile')
+      ->patch('/doctor/profile/working-hours', [
+        'working_hours' => [
+          1 => [
+            'open_time' => '09:00',
+            'break_start_time' => '13:00',
+            'close_time' => '18:00',
           ],
         ],
       ])
@@ -326,7 +386,8 @@ class DoctorSchedulingUxTest extends TestCase
       ->patch('/doctor/profile/working-hours', [
         'working_hours' => [
           2 => [
-            ['start_time' => '09:00', 'end_time' => '12:00'],
+            'open_time' => '09:00',
+            'close_time' => '12:00',
           ],
         ],
       ])
@@ -354,7 +415,8 @@ class DoctorSchedulingUxTest extends TestCase
         'confirm_appointment_cancellations' => '1',
         'working_hours' => [
           2 => [
-            ['start_time' => '09:00', 'end_time' => '12:00'],
+            'open_time' => '09:00',
+            'close_time' => '12:00',
           ],
         ],
       ])

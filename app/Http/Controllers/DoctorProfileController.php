@@ -34,10 +34,12 @@ class DoctorProfileController extends Controller
   public function update(Request $request): RedirectResponse
   {
     $validated = $request->validate([
-      'email' => ['nullable', 'email', 'max:255', 'unique:users,email,'.$request->user()->id],
+      'email' => [...ValidationRules::email(false), 'unique:users,email,'.$request->user()->id],
       'phone' => ValidationRules::phone(false),
       'clinic_address' => ['required', 'string', 'max:255'],
     ], [
+      'email.email' => 'Inserisci un indirizzo email valido.',
+      'email.regex' => 'Inserisci un indirizzo email valido.',
       'phone.regex' => 'Inserisci un numero di telefono valido.',
     ]);
 
@@ -61,8 +63,10 @@ class DoctorProfileController extends Controller
     $validated = $request->validate([
       'working_hours' => ['nullable', 'array'],
       'working_hours.*' => ['nullable', 'array'],
-      'working_hours.*.*.start_time' => ['nullable', 'string', 'max:5'],
-      'working_hours.*.*.end_time' => ['nullable', 'string', 'max:5'],
+      'working_hours.*.open_time' => ['nullable', 'string', 'max:5'],
+      'working_hours.*.close_time' => ['nullable', 'string', 'max:5'],
+      'working_hours.*.break_start_time' => ['nullable', 'string', 'max:5'],
+      'working_hours.*.break_end_time' => ['nullable', 'string', 'max:5'],
     ]);
 
     $workingHours = $validated['working_hours'] ?? [];

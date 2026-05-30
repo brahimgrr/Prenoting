@@ -12,7 +12,7 @@ class FrontendScriptPlacementTest extends TestCase
 
     foreach ([
       'data-agenda-scroll-container',
-      'data-working-hours-row',
+      'data-working-hours-day',
       'data-comune-input',
       'data-week-url',
       'data-slot-period-filter',
@@ -23,7 +23,7 @@ class FrontendScriptPlacementTest extends TestCase
 
     foreach ([
       resource_path('views/auth/register.blade.php') => 'data-comune-input',
-      resource_path('views/doctor/profile.blade.php') => 'data-working-hours-row',
+      resource_path('views/doctor/profile.blade.php') => 'data-working-hours-day',
       resource_path('views/doctor/agenda.blade.php') => 'data-agenda-scroll-container',
       resource_path('views/patient/partials/booking-interactions.blade.php') => 'data-week-url',
       resource_path('views/components/schedule-confirmation-modal.blade.php') => 'data-auto-show-modal',
@@ -46,6 +46,17 @@ class FrontendScriptPlacementTest extends TestCase
     $this->assertStringNotContainsString('<script>', $weekPartial);
   }
 
+  public function test_booking_period_filter_stays_on_the_page_after_click(): void
+  {
+    $blade = file_get_contents(resource_path('views/patient/partials/booking-interactions.blade.php'));
+    $weekPartial = file_get_contents(resource_path('views/patient/partials/booking-week-partial.blade.php'));
+
+    $this->assertStringContainsString('const filterButton = event.target.closest("[data-slot-period-filter]")', $blade);
+    $this->assertStringContainsString('fetchAndReplace(filterButton.href, ".booking-wizard", "booking-step-day")', $blade);
+    $this->assertStringContainsString("'date' => \$dateStr", $weekPartial);
+    $this->assertStringNotContainsString("'date' => \$currentDate", $weekPartial);
+  }
+
   public function test_booking_service_selection_is_enhanced_without_full_page_navigation(): void
   {
     $blade = file_get_contents(resource_path('views/patient/partials/booking-interactions.blade.php'));
@@ -55,6 +66,17 @@ class FrontendScriptPlacementTest extends TestCase
     $this->assertStringContainsString('fetchAndReplace(serviceCard.href, ".booking-wizard", "booking-step-day")', $blade);
     $this->assertStringContainsString('"X-Requested-With": "XMLHttpRequest"', $blade);
     $this->assertStringNotContainsString('<script>', $wizard);
+  }
+
+  public function test_closure_all_day_toggle_owns_and_disables_time_fields(): void
+  {
+    $blade = file_get_contents(resource_path('views/doctor/agenda.blade.php'));
+
+    $this->assertStringContainsString('data-closure-all-day-toggle', $blade);
+    $this->assertStringContainsString('data-closure-time-field', $blade);
+    $this->assertStringContainsString(':disabled="$closureAllDay"', $blade);
+    $this->assertStringContainsString('function sincronizzaCampiOrarioChiusura', $blade);
+    $this->assertStringContainsString('allDayToggle.checked = false', $blade);
   }
 
   public function test_inline_javascript_function_names_are_italian(): void
@@ -74,19 +96,10 @@ class FrontendScriptPlacementTest extends TestCase
       'aggiornaSuggerimentiComune',
       'opzioniComuneVisibili',
       'selezionaOpzioneComune',
-      'opzioniOrarieMezzOra',
-      'templateSelettoreOrario',
       'orarioInMinuti',
-      'minutiInOrario',
-      'aggiungiMinutiAOrario',
-      'suggerisciFineOrario',
-      'fineOrarioPrecedente',
-      'valoriPredefinitiNuovaFasciaOraria',
-      'templateFasciaOraria',
-      'fasceOrarieConValori',
       'minutiGiornoOrario',
       'etichettaDurataOrario',
-      'impostaGiornoOrarioAperto',
+      'aggiornaGiornoOrario',
       'posizionaScrollAgenda',
       'aggiornaIndicatoreOraAgenda',
     ] as $italianFunctionName) {
@@ -102,16 +115,9 @@ class FrontendScriptPlacementTest extends TestCase
       'halfHourTimeOptions',
       'timeSelectTemplate',
       'timeToMinutes',
-      'minutesToTime',
-      'addMinutesToTime',
-      'suggestedWorkingHoursEnd',
-      'previousWorkingHoursEnd',
-      'workingHoursDefaultsForNewRow',
-      'workingHoursRowTemplate',
-      'workingHoursRowsHaveValues',
       'workingHoursDayMinutes',
       'workingHoursDurationLabel',
-      'setWorkingHoursDayOpen',
+      'updateWorkingHoursDay',
       'positionAgendaScroll',
       'tickAgendaNowMarker',
     ] as $englishFunctionName) {

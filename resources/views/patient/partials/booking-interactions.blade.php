@@ -62,21 +62,8 @@
 
         const filterButton = event.target.closest("[data-slot-period-filter]");
         if (filterButton) {
-          const period = filterButton.getAttribute("data-slot-period-filter");
-          const dayBlock = filterButton.closest(".slot-day-block");
-          if (!dayBlock) return;
-
-          dayBlock.querySelectorAll("[data-slot-period-filter]").forEach((button) => {
-            button.classList.toggle("btn-primary", button === filterButton);
-            button.classList.toggle("btn-outline-primary", button !== filterButton);
-          });
-
-          dayBlock.querySelectorAll(".slot-choice-col").forEach((column) => {
-            column.classList.toggle(
-              "d-none",
-              period !== "all" && column.getAttribute("data-period") !== period
-            );
-          });
+          event.preventDefault();
+          fetchAndReplace(filterButton.href, ".booking-wizard", "booking-step-day");
           return;
         }
 

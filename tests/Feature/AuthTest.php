@@ -169,6 +169,54 @@ class AuthTest extends TestCase
     ]);
   }
 
+  public function test_register_rejects_email_without_top_level_domain(): void
+  {
+    $response = $this->from('/register')->post('/register', [
+      'username' => 'pippo@gmail',
+      'password' => 'strong-pass-123',
+      'password_confirmation' => 'strong-pass-123',
+      'first_name' => 'Sara',
+      'last_name' => 'Conti',
+      'date_of_birth' => '1990-05-21',
+      'place_of_birth' => 'Roma',
+      'gender' => 'F',
+      'phone' => '+390000099',
+    ]);
+
+    $response->assertRedirect('/register');
+    $response->assertSessionHasErrors([
+      'username' => 'Inserisci un indirizzo email valido.',
+    ]);
+    $this->assertGuest();
+    $this->assertDatabaseMissing('users', [
+      'username' => 'pippo@gmail',
+    ]);
+  }
+
+  public function test_register_validation_messages_are_in_italian(): void
+  {
+    $response = $this->from('/register')->post('/register', [
+      'username' => 'non-una-email',
+      'password' => 'strong-pass-123',
+      'password_confirmation' => 'password-diversa',
+      'first_name' => 'Sara',
+      'last_name' => 'Conti',
+      'date_of_birth' => now()->addDay()->toDateString(),
+      'place_of_birth' => 'Roma',
+      'gender' => 'X',
+      'phone' => '+390000099',
+    ]);
+
+    $response->assertRedirect('/register');
+    $response->assertSessionHasErrors([
+      'username' => 'Inserisci un indirizzo email valido.',
+      'password' => 'La conferma della password non corrisponde.',
+      'date_of_birth' => 'La data di nascita deve essere precedente a oggi.',
+      'gender' => 'Seleziona un sesso valido.',
+    ]);
+    $this->assertGuest();
+  }
+
   public function test_login_routes_roles_to_their_portals(): void
   {
     $patient = User::create([

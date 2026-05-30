@@ -54,7 +54,6 @@ Route::middleware('auth')->group(function (): void {
   Route::middleware('role:'.User::ROLE_DOCTOR)->group(function (): void {
     Route::get('/doctor', fn () => redirect('/doctor/agenda'));
     Route::get('/doctor/agenda', [DoctorDashboardController::class, 'agenda']);
-    Route::get('/doctor/agendav2', fn () => redirect('/doctor/agenda'.(request()->getQueryString() ? '?'.request()->getQueryString() : '')));
     Route::post('/doctor/availability/block', [DoctorDashboardController::class, 'blockAvailability']);
     Route::post('/doctor/closures', [DoctorDashboardController::class, 'storeClosure']);
     Route::delete('/doctor/closures/{closure}', [DoctorDashboardController::class, 'destroyClosure']);
