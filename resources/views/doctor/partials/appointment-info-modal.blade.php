@@ -88,7 +88,7 @@
           </section>
         </div>
 
-        <section class="appointment-info-card appointment-info-card--notes">
+        <section class="appointment-info-card appointment-info-card__notes">
           <div class="appointment-info-card__header">
             <h3 id="appointmentInfoNotes{{ $appointment->id }}">Note di prenotazione</h3>
           </div>
