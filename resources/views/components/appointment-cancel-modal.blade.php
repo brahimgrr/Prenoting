@@ -8,14 +8,14 @@
   $modalId = $modalId ?? "appointmentCancelModal{$appointment->id}";
 @endphp
 
-<div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-labelledby="{{ $modalId }}Label" aria-hidden="true">
+<div class="modal fade" id="{{ $modalId }}" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <form method="POST" action="{{ $action }}">
         @csrf
         <div class="modal-header">
           <h2 class="modal-title fs-5" id="{{ $modalId }}Label">Conferma annullamento</h2>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi conferma annullamento"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <p>Lo slot verra liberato e tornera disponibile.</p>

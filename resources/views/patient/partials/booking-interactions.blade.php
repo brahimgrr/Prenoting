@@ -40,7 +40,7 @@
 
         const arrow = event.target.closest("[data-week-url]");
         const isDisabled = arrow
-          ? (arrow.tagName === "BUTTON" ? arrow.disabled : arrow.getAttribute("aria-disabled") === "true")
+          ? (arrow.tagName === "BUTTON" ? arrow.disabled : arrow.dataset.disabled === "true")
           : false;
 
         if (arrow && !isDisabled) {
@@ -52,7 +52,7 @@
             if (button.tagName === "BUTTON") {
               button.disabled = true;
             } else {
-              button.setAttribute("aria-disabled", "true");
+              button.dataset.disabled = "true";
             }
           });
 

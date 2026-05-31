@@ -44,8 +44,7 @@
       <a class="btn btn-outline-secondary week-nav-arrow flex-shrink-0 px-2"
         href="{{ $prevPageUrl }}"
         data-week-url="{{ $prevPartialUrl }}"
-        data-page-url="{{ $prevPageUrl }}"
-        aria-label="Settimana precedente">‹</a>
+        data-page-url="{{ $prevPageUrl }}">‹</a>
     @endif
 
     <div class="week-strip d-flex gap-2 flex-fill overflow-auto p-1">
@@ -78,8 +77,7 @@
       <a class="btn btn-outline-secondary week-nav-arrow flex-shrink-0 px-2"
         href="{{ $nextPageUrl }}"
         data-week-url="{{ $nextPartialUrl }}"
-        data-page-url="{{ $nextPageUrl }}"
-        aria-label="Settimana successiva">›</a>
+        data-page-url="{{ $nextPageUrl }}">›</a>
     @endif
   </div>
 </section>
@@ -113,7 +111,7 @@
           </div>
         </div>
 
-        <div class="slot-period-filter d-flex flex-wrap gap-2" role="group" aria-label="Filtra orari">
+        <div class="slot-period-filter d-flex flex-wrap gap-2" role="group">
           @foreach ($periods as $period => $label)
             @php
               $periodUrl = $buildUrl($baseUrl, [

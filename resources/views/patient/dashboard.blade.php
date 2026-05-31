@@ -40,7 +40,7 @@
       </div>
     </div>
 
-    <section class="row g-3 mb-3" aria-label="Azioni rapide">
+    <section class="row g-3 mb-3">
       <div class="col-12 col-md-6">
         <a class="quick-action d-grid gap-2 h-100 p-4" href="/patient/book?mode=service">
           <span>Prenota visita</span>

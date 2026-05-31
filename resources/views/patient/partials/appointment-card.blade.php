@@ -26,8 +26,6 @@
           class="btn btn-sm btn-outline-secondary card-action-menu__trigger d-inline-flex align-items-center justify-content-center px-2"
           type="button"
           data-bs-toggle="dropdown"
-          aria-expanded="false"
-          aria-label="Azioni appuntamento"
         >...</button>
         <ul class="dropdown-menu dropdown-menu-end">
           <li>

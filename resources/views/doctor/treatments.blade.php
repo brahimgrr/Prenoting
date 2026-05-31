@@ -73,8 +73,6 @@
                     class="btn btn-sm btn-outline-secondary card-action-menu__trigger d-inline-flex align-items-center justify-content-center px-2"
                     type="button"
                     data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                    aria-label="Azioni trattamento"
                   >...</button>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
@@ -97,7 +95,7 @@
                   <dd class="mt-1 mb-0">{{ $offering->price !== null ? 'EUR '.number_format((float) $offering->price, 2, ',', '.') : 'Da definire' }}</dd>
                 </div>
               </dl>
-              <div class="modal fade" id="deleteTreatmentModal{{ $offering->id }}" tabindex="-1" aria-labelledby="deleteTreatmentModal{{ $offering->id }}Label" aria-hidden="true">
+              <div class="modal fade" id="deleteTreatmentModal{{ $offering->id }}" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
                   <div class="modal-content">
                     <form method="POST" action="/doctor/treatments/{{ $offering->id }}">
@@ -105,7 +103,7 @@
                       @method('DELETE')
                       <div class="modal-header">
                         <h2 class="modal-title fs-5" id="deleteTreatmentModal{{ $offering->id }}Label">Conferma eliminazione</h2>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi conferma eliminazione"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                       </div>
                       <div class="modal-body">
                         <p>Questo trattamento verrà disabilitato. Non sarà più possibile prenotare nuovi appuntamenti. Gli appuntamenti già prenotati resteranno validi.</p>

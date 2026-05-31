@@ -45,8 +45,7 @@
 <section class="portal-panel doctor-agenda-panel p-4 mb-3">
       <div class="week-strip-wrapper d-flex align-items-center gap-2 mb-3">
         <a class="btn btn-outline-secondary week-nav-arrow flex-shrink-0 px-2"
-           href="/doctor/agenda?date={{ $previousWeekStart->toDateString() }}&week_start={{ $previousWeekStart->toDateString() }}"
-           aria-label="Settimana precedente">&#8249;</a>
+           href="/doctor/agenda?date={{ $previousWeekStart->toDateString() }}&week_start={{ $previousWeekStart->toDateString() }}">&#8249;</a>
 
         <div class="week-strip week-strip--agenda d-flex gap-2 flex-fill overflow-auto p-1">
           @foreach ($weekDays as $weekDay)
@@ -66,11 +65,10 @@
         </div>
 
         <a class="btn btn-outline-secondary week-nav-arrow flex-shrink-0 px-2"
-           href="/doctor/agenda?date={{ $nextWeekStart->toDateString() }}&week_start={{ $nextWeekStart->toDateString() }}"
-           aria-label="Settimana successiva">&#8250;</a>
+           href="/doctor/agenda?date={{ $nextWeekStart->toDateString() }}&week_start={{ $nextWeekStart->toDateString() }}">&#8250;</a>
       </div>
 
-      <div class="doctor-agenda-scroll" data-agenda-scroll-container aria-label="Agenda completa della giornata">
+      <div class="doctor-agenda-scroll" data-agenda-scroll-container>
         <div class="doctor-agenda-grid">
           @foreach ($agendaRows as $row)
             @php
@@ -82,7 +80,7 @@
               </time>
 
               @if ($row['items']->isEmpty() && ! $row['is_current'])
-                <div class="doctor-agenda-row__content" aria-hidden="true"></div>
+                <div class="doctor-agenda-row__content"></div>
               @else
                 <div class="doctor-agenda-row__content">
                   @if ($row['is_current'])
@@ -129,17 +127,15 @@
                                 type="button"
                                 data-bs-toggle="modal"
                                 data-bs-target="#appointmentInfoModal{{ $appointment->id }}"
-                                aria-label="Informazioni appuntamento"
-                              ><i class="bi bi-info-circle" aria-hidden="true"></i></button>
+                              ><i class="bi bi-info-circle"></i></button>
                               @if ($canCancelAppointment)
                                 <button
                                   class="btn btn-sm btn-outline-danger"
                                   type="button"
                                   data-bs-toggle="modal"
                                   data-bs-target="#{{ $appointmentCancelModalId }}"
-                                  aria-label="Annulla appuntamento"
                                   title="Annulla appuntamento"
-                                ><i class="bi bi-trash" aria-hidden="true"></i></button>
+                                ><i class="bi bi-trash"></i></button>
                               @endif
                             </div>
                           </div>
@@ -184,9 +180,8 @@
                                   <button
                                     type="submit"
                                     class="btn btn-sm btn-outline-primary"
-                                    aria-label="Riapri disponibilita"
                                     title="Riapri disponibilita"
-                                  ><i class="bi bi-unlock" aria-hidden="true"></i></button>
+                                  ><i class="bi bi-unlock"></i></button>
                                 </form>
                               @elseif ($state === 'free' && ! $hasStarted)
                                 <form method="POST" action="/doctor/availability/block">
@@ -195,9 +190,8 @@
                                   <button
                                     type="submit"
                                     class="btn btn-sm btn-outline-danger"
-                                    aria-label="Blocca slot libero"
                                     title="Blocca slot libero"
-                                  ><i class="bi bi-slash-circle" aria-hidden="true"></i></button>
+                                  ><i class="bi bi-slash-circle"></i></button>
                                 </form>
                               @endif
                             </div>
@@ -239,9 +233,9 @@
                 <h3>{{ $event['title'] }}</h3>
                 <p>{{ ucfirst($event['date']->locale('it')->isoFormat('ddd D MMM')) }} &middot; {{ $timeLabel }}</p>
               </div>
-              <div class="schedule-event-row__actions" role="group" aria-label="Azioni evento">
-                <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#{{ $deleteModalId }}" aria-label="Elimina evento">
-                  <i class="bi bi-trash" aria-hidden="true"></i>
+              <div class="schedule-event-row__actions" role="group">
+                <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#{{ $deleteModalId }}">
+                  <i class="bi bi-trash"></i>
                 </button>
               </div>
             </article>
@@ -254,7 +248,7 @@
 
   </section>
 
-  <div class="modal fade" id="closureCreateModal" tabindex="-1" aria-labelledby="closureCreateModalLabel" aria-hidden="true">
+  <div class="modal fade" id="closureCreateModal" tabindex="-1">
     @php
       $closureAllDay = old('all_day') !== null
         ? (bool) old('all_day')
@@ -268,7 +262,7 @@
           @csrf
           <div class="modal-header">
             <h2 class="modal-title h5" id="closureCreateModalLabel">Chiusura</h2>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
             @error('closure') <div class="alert alert-danger">{{ $message }}</div> @enderror
@@ -310,14 +304,14 @@
     </div>
   </div>
 
-  <div class="modal fade" id="specialOpeningCreateModal" tabindex="-1" aria-labelledby="specialOpeningCreateModalLabel" aria-hidden="true">
+  <div class="modal fade" id="specialOpeningCreateModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <form method="POST" action="/doctor/special-openings">
           @csrf
           <div class="modal-header">
             <h2 class="modal-title h5" id="specialOpeningCreateModalLabel">Apertura extra</h2>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
             @error('special_opening') <div class="alert alert-danger">{{ $message }}</div> @enderror
@@ -362,7 +356,7 @@
         ? 'Questa chiusura verrà eliminata.'
         : 'Questa apertura extra verrà eliminata.';
     @endphp
-    <div class="modal fade" id="{{ $deleteModalId }}" tabindex="-1" aria-labelledby="{{ $deleteModalId }}Label" aria-hidden="true">
+    <div class="modal fade" id="{{ $deleteModalId }}" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <form method="POST" action="{{ $deleteAction }}">
@@ -370,7 +364,7 @@
             @method('DELETE')
             <div class="modal-header">
               <h2 class="modal-title fs-5" id="{{ $deleteModalId }}Label">Conferma eliminazione</h2>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi conferma eliminazione"></button>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
               <p>{{ $deleteMessage }}</p>
@@ -435,8 +429,6 @@
         const contentDiv = currentRow.querySelector(".doctor-agenda-row__content");
         if (!contentDiv) return;
 
-        contentDiv.removeAttribute("aria-hidden");
-
         if (!marker) {
           marker = document.createElement("div");
           marker.className = "doctor-agenda-now-marker";
@@ -446,9 +438,6 @@
         } else if (!contentDiv.contains(marker)) {
           const oldContent = marker.parentElement;
           marker.remove();
-          if (oldContent && !oldContent.querySelector(".doctor-agenda-item")) {
-            oldContent.setAttribute("aria-hidden", "true");
-          }
           contentDiv.prepend(marker);
         }
 

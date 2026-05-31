@@ -38,7 +38,7 @@
             <span class="app-brand__subline d-block">Prenotazioni</span>
           </span>
         </a>
-        <nav class="app-nav d-grid gap-1 mt-4" aria-label="Navigazione del portale">
+        <nav class="app-nav d-grid gap-1 mt-4">
           @foreach ($navItems as $item)
             @php($activePatterns = $item['active'] ?? [ltrim($item['to'], '/')])
             <a href="{{ $item['to'] }}" class="app-nav__link py-2 px-3 text-decoration-none{{ request()->is(...$activePatterns) ? ' is-active' : '' }}">
@@ -74,7 +74,7 @@
         </header>
 
         <div class="app-mobile-nav d-block d-lg-none overflow-auto px-3 py-2">
-          <nav class="app-nav d-flex gap-2 flex-nowrap" aria-label="Navigazione mobile del portale">
+          <nav class="app-nav d-flex gap-2 flex-nowrap">
             @foreach ($navItems as $item)
               @php($activePatterns = $item['active'] ?? [ltrim($item['to'], '/')])
               <a href="{{ $item['to'] }}" class="app-nav__link py-2 px-3 text-decoration-none flex-shrink-0{{ request()->is(...$activePatterns) ? ' is-active' : '' }}">

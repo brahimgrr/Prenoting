@@ -24,7 +24,7 @@
 @endphp
 
 @if ($confirmation)
-  <div class="modal fade" id="scheduleConfirmationModal" tabindex="-1" aria-labelledby="scheduleConfirmationModalLabel" aria-hidden="true" data-auto-show-modal>
+  <div class="modal fade" id="scheduleConfirmationModal" tabindex="-1" data-auto-show-modal>
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <form method="POST" action="{{ $confirmation['action'] }}">
@@ -37,7 +37,7 @@
 
           <div class="modal-header">
             <h2 class="modal-title fs-5" id="scheduleConfirmationModalLabel">{{ $confirmation['title'] ?? 'Conferma modifica agenda' }}</h2>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
             <p>{{ $confirmation['message'] ?? 'Questi appuntamenti verranno annullati per completare la modifica.' }}</p>

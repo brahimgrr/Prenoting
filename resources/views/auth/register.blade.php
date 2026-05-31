@@ -69,9 +69,6 @@
                 id="place_of_birth"
                 name="place_of_birth"
                 autocomplete="off"
-                aria-autocomplete="list"
-                aria-expanded="false"
-                aria-controls="comuni-suggestions"
                 data-comune-input
                 value="{{ old('place_of_birth') }}"
                 required
@@ -104,11 +101,9 @@
       }
 
       function nascondiSuggerimentiComune(combobox) {
-        const input = combobox.querySelector("[data-comune-input]");
         const suggestions = combobox.querySelector("[data-comune-suggestions]");
 
         suggestions?.setAttribute("hidden", "");
-        input?.setAttribute("aria-expanded", "false");
         suggestions?.querySelectorAll("[data-comune-option]").forEach((option) => {
           option.hidden = true;
         });
@@ -133,7 +128,6 @@
         });
 
         suggestions.toggleAttribute("hidden", shown === 0);
-        input.setAttribute("aria-expanded", shown > 0 ? "true" : "false");
       }
 
       function opzioniComuneVisibili(combobox) {

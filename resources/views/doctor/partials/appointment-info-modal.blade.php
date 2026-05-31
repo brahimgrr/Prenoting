@@ -10,8 +10,6 @@
   class="modal fade appointment-info-modal"
   id="appointmentInfoModal{{ $appointment->id }}"
   tabindex="-1"
-  aria-labelledby="appointmentInfoModal{{ $appointment->id }}Label"
-  aria-hidden="true"
 >
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable appointment-info-modal__dialog">
     <div class="modal-content">
@@ -22,10 +20,10 @@
             Informazioni appuntamento
           </h2>
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body appointment-info-modal__body">
-        <section class="appointment-info-summary" aria-label="Riepilogo appuntamento">
+        <section class="appointment-info-summary">
           <div>
             <span>Prestazione</span>
             <strong>{{ $appointment->service?->name ?? 'Appuntamento' }}</strong>
@@ -37,7 +35,7 @@
         </section>
 
         <div class="appointment-info-grid">
-          <section class="appointment-info-card" aria-labelledby="appointmentInfoPatient{{ $appointment->id }}">
+          <section class="appointment-info-card">
             <div class="appointment-info-card__header">
               <h3 id="appointmentInfoPatient{{ $appointment->id }}">Paziente</h3>
             </div>
@@ -65,7 +63,7 @@
             </dl>
           </section>
 
-          <section class="appointment-info-card mt-3" aria-labelledby="appointmentInfoService{{ $appointment->id }}">
+          <section class="appointment-info-card mt-3">
             <div class="appointment-info-card__header">
               <h3 id="appointmentInfoService{{ $appointment->id }}">Prestazione</h3>
             </div>
@@ -90,7 +88,7 @@
           </section>
         </div>
 
-        <section class="appointment-info-card appointment-info-card--notes" aria-labelledby="appointmentInfoNotes{{ $appointment->id }}">
+        <section class="appointment-info-card appointment-info-card--notes">
           <div class="appointment-info-card__header">
             <h3 id="appointmentInfoNotes{{ $appointment->id }}">Note di prenotazione</h3>
           </div>
