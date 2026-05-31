@@ -1,7 +1,7 @@
 # Codebase Study Split
 
 This guide divides the current Laravel appointment MVP between two people for study and presentation.
-It reflects the current `dynamic-availability-model` branch at commit `be6eb98` and uses fresh `codecounter` counts.
+It reflects the current `dynamic-availability-model` working tree and uses the fresh VS Code Counter snapshot from `2026-05-31_20-27-01`.
 
 ## Recent Project Changes Reflected Here
 
@@ -12,42 +12,38 @@ It reflects the current `dynamic-availability-model` branch at commit `be6eb98` 
 - JavaScript components under `resources/js/components/` are no longer part of the current tree. `resources/js/app.js` only imports Bootstrap; page-specific scripts now live in Blade views.
 - Use-case documentation was updated separately. It is not counted in the study workload because this split focuses on application code.
 
-## Codecounter Statistics
+## VS Code Counter Statistics
 
-Commands used:
+Counter snapshot used:
 
 ```bash
-npx --yes codecounter .
-npx --yes codecounter app
-npx --yes codecounter resources
-npx --yes codecounter routes
-npx --yes codecounter database
-npx --yes codecounter tests
+.VSCodeCounter/2026-05-31_20-27-01/results.md
+.VSCodeCounter/2026-05-31_20-27-01/details.md
 ```
 
-The raw root count is **305,566 lines**, but that includes `vendor/`, `node_modules/`, build output, and framework/cache files. For presentation, use the focused project counts below.
+The raw root count is **627,584 code lines** and **1,015,368 total lines**, but that includes `vendor/`, IDE metadata, generated/cache files, dependency manifests, and framework files. For presentation, use the focused project counts below.
 
 | Area | Lines |
 | --- | ---: |
-| `app/` | 2,670 |
-| `resources/views/` | 2,347 |
-| `resources/css/` | 802 |
+| `app/` | 2,760 |
+| `resources/views/` | 2,168 |
+| `resources/css/` | 809 |
 | `resources/js/` | 2 |
-| `routes/` | 72 |
-| `database/` | 802 |
-| `tests/` | 2,630 |
-| Focused project total | 9,325 |
+| `routes/` | 71 |
+| `database/` | 817 |
+| `tests/` | 3,030 |
+| Focused project total | 9,657 |
 
 Application bucket detail:
 
 | Bucket | Lines |
 | --- | ---: |
-| Controllers | 730 |
+| Controllers | 754 |
 | Middleware | 16 |
-| Services | 1,396 |
-| Models | 334 |
-| Support | 158 |
-| Providers | 14 |
+| Services | 1,455 |
+| Models | 333 |
+| Support | 168 |
+| Providers | 12 |
 | Exceptions | 22 |
 
 CSS module detail:
@@ -57,34 +53,34 @@ CSS module detail:
 | `resources/css/app.css` | 12 |
 | `resources/css/base.css` | 81 |
 | `resources/css/auth.css` | 74 |
-| `resources/css/portal-layout.css` | 70 |
+| `resources/css/portal-layout.css` | 73 |
 | `resources/css/shared-ui.css` | 44 |
 | `resources/css/patient-dashboard.css` | 30 |
-| `resources/css/appointments.css` | 54 |
-| `resources/css/booking.css` | 92 |
+| `resources/css/appointments.css` | 59 |
+| `resources/css/booking.css` | 95 |
 | `resources/css/profile.css` | 15 |
-| `resources/css/doctor-agenda.css` | 195 |
+| `resources/css/doctor-agenda.css` | 191 |
 | `resources/css/treatments.css` | 33 |
 | `resources/css/modals.css` | 102 |
-| CSS total | 802 |
+| CSS total | 809 |
 
 Largest files to be aware of:
 
 | File | Lines | Why it matters |
 | --- | ---: | --- |
-| `tests/Feature/DoctorSchedulingUxTest.php` | 919 | Broad doctor scheduling regression coverage |
-| `resources/views/doctor/agenda.blade.php` | 447 | Main doctor agenda UI and inline agenda script |
-| `tests/Feature/AuthTest.php` | 431 | Auth, registration, profile validation coverage |
-| `resources/views/doctor/profile.blade.php` | 421 | Doctor profile and working-hours UI |
-| `tests/Feature/AppointmentWorkflowTest.php` | 406 | Patient appointment lifecycle coverage |
-| `tests/Feature/RoleDashboardTest.php` | 404 | Role redirects and portal access coverage |
-| `app/Services/DoctorScheduleService.php` | 302 | Core doctor availability mutation rules |
+| `tests/Feature/DoctorSchedulingUxTest.php` | 1,103 | Broad doctor scheduling regression coverage |
+| `tests/Feature/AuthTest.php` | 475 | Auth, registration, profile validation coverage |
+| `resources/views/doctor/agenda.blade.php` | 463 | Main doctor agenda UI and inline agenda script |
+| `tests/Feature/AppointmentWorkflowTest.php` | 424 | Patient appointment lifecycle coverage |
+| `tests/Feature/RoleDashboardTest.php` | 407 | Role redirects and portal access coverage |
+| `app/Services/DoctorScheduleService.php` | 367 | Core doctor availability mutation rules |
+| `resources/views/doctor/profile.blade.php` | 289 | Doctor profile and working-hours UI |
 
 ## Counting Rules For Study Workload
 
-Source for all line counts: `npx --yes codecounter`.
+Source for all line counts: `.VSCodeCounter/2026-05-31_20-27-01/details.md`.
 
-LOC means the numeric line count reported by `codecounter`.
+LOC means the numeric `code` count reported by VS Code Counter.
 
 Excluded from study workload:
 
@@ -99,23 +95,22 @@ Excluded from study workload:
 - static data such as `resources/data/comuni-italiani.json`
 - base framework placeholder `app/Http/Controllers/Controller.php`
 
-Study workload after filtering: **5,013 code lines**.
+Study workload after filtering: **4,925 code lines**.
 
 ## Workload Summary
 
 | Person | Ownership | Estimated LOC |
 | --- | --- | ---: |
-| Person A | Auth, patient journey, booking/reschedule AJAX flow, appointment lifecycle, shared UI icons | 2,503 |
-| Person B | Doctor agenda, scheduling, availability management, treatments, Bootstrap JS entrypoint | 2,510 |
+| Person A | Auth, patient journey, booking/reschedule AJAX flow, appointment lifecycle, shared UI shell | 2,467 |
+| Person B | Doctor agenda, scheduling, availability management, treatments, Bootstrap JS entrypoint | 2,458 |
 
-The difference is **7 LOC**, so the split is balanced while keeping the main product areas coherent.
-The four small icon components are assigned to Person A only to balance the split; Person B should still understand how the doctor agenda uses them.
+The difference is **9 LOC**, so the split is balanced while keeping the main product areas coherent.
 
 ## Person A: Auth, Patient Booking, Appointment Lifecycle
 
 Presentation angle: how a patient enters the system, books an appointment, and manages appointment changes.
 
-Person A total: **2,503 LOC**.
+Person A total: **2,467 LOC**.
 
 ### Own And Present
 
@@ -126,60 +121,56 @@ Person A total: **2,503 LOC**.
 - Patient reschedule flow using the same booking wizard and AJAX week partial.
 - Patient appointment management: appointment list, cancellation, reschedule, 24-hour lock rules.
 - Catalog and availability endpoints from the patient-facing perspective.
-- Shared visual icon components assigned here for LOC balance.
+- Shared portal shell and patient-facing UI components.
 
 ### Code Areas
 
-Controllers and middleware: **371 LOC**
+Controllers and middleware: **392 LOC**
 
-- `app/Http/Controllers/AuthController.php` - 116 LOC
+- `app/Http/Controllers/AuthController.php` - 135 LOC
 - `app/Http/Controllers/AvailabilityController.php` - 32 LOC
 - `app/Http/Controllers/BookingController.php` - 44 LOC
 - `app/Http/Controllers/CatalogController.php` - 25 LOC
 - `app/Http/Controllers/PatientAppointmentController.php` - 69 LOC
-- `app/Http/Controllers/PatientDashboardController.php` - 69 LOC
+- `app/Http/Controllers/PatientDashboardController.php` - 71 LOC
 - `app/Http/Middleware/EnsureRole.php` - 16 LOC
 
-Services: **666 LOC**
+Services: **663 LOC**
 
 - `app/Services/AppointmentService.php` - 209 LOC
 - `app/Services/AvailabilityService.php` - 141 LOC
 - `app/Services/CodiceFiscaleService.php` - 119 LOC
-- `app/Services/PatientBookingCalendarService.php` - 151 LOC
+- `app/Services/PatientBookingCalendarService.php` - 148 LOC
 - `app/Services/PatientBookingWizardViewData.php` - 46 LOC
 
-Models and support: **314 LOC**
+Models and support: **323 LOC**
 
-- `app/Models/Appointment.php` - 94 LOC
+- `app/Models/Appointment.php` - 93 LOC
 - `app/Models/MedicalService.php` - 23 LOC
 - `app/Models/PatientProfile.php` - 35 LOC
 - `app/Models/User.php` - 61 LOC
 - `app/Support/ComuniItalianiCatalog.php` - 31 LOC
 - `app/Support/PortalFormat.php` - 42 LOC
-- `app/Support/ValidationRules.php` - 15 LOC
+- `app/Support/ValidationRules.php` - 25 LOC
 - `app/Support/VirtualAvailabilitySlot.php` - 13 LOC
 
-Views and small UI components: **1,152 LOC**
+Views and small UI components: **1,089 LOC**
 
 - `resources/views/auth/login.blade.php` - 34 LOC
 - `resources/views/auth/register.blade.php` - 202 LOC
 - `resources/views/auth/unsupported.blade.php` - 13 LOC
 - `resources/views/components/appointment-cancel-modal.blade.php` - 30 LOC
-- `resources/views/components/icons/ban.blade.php` - 12 LOC
-- `resources/views/components/icons/info-circle.blade.php` - 12 LOC
-- `resources/views/components/icons/trash.blade.php` - 12 LOC
-- `resources/views/components/icons/unlock.blade.php` - 12 LOC
 - `resources/views/components/status-badge.blade.php` - 23 LOC
 - `resources/views/layouts/guest.blade.php` - 13 LOC
-- `resources/views/layouts/portal.blade.php` - 100 LOC
+- `resources/views/layouts/portal.blade.php` - 101 LOC
 - `resources/views/patient/appointment-edit.blade.php` - 8 LOC
 - `resources/views/patient/appointments.blade.php` - 36 LOC
 - `resources/views/patient/booking.blade.php` - 7 LOC
 - `resources/views/patient/dashboard.blade.php` - 54 LOC
-- `resources/views/patient/partials/appointment-card.blade.php` - 85 LOC
-- `resources/views/patient/partials/booking-interactions.blade.php` - 101 LOC
+- `resources/views/patient/partials/appointment-card.blade.php` - 81 LOC
+- `resources/views/patient/partials/booking-interactions.blade.php` - 90 LOC
 - `resources/views/patient/partials/booking-page.blade.php` - 15 LOC
-- `resources/views/patient/partials/booking-week-partial.blade.php` - 165 LOC
+- `resources/views/patient/partials/booking-week-partial.blade.php` - 164 LOC
 - `resources/views/patient/partials/booking-wizard.blade.php` - 107 LOC
 - `resources/views/patient/profile.blade.php` - 111 LOC
 
@@ -202,7 +193,7 @@ Trace these flows in the presentation:
 
 Presentation angle: how the doctor defines availability and manages the live agenda.
 
-Person B total: **2,510 LOC**.
+Person B total: **2,458 LOC**.
 
 ### Own And Present
 
@@ -217,37 +208,37 @@ Person B total: **2,510 LOC**.
 
 ### Code Areas
 
-Controllers and concerns: **369 LOC**
+Controllers and concerns: **373 LOC**
 
 - `app/Http/Controllers/DoctorDashboardController.php` - 173 LOC
-- `app/Http/Controllers/DoctorProfileController.php` - 89 LOC
+- `app/Http/Controllers/DoctorProfileController.php` - 93 LOC
 - `app/Http/Controllers/DoctorTreatmentController.php` - 76 LOC
 - `app/Http/Controllers/Concerns/ConfirmsScheduleAppointmentCancellations.php` - 31 LOC
 
-Services: **730 LOC**
+Services: **792 LOC**
 
-- `app/Services/DoctorAgendaViewService.php` - 206 LOC
-- `app/Services/DoctorScheduleService.php` - 302 LOC
+- `app/Services/DoctorAgendaViewService.php` - 203 LOC
+- `app/Services/DoctorScheduleService.php` - 367 LOC
 - `app/Services/ScheduleAppointmentImpactService.php` - 116 LOC
 - `app/Services/ScheduleWindowService.php` - 106 LOC
 
-Models and support: **214 LOC**
+Models and support: **212 LOC**
 
 - `app/Exceptions/ScheduleAppointmentConflictsException.php` - 22 LOC
 - `app/Models/DoctorProfile.php` - 43 LOC
 - `app/Models/ScheduleClosure.php` - 25 LOC
 - `app/Models/SpecialOpening.php` - 24 LOC
 - `app/Models/WorkingHour.php` - 29 LOC
-- `app/Providers/AppServiceProvider.php` - 14 LOC
+- `app/Providers/AppServiceProvider.php` - 12 LOC
 - `app/Support/ScheduleTime.php` - 57 LOC
 
-Views: **1,195 LOC**
+Views: **1,079 LOC**
 
 - `resources/views/components/schedule-confirmation-modal.blade.php` - 66 LOC
 - `resources/views/components/time-select.blade.php` - 32 LOC
-- `resources/views/doctor/agenda.blade.php` - 447 LOC
+- `resources/views/doctor/agenda.blade.php` - 463 LOC
 - `resources/views/doctor/partials/appointment-info-modal.blade.php` - 101 LOC
-- `resources/views/doctor/profile.blade.php` - 421 LOC
+- `resources/views/doctor/profile.blade.php` - 289 LOC
 - `resources/views/doctor/treatments.blade.php` - 128 LOC
 
 JavaScript: **2 LOC**
@@ -284,18 +275,18 @@ Both people should align briefly on these, without treating setup, tests, migrat
 
 | Bucket | LOC |
 | --- | ---: |
-| Person A controllers/middleware | 371 |
-| Person A services | 666 |
-| Person A models/support | 314 |
-| Person A views/UI components | 1,152 |
-| Person A subtotal | 2,503 |
-| Person B controllers/concerns | 369 |
-| Person B services | 730 |
-| Person B models/support | 214 |
-| Person B views | 1,195 |
+| Person A controllers/middleware | 392 |
+| Person A services | 663 |
+| Person A models/support | 323 |
+| Person A views/UI components | 1,089 |
+| Person A subtotal | 2,467 |
+| Person B controllers/concerns | 373 |
+| Person B services | 792 |
+| Person B models/support | 212 |
+| Person B views | 1,079 |
 | Person B JavaScript | 2 |
-| Person B subtotal | 2,510 |
-| Grand total | 5,013 |
+| Person B subtotal | 2,458 |
+| Grand total | 4,925 |
 
 ## Presentation Agenda
 
