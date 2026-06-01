@@ -101,7 +101,7 @@ class AppointmentWorkflowTest extends TestCase
   public function test_second_booking_attempt_for_same_generated_start_fails(): void
   {
     [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
-    $otherUser = $this->patient('other-patient')[0];
+    $otherUser = $this->patient('other-patient@example.com')[0];
 
     $this->actingAs($patientUser)->post('/appointments', [
       'slot_start' => $slot->key,
@@ -260,6 +260,18 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertDontSeeText('Ambulatorio');
   }
 
+  public function test_patient_appointments_page_hides_empty_note_rows(): void
+  {
+    [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
+    $this->appointment($patient, $doctor, $service, $slot);
+
+    $response = $this->actingAs($patientUser)->get('/patient/appointments');
+
+    $response->assertOk();
+    $response->assertDontSee('<dt>Note</dt>', false);
+    $response->assertDontSee('Nessuna nota');
+  }
+
   public function test_patient_appointments_page_hides_change_actions_within_24_hours(): void
   {
     $this->travelTo(CarbonImmutable::parse('2026-05-10 09:00:00'));
@@ -412,7 +424,7 @@ class AppointmentWorkflowTest extends TestCase
   public function test_patient_cannot_open_another_patients_reschedule_wizard(): void
   {
     [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
-    $otherUser = $this->patient('other-patient')[0];
+    $otherUser = $this->patient('other-patient@example.com')[0];
     $appointment = $this->appointment($patient, $doctor, $service, $slot);
 
     $this->actingAs($otherUser)->get("/appointments/{$appointment->id}/edit")->assertNotFound();
@@ -432,9 +444,9 @@ class AppointmentWorkflowTest extends TestCase
 
   private function bookingContext(bool $createSlot = true): array
   {
-    [$patientUser, $patient] = $this->patient('patient');
+    [$patientUser, $patient] = $this->patient('patient@example.com');
     $doctorUser = User::create([
-      'username' => 'doctor.derm',
+      'email' => 'doctor.derm@example.com',
       'password' => Hash::make('doctor123'),
       'role' => User::ROLE_DOCTOR,
     ]);
@@ -448,10 +460,10 @@ class AppointmentWorkflowTest extends TestCase
     return array_filter([$patientUser, $patient, $doctor, $service, $slot], fn ($value) => $value !== null);
   }
 
-  private function patient(string $username): array
+  private function patient(string $email): array
   {
     $user = User::create([
-      'username' => $username,
+      'email' => $email,
       'password' => Hash::make('patient123'),
       'role' => User::ROLE_PATIENT,
     ]);

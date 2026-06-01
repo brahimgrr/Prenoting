@@ -4,7 +4,7 @@ namespace App\Support;
 
 class ValidationRules
 {
-    public const PHONE_PATTERN = '/\A(?=(?:\D*\d){6,})\+?[0-9\s().-]+\z/';
+    public const PHONE_PATTERN = '/^(\+39 ?|0039)?3\d{9}$/';
     public const EMAIL_WITH_TOP_LEVEL_DOMAIN_PATTERN = '/\A[^@\s]+@[^@\s]+\.[^@\s]+\z/';
 
     public static function email(bool $required = true, int $max = 255): array

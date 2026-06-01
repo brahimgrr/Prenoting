@@ -18,9 +18,9 @@
       <form method="POST" action="/login" novalidate>
         @csrf
         <div class="mb-3">
-          <label class="form-label" for="username">Username o email</label>
-          <input class="form-control @error('username') is-invalid @enderror" id="username" name="username" autocomplete="username" value="{{ old('username') }}" required>
-          @error('username') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+          <label class="form-label" for="email">Email</label>
+          <input class="form-control @error('email') is-invalid @enderror" id="email" name="email" type="email" autocomplete="email" value="{{ old('email') }}" required>
+          @error('email') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
         </div>
         <div class="mb-4">
           <label class="form-label" for="password">Password</label>

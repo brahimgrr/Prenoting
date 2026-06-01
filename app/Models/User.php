@@ -17,7 +17,6 @@ class User extends Authenticatable
     public const ROLE_USER = 'user';
 
     protected $fillable = [
-        'username',
         'email',
         'first_name',
         'last_name',
@@ -44,7 +43,7 @@ class User extends Authenticatable
     {
         $name = trim($this->first_name . ' ' . $this->last_name);
 
-        return $name !== '' ? $name : $this->username;
+        return $name !== '' ? $name : $this->email;
     }
 
     public function portalRoute(): ?string

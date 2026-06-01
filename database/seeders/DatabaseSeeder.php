@@ -15,9 +15,8 @@ class DatabaseSeeder extends Seeder
   public function run(): void
   {
     $patientUser = User::updateOrCreate(
-      ['username' => 'patient'],
+      ['email' => 'patient@example.com'],
       [
-        'email' => 'patient@example.com',
         'first_name' => 'Mario',
         'last_name' => 'Rossi',
         'role' => User::ROLE_PATIENT,
@@ -27,15 +26,14 @@ class DatabaseSeeder extends Seeder
     PatientProfile::updateOrCreate(
       ['user_id' => $patientUser->id],
       [
-        'phone' => '555-0100',
+        'phone' => '3331234567',
         'address' => 'Via del Paziente 10',
       ],
     );
 
     $doctorUser = User::updateOrCreate(
-      ['username' => 'doctor.derm'],
+      ['email' => 'doctor.derm@example.com'],
       [
-        'email' => 'doctor.derm@example.com',
         'first_name' => 'Kylian',
         'last_name' => 'Mbappe',
         'role' => User::ROLE_DOCTOR,
@@ -47,7 +45,7 @@ class DatabaseSeeder extends Seeder
       [
         'display_name' => 'Dott. Mbappe',
         'license_number' => 'DERM-001',
-        'phone' => '555-1000',
+        'phone' => '3331000000',
         'clinic_address' => 'Via Roma 1',
         'is_active' => true,
       ],

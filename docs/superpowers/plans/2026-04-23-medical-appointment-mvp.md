@@ -388,8 +388,8 @@ from appointments.models import Appointment
 
 @pytest.mark.django_db
 def test_appointment_string_and_slot_relation():
-    patient_user = User.objects.create_user(username="patient@example.com", password="pass")
-    doctor_user = User.objects.create_user(username="doctor@example.com", password="pass")
+    patient_user = User.objects.create_user(email="patient@example.com", password="pass")
+    doctor_user = User.objects.create_user(email="doctor@example.com", password="pass")
     patient = PatientProfile.objects.create(user=patient_user, phone="+390000000")
     specialty = Specialty.objects.create(name="Cardiology")
     doctor = DoctorProfile.objects.create(user=doctor_user, display_name="Dr. Rossi", specialty=specialty)
@@ -449,7 +449,7 @@ class PatientProfile(models.Model):
     identity_code = models.CharField(max_length=64, blank=True)
 
     def __str__(self):
-        return self.user.get_full_name() or self.user.username
+        return self.user.get_full_name() or self.user.email
 ```
 
 ```python
@@ -615,7 +615,7 @@ from .models import Appointment
 class AppointmentAdmin(admin.ModelAdmin):
     list_display = ("service", "doctor", "patient", "clinic", "start_at", "status")
     list_filter = ("status", "clinic", "doctor", "service")
-    search_fields = ("patient__user__username", "doctor__display_name", "service__name")
+    search_fields = ("patient__user__email", "doctor__display_name", "service__name")
 ```
 
 - [ ] **Step 5: Create migrations and verify tests**
@@ -680,7 +680,7 @@ from accounts.models import PatientProfile
 def test_patient_can_register_and_fetch_current_user():
     client = APIClient()
     response = client.post("/api/auth/register/", {
-        "username": "sara@example.com",
+        "email": "sara@example.com",
         "password": "strong-pass-123",
         "first_name": "Sara",
         "last_name": "Conti",
@@ -690,11 +690,11 @@ def test_patient_can_register_and_fetch_current_user():
     assert response.status_code == 201
     assert response.data["user"]["role"] == "patient"
 
-    client.login(username="sara@example.com", password="strong-pass-123")
+    client.login(email="sara@example.com", password="strong-pass-123")
     me = client.get("/api/auth/me/")
 
     assert me.status_code == 200
-    assert me.data["username"] == "sara@example.com"
+    assert me.data["email"] == "sara@example.com"
 
 
 @pytest.mark.django_db
@@ -754,7 +754,7 @@ class IsStaffUser(BasePermission):
 
 - [ ] **Step 4: Implement serializers and views**
 
-`RegisterSerializer.create()` must create a `User` and `PatientProfile`. `MeView` must return `id`, `username`, `first_name`, `last_name`, and `role`.
+`RegisterSerializer.create()` must create a `User` and `PatientProfile`. `MeView` must return `id`, `email`, `first_name`, `last_name`, and `role`.
 
 Use DRF `APIView` endpoints:
 
@@ -1068,7 +1068,7 @@ export const api = axios.create({
 {
   user,
   loading,
-  login(username, password),
+  login(email, password),
   logout(),
   register(payload),
   refreshUser()
@@ -1106,14 +1106,14 @@ Staff nav:
 
 Login fields:
 
-- username/email
+- email/email
 - password
 
 Register fields:
 
 - first name
 - last name
-- email username
+- email email
 - password
 - phone
 

@@ -4,6 +4,7 @@
     'ESAME' => 'Esame',
     default => '—',
   };
+  $hasBookingNotes = filled($appointment->notes);
 @endphp
 
 <div
@@ -88,12 +89,14 @@
           </section>
         </div>
 
-        <section class="appointment-info-card appointment-info-card__notes">
-          <div class="appointment-info-card__header">
-            <h3 id="appointmentInfoNotes{{ $appointment->id }}">Note di prenotazione</h3>
-          </div>
-          <p class="appointment-info-card__notes">{{ $appointment->notes ?? 'Nessuna nota' }}</p>
-        </section>
+        @if ($hasBookingNotes)
+          <section class="appointment-info-card appointment-info-card__notes">
+            <div class="appointment-info-card__header">
+              <h3 id="appointmentInfoNotes{{ $appointment->id }}">Note di prenotazione</h3>
+            </div>
+            <p class="appointment-info-card__notes">{{ $appointment->notes }}</p>
+          </section>
+        @endif
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>

@@ -34,18 +34,11 @@ class DoctorProfileController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'email' => [...ValidationRules::email(false), 'unique:users,email,' . $request->user()->id],
             'phone' => ValidationRules::phone(false),
             'clinic_address' => ['required', 'string', 'max:255'],
         ], [
-            'email.email' => 'Inserisci un indirizzo email valido.',
-            'email.regex' => 'Inserisci un indirizzo email valido.',
             'phone.regex' => 'Inserisci un numero di telefono valido.',
         ]);
-
-        $request->user()->forceFill([
-            'email' => $validated['email'] ?? null,
-        ])->save();
 
         $request->user()->doctorProfile->forceFill([
             'phone' => $validated['phone'] ?? '',

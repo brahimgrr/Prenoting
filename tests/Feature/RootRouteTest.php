@@ -40,7 +40,7 @@ class RootRouteTest extends TestCase
   private function userWithRole(string $role): User
   {
     return User::create([
-      'username' => $role,
+      'email' => $role.'@example.com',
       'password' => Hash::make('password123'),
       'role' => $role,
     ]);

@@ -54,6 +54,12 @@
               <strong class="d-block mt-1">{{ $profile?->license_number ?: '-' }}</strong>
             </div>
           </div>
+          <div class="col-12 col-md-6">
+            <div class="profile-data-tile h-100 p-3">
+              <span class="d-block">Email</span>
+              <strong class="d-block mt-1">{{ $user->email ?: '-' }}</strong>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -65,11 +71,6 @@
           @csrf
           @method('PATCH')
           <div class="profile-field-list d-grid gap-3">
-            <label class="form-label d-grid gap-2 mb-0">
-              Email
-              <input class="form-control @error('email') is-invalid @enderror" type="email" name="email" value="{{ old('email', $user->email) }}" autocomplete="email">
-              @error('email') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
-            </label>
             <label class="form-label d-grid gap-2 mb-0">
               Telefono
               <input class="form-control @error('phone') is-invalid @enderror" name="phone" value="{{ old('phone', $profile?->phone) }}">

@@ -35,7 +35,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:150', 'regex:/\A\pL+(?: \pL+)*\z/u'],
             'last_name' => ['required', 'string', 'max:150', 'regex:/\A\pL+(?: \pL+)*\z/u'],
-            'username' => [...ValidationRules::email(max: 150), 'unique:users,username'],
+            'email' => [...ValidationRules::email(max: 150), 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'date_of_birth' => ['required', 'date', 'before:today'],
             'place_of_birth' => ['required', 'string', 'max:160'],
@@ -48,11 +48,11 @@ class AuthController extends Controller
             'last_name.required' => 'Inserisci il cognome.',
             'last_name.max' => 'Il cognome non puo superare 150 caratteri.',
             'last_name.regex' => 'Il cognome puo contenere solo lettere e spazi.',
-            'username.required' => 'Inserisci un indirizzo email.',
-            'username.email' => 'Inserisci un indirizzo email valido.',
-            'username.regex' => 'Inserisci un indirizzo email valido.',
-            'username.max' => 'L\'indirizzo email non puo superare 150 caratteri.',
-            'username.unique' => 'Esiste gia un utente con questo indirizzo email.',
+            'email.required' => 'Inserisci un indirizzo email.',
+            'email.email' => 'Inserisci un indirizzo email valido.',
+            'email.regex' => 'Inserisci un indirizzo email valido.',
+            'email.max' => 'L\'indirizzo email non puo superare 150 caratteri.',
+            'email.unique' => 'Esiste gia un utente con questo indirizzo email.',
             'password.required' => 'Inserisci una password.',
             'password.min' => 'La password deve contenere almeno 8 caratteri.',
             'password.confirmed' => 'La conferma della password non corrisponde.',
@@ -71,8 +71,7 @@ class AuthController extends Controller
         try {
             $user = DB::transaction(function () use ($validated): User {
                 $user = User::create([
-                    'username' => $validated['username'],
-                    'email' => $validated['username'],
+                    'email' => $validated['email'],
                     'first_name' => $validated['first_name'] ?? '',
                     'last_name' => $validated['last_name'] ?? '',
                     'password' => $validated['password'],
@@ -114,21 +113,20 @@ class AuthController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'username' => ['required', 'string'],
+            'email' => ValidationRules::email(),
             'password' => ['required', 'string'],
+        ], [
+            'email.required' => 'Inserisci un indirizzo email.',
+            'email.email' => 'Inserisci un indirizzo email valido.',
+            'email.regex' => 'Inserisci un indirizzo email valido.',
         ]);
 
-        $login = $validated['username'];
         $user = User::query()
-            ->where('username', $login)
-            ->when(
-                Str::contains($login, '@'),
-                fn($query) => $query->orWhere('email', $login),
-            )
+            ->where('email', $validated['email'])
             ->first();
         if (!$user || !Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'username' => 'Credenziali non valide.',
+                'email' => 'Credenziali non valide.',
             ]);
         }
 

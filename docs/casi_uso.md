@@ -19,7 +19,7 @@ UC02 — Effettuare login
 - Precondizione: Account esistente; utente non autenticato.
 - Flusso principale:
   a. L'utente apre `/login`.
-  b. Inserisce username o email e password.
+  b. Inserisce email e password.
   c. Il sistema verifica le credenziali e, se valide, rigenera la sessione.
   d. Redirige al portale in base al ruolo (`/patient` o `/doctor`); se il ruolo non è supportato -> `/unsupported-role`.
 - Eccezioni: credenziali non valide -> "Credenziali non valide.".

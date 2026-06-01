@@ -591,7 +591,7 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertViewHas('upcomingScheduleEvents', fn ($events): bool => $events->contains(
         fn (array $event): bool => $event['type'] === 'closure' && $event['model']->is($futureClosure)
       ))
-      ->assertSee('patient')
+      ->assertSee('patient@example.com')
       ->assertSee('Visita dermatologica')
       ->assertSee('Congresso')
       ->assertDontSee('Slot libero')
@@ -663,7 +663,7 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertOk()
       ->assertSee('id="scheduleConfirmationModal"', false)
       ->assertSee('Conferma chiusura')
-      ->assertSee('patient')
+      ->assertSee('patient@example.com')
       ->assertSee('Visita dermatologica')
       ->assertSee('name="confirm_appointment_cancellations" value="1"', false)
       ->assertSee('action="/doctor/closures"', false)
@@ -1120,7 +1120,7 @@ class DoctorSchedulingUxTest extends TestCase
   private function doctorContext(bool $withPatient = false): array
   {
     $doctorUser = User::create([
-      'username' => 'doctor.derm',
+      'email' => 'doctor.derm@example.com',
       'password' => Hash::make('doctor123'),
       'role' => User::ROLE_DOCTOR,
     ]);
@@ -1135,7 +1135,7 @@ class DoctorSchedulingUxTest extends TestCase
     }
 
     $patientUser = User::create([
-      'username' => 'patient',
+      'email' => 'patient@example.com',
       'password' => Hash::make('patient123'),
       'role' => User::ROLE_PATIENT,
     ]);

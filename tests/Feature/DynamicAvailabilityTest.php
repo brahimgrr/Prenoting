@@ -66,9 +66,9 @@ class DynamicAvailabilityTest extends TestCase
 
   private function bookingContext(): array
   {
-    [$patientUser, $patient] = $this->patient('patient');
+    [$patientUser, $patient] = $this->patient('patient@example.com');
     $doctorUser = User::create([
-      'username' => 'doctor.derm',
+      'email' => 'doctor.derm@example.com',
       'password' => Hash::make('doctor123'),
       'role' => User::ROLE_DOCTOR,
     ]);
@@ -84,10 +84,10 @@ class DynamicAvailabilityTest extends TestCase
     return [$patientUser, $patient, $doctor, $service];
   }
 
-  private function patient(string $username): array
+  private function patient(string $email): array
   {
     $user = User::create([
-      'username' => $username,
+      'email' => $email,
       'password' => Hash::make('patient123'),
       'role' => User::ROLE_PATIENT,
     ]);

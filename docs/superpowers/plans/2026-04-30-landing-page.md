@@ -59,7 +59,7 @@ class LandingPageTest extends TestCase
   public function test_authenticated_patient_is_redirected_to_portal(): void
   {
     $user = User::create([
-      'username' => 'patient',
+      'email' => 'patient',
       'password' => Hash::make('patient123'),
       'role' => User::ROLE_PATIENT,
     ]);
@@ -70,7 +70,7 @@ class LandingPageTest extends TestCase
   public function test_authenticated_doctor_is_redirected_to_portal(): void
   {
     $user = User::create([
-      'username' => 'doctor',
+      'email' => 'doctor',
       'password' => Hash::make('doctor123'),
       'role' => User::ROLE_DOCTOR,
     ]);

@@ -10,8 +10,7 @@ Schema aggiornato dopo il passaggio dalle disponibilita salvate come slot fisici
 erDiagram
   USERS {
     bigint id PK
-    string username UK
-    string email
+    string email UK
     string first_name
     string last_name
     string password
@@ -113,7 +112,7 @@ Note dominio attuale:
 
 Vincoli principali:
 
-- `users.username` e univoco.
+- `users.email` e univoco.
 - `patient_profiles.user_id` e univoco.
 - `doctor_profiles.user_id` e univoco.
 - `medical_services.name` e univoco.

@@ -29,7 +29,7 @@ class CatalogAvailabilityTest extends TestCase
 
   public function test_availability_filters_available_future_slots_by_service(): void
   {
-    $doctorUser = User::create(['username' => 'doctor', 'password' => 'x', 'role' => User::ROLE_DOCTOR]);
+    $doctorUser = User::create(['email' => 'doctor@example.com', 'password' => 'x', 'role' => User::ROLE_DOCTOR]);
     $doctor = DoctorProfile::create(['user_id' => $doctorUser->id, 'display_name' => 'Dott. Test']);
     $service = MedicalService::create(['name' => 'Visita dermatologica']);
     $start = CarbonImmutable::now()->addDay()->setTime(9, 0);

@@ -10,6 +10,7 @@
   $historyStatusLabel = $appointment->status === \App\Models\Appointment::STATUS_CANCELLED ? $appointment->cancellationActorLabel() : 'Passato';
   $historyStatusClass = $appointment->status === \App\Models\Appointment::STATUS_CANCELLED ? 'cancelled' : 'past';
   $changeLocked = ($manageable ?? false) && $appointment->start_at->lte(now()->addDay());
+  $hasBookingNotes = filled($appointment->notes);
 @endphp
 
 <article class="appointment-card d-grid gap-3 p-3 mb-3 {{ ($muted ?? false) ? 'appointment-card--muted' : '' }}">
@@ -59,10 +60,12 @@
       <dt>Prezzo visita</dt>
       <dd>{{ $priceLabel }}</dd>
     </div>
-    <div class="col-12 col-md-6">
-      <dt>Note</dt>
-      <dd>{{ filled($appointment->notes) ? $appointment->notes : 'Nessuna nota' }}</dd>
-    </div>
+    @if ($hasBookingNotes)
+      <div class="col-12 col-md-6">
+        <dt>Note</dt>
+        <dd>{{ $appointment->notes }}</dd>
+      </div>
+    @endif
     @if ($appointment->status === \App\Models\Appointment::STATUS_CANCELLED)
       <div class="col-12 col-md-6">
         <dt>Motivo annullamento</dt>

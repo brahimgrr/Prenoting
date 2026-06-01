@@ -517,14 +517,14 @@ public function register(Request $request): RedirectResponse
     $validated = $request->validate([
         'first_name'     => ['nullable', 'string', 'max:150'],
         'last_name'      => ['nullable', 'string', 'max:150'],
-        'username'       => ['required', 'email', 'max:150', 'unique:users,username'],
+        'email'       => ['required', 'email', 'max:150', 'unique:users,email'],
         'password'       => ['required', 'string', 'min:8', 'confirmed'],
         'phone'          => ['required', 'string', 'max:32'],
         'date_of_birth'  => ['required', 'date', 'before:today'],
         'place_of_birth' => ['required', 'string', 'max:160'],
         'gender'         => ['required', 'in:M,F'],
     ], [
-        'username.unique'      => 'Esiste gia un utente con questo username.',
+        'email.unique'      => 'Esiste gia un utente con questo email.',
         'password.min'         => 'La password deve contenere almeno 8 caratteri.',
         'password.confirmed'   => 'Le password non coincidono.',
         'date_of_birth.before' => 'La data di nascita non è valida.',
@@ -546,8 +546,8 @@ public function register(Request $request): RedirectResponse
     }
 
     $user = User::create([
-        'username'   => $validated['username'],
-        'email'      => $validated['username'],
+        'email'   => $validated['email'],
+        'email'      => $validated['email'],
         'first_name' => $validated['first_name'] ?? '',
         'last_name'  => $validated['last_name'] ?? '',
         'password'   => $validated['password'],
@@ -584,7 +584,7 @@ Il test `test_patient_can_register_and_reach_dashboard` va aggiornato con i nuov
 public function test_patient_can_register_and_reach_dashboard(): void
 {
     $response = $this->post('/register', [
-        'username'              => 'sara@example.com',
+        'email'              => 'sara@example.com',
         'password'              => 'strong-pass-123',
         'password_confirmation' => 'strong-pass-123',
         'first_name'            => 'Sara',
@@ -598,7 +598,7 @@ public function test_patient_can_register_and_reach_dashboard(): void
     $response->assertRedirect('/patient');
     $this->assertAuthenticated();
     $this->assertDatabaseHas('users', [
-        'username' => 'sara@example.com',
+        'email' => 'sara@example.com',
         'role'     => User::ROLE_PATIENT,
     ]);
     $this->assertDatabaseHas('patient_profiles', [
@@ -615,7 +615,7 @@ Aggiungi subito dopo un test per il campo `place_of_birth` non valido:
 public function test_register_rejects_unknown_comune(): void
 {
     $response = $this->from('/register')->post('/register', [
-        'username'              => 'mario@example.com',
+        'email'              => 'mario@example.com',
         'password'              => 'strong-pass-123',
         'password_confirmation' => 'strong-pass-123',
         'first_name'            => 'Mario',
@@ -638,7 +638,7 @@ Aggiungi anche un test per la conferma password errata:
 public function test_register_rejects_mismatched_password_confirmation(): void
 {
     $response = $this->from('/register')->post('/register', [
-        'username'              => 'mario@example.com',
+        'email'              => 'mario@example.com',
         'password'              => 'strong-pass-123',
         'password_confirmation' => 'wrong-pass-999',
         'first_name'            => 'Mario',
@@ -709,9 +709,9 @@ git commit -m "feat: extend register with birth data, gender, CF calculation"
             <input class="form-control" id="last_name" name="last_name" autocomplete="family-name" value="{{ old('last_name') }}">
           </div>
           <div class="col-12">
-            <label class="form-label" for="username">Email</label>
-            <input class="form-control @error('username') is-invalid @enderror" id="username" name="username" type="email" autocomplete="email" value="{{ old('username') }}" required>
-            @error('username') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+            <label class="form-label" for="email">Email</label>
+            <input class="form-control @error('email') is-invalid @enderror" id="email" name="email" type="email" autocomplete="email" value="{{ old('email') }}" required>
+            @error('email') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
           </div>
           <div class="col-md-6">
             <label class="form-label" for="phone">Telefono</label>

@@ -47,10 +47,10 @@ The Docker setup bind-mounts the project into the PHP and Vite containers, so Bl
 
 ## Demo Accounts
 
-| Role | Username | Password |
+| Role | Email | Password |
 | --- | --- | --- |
-| Patient | `patient` | `patient123` |
-| Doctor | `doctor.derm` | `doctor123` |
+| Patient | `patient@example.com` | `patient123` |
+| Doctor | `doctor.derm@example.com` | `doctor123` |
 
 ## Main URLs
 

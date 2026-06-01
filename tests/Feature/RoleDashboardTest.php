@@ -102,6 +102,17 @@ class RoleDashboardTest extends TestCase
       ->assertSee('Motivo opzionale');
   }
 
+  public function test_doctor_agenda_modal_hides_empty_notes(): void
+  {
+    [$doctorUser, , $appointment] = $this->dashboardContext();
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor/agenda?date='.$appointment->start_at->toDateString())
+      ->assertOk()
+      ->assertDontSee('Note di prenotazione')
+      ->assertDontSee('Nessuna nota');
+  }
+
   public function test_doctor_can_cancel_own_future_active_appointment_from_agenda(): void
   {
     [$doctorUser, , $appointment] = $this->dashboardContext();
@@ -129,7 +140,7 @@ class RoleDashboardTest extends TestCase
   {
     [$doctorUser, , $appointment] = $this->dashboardContext();
     $otherDoctorUser = User::create([
-      'username' => 'doctor.other',
+      'email' => 'doctor.other@example.com',
       'password' => Hash::make('doctor123'),
       'role' => User::ROLE_DOCTOR,
     ]);
@@ -248,7 +259,7 @@ class RoleDashboardTest extends TestCase
     [$doctorUser, $doctor] = $this->dashboardContext();
     $doctorUser->forceFill(['email' => 'doctor.old@example.com'])->save();
     $doctor->forceFill([
-      'phone' => '555-1000',
+      'phone' => '3331000000',
       'clinic_address' => 'Via Roma 1',
     ])->save();
 
@@ -257,21 +268,22 @@ class RoleDashboardTest extends TestCase
       ->assertOk()
       ->assertSee('Profilo medico')
       ->assertSee('doctor.old@example.com')
-      ->assertSee('555-1000')
+      ->assertSee('3331000000')
       ->assertSee('Via Roma 1')
       ->assertSee('Agenda')
+      ->assertDontSee('name="email"', false)
       ->assertDontSee('href="/doctor/availability"', false);
 
     $this->actingAs($doctorUser)
       ->patch('/doctor/profile', [
         'email' => 'doctor.new@example.com',
-        'phone' => '555-2000',
+        'phone' => '3332000000',
         'clinic_address' => 'Via Milano 2',
       ])
       ->assertRedirect('/doctor/profile');
 
-    $this->assertSame('doctor.new@example.com', $doctorUser->fresh()->email);
-    $this->assertSame('555-2000', $doctor->fresh()->phone);
+    $this->assertSame('doctor.old@example.com', $doctorUser->fresh()->email);
+    $this->assertSame('3332000000', $doctor->fresh()->phone);
     $this->assertSame('Via Milano 2', $doctor->fresh()->clinic_address);
   }
 
@@ -279,7 +291,7 @@ class RoleDashboardTest extends TestCase
   {
     [$doctorUser, $doctor] = $this->dashboardContext();
     $doctor->forceFill([
-      'phone' => '555-1000',
+      'phone' => '3331000000',
       'clinic_address' => 'Via Roma 1',
     ])->save();
 
@@ -293,14 +305,14 @@ class RoleDashboardTest extends TestCase
       ->assertRedirect('/doctor/profile')
       ->assertSessionHasErrors('phone');
 
-    $this->assertSame('555-1000', $doctor->fresh()->phone);
+    $this->assertSame('3331000000', $doctor->fresh()->phone);
   }
 
   public function test_doctor_profile_allows_empty_phone_number(): void
   {
     [$doctorUser, $doctor] = $this->dashboardContext();
     $doctor->forceFill([
-      'phone' => '555-1000',
+      'phone' => '3331000000',
       'clinic_address' => 'Via Roma 1',
     ])->save();
 
@@ -370,7 +382,7 @@ class RoleDashboardTest extends TestCase
 
   public function test_patient_cannot_access_doctor_routes(): void
   {
-    [$patientUser] = $this->patient('patient');
+    [$patientUser] = $this->patient('patient@example.com');
 
     $this->actingAs($patientUser)->get('/doctor')->assertForbidden();
     $this->actingAs($patientUser)->get('/doctor/profile')->assertForbidden();
@@ -403,7 +415,7 @@ class RoleDashboardTest extends TestCase
   private function dashboardContext(string $status = Appointment::STATUS_CONFIRMED): array
   {
     $doctorUser = User::create([
-      'username' => 'doctor.derm',
+      'email' => 'doctor.derm@example.com',
       'password' => Hash::make('doctor123'),
       'role' => User::ROLE_DOCTOR,
     ]);
@@ -411,8 +423,8 @@ class RoleDashboardTest extends TestCase
       'user_id' => $doctorUser->id,
       'display_name' => 'Dott. Mbappe',
     ]);
-    [$patientUser, $patient] = $this->patient('patient', 'Mario', 'Rossi');
-    [$otherPatientUser, $otherPatient] = $this->patient('other', 'Altro', 'Paziente');
+    [$patientUser, $patient] = $this->patient('patient@example.com', 'Mario', 'Rossi');
+    [$otherPatientUser, $otherPatient] = $this->patient('other@example.com', 'Altro', 'Paziente');
     $service = MedicalService::create(['name' => 'Visita dermatologica']);
     $slot = $this->slotAt($doctor, CarbonImmutable::now()->addDay()->setTime(9, 0));
     $otherSlot = $this->slotAt($doctor, CarbonImmutable::now()->addDay()->setTime(10, 0));
@@ -422,16 +434,16 @@ class RoleDashboardTest extends TestCase
     return [$doctorUser, $doctor, $appointment];
   }
 
-  private function patient(string $username, string $firstName = '', string $lastName = ''): array
+  private function patient(string $email, string $firstName = '', string $lastName = ''): array
   {
     $user = User::create([
-      'username' => $username,
+      'email' => $email,
       'first_name' => $firstName,
       'last_name' => $lastName,
       'password' => Hash::make('patient123'),
       'role' => User::ROLE_PATIENT,
     ]);
-    $profile = PatientProfile::create(['user_id' => $user->id, 'phone' => '555-0100']);
+    $profile = PatientProfile::create(['user_id' => $user->id, 'phone' => '3331234567']);
 
     return [$user, $profile];
   }

@@ -86,12 +86,18 @@
 
         <main class="app-content flex-grow-1 p-3 p-md-4">
           @if (session('status'))
-            <div class="alert alert-success" role="status">{{ session('status') }}</div>
+            <div id="status-alert" class="alert alert-success" role="status">{{ session('status') }}</div>
+            <script>
+                setTimeout(() => document.getElementById('status-alert')?.remove(), 3000);
+            </script>
           @endif
           @if ($errors->any())
-            <div class="alert alert-danger" role="alert">
+            <div id="error-alert" class="alert alert-danger" role="alert">
               {{ $errors->first() }}
             </div>
+            <script>
+                setTimeout(() => document.getElementById('error-alert')?.remove(), 3000);
+            </script>
           @endif
           @yield('content')
         </main>

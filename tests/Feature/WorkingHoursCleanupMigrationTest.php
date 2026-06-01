@@ -16,7 +16,7 @@ class WorkingHoursCleanupMigrationTest extends TestCase
   public function test_cleanup_migration_deletes_all_existing_working_hours(): void
   {
     $doctorUser = User::create([
-      'username' => 'doctor.derm',
+      'email' => 'doctor.derm@example.com',
       'password' => Hash::make('doctor123'),
       'role' => User::ROLE_DOCTOR,
     ]);
