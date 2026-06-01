@@ -124,6 +124,27 @@ class DoctorSchedulingUxTest extends TestCase
     ]);
   }
 
+  public function test_doctor_profile_renders_reset_buttons_for_opening_hours_and_lunch_break(): void
+  {
+    [$doctorUser] = $this->doctorContext();
+
+    $content = $this->actingAs($doctorUser)
+      ->get('/doctor/profile')
+      ->assertOk()
+      ->assertSee('data-working-hours-reset-day', false)
+      ->assertSee('data-working-hours-reset-break', false)
+      ->assertSee('aria-label="Rimuovi apertura Lunedi"', false)
+      ->assertSee('aria-label="Rimuovi pausa pranzo Lunedi"', false)
+      ->getContent();
+
+    $this->assertSame(7, preg_match_all('/<button[^>]+data-working-hours-reset-day/', $content));
+    $this->assertSame(7, preg_match_all('/<button[^>]+data-working-hours-reset-break/', $content));
+    $this->assertStringContainsString('function resettaRigaOrarioGiorno', $content);
+    $this->assertStringContainsString('function resettaRigaPausaPranzo', $content);
+    $this->assertStringContainsString('const resetDayButton = event.target.closest("[data-working-hours-reset-day]")', $content);
+    $this->assertStringContainsString('const resetBreakButton = event.target.closest("[data-working-hours-reset-break]")', $content);
+  }
+
   public function test_time_forms_render_half_hour_selects_instead_of_native_time_inputs(): void
   {
     [$doctorUser, $doctor] = $this->doctorContext();

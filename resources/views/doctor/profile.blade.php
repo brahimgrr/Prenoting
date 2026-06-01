@@ -19,12 +19,6 @@
     'break_start_time' => '',
     'break_end_time' => '',
   ];
-  $defaultWorkingHourDay = [
-    'open_time' => '09:00',
-    'close_time' => '12:00',
-    'break_start_time' => '',
-    'break_end_time' => '',
-  ];
   $hasConfiguredWorkingHours = collect($workingHourDays ?? [])
     ->contains(fn ($day) => collect($day['fields'] ?? [])->contains(fn ($value) => filled($value)));
 @endphp
@@ -129,8 +123,6 @@
                 @php
                   if (is_array($oldWorkingHours)) {
                     $summaryDay = array_replace($emptyWorkingHourDay, $oldWorkingHours[$weekday] ?? $oldWorkingHours[(string) $weekday] ?? []);
-                  } elseif (! $hasConfiguredWorkingHours) {
-                    $summaryDay = $weekday <= 5 ? $defaultWorkingHourDay : $emptyWorkingHourDay;
                   } else {
                     $summaryDay = array_replace($emptyWorkingHourDay, $workingHourDays[$weekday]['fields'] ?? []);
                   }
@@ -161,8 +153,6 @@
               @php
                 if (is_array($oldWorkingHours)) {
                   $day = array_replace($emptyWorkingHourDay, $oldWorkingHours[$weekday] ?? $oldWorkingHours[(string) $weekday] ?? []);
-                } elseif (! $hasConfiguredWorkingHours) {
-                  $day = $weekday <= 5 ? $defaultWorkingHourDay : $emptyWorkingHourDay;
                 } else {
                   $day = array_replace($emptyWorkingHourDay, $workingHourDays[$weekday]['fields'] ?? []);
                 }
@@ -208,7 +198,8 @@
 
                 <div class="vstack gap-2">
                   <div class="row g-2 align-items-end">
-                    <div class="col-12 col-md-6">
+                    <div class="visually-hidden">Orari di apertura</div>
+                    <div class="col-12 col-md-5">
                       <label class="form-label" for="working-hours-{{ $weekday }}-open">Apri alle</label>
                       <x-time-select
                         id="working-hours-{{ $weekday }}-open"
@@ -218,7 +209,7 @@
                       />
                     </div>
 
-                    <div class="col-12 col-md-6">
+                    <div class="col-12 col-md-5">
                       <label class="form-label" for="working-hours-{{ $weekday }}-close">Chiudi alle</label>
                       <x-time-select
                         id="working-hours-{{ $weekday }}-close"
@@ -228,10 +219,20 @@
                         :include-end-of-day="true"
                       />
                     </div>
+
+                    <div class="col-12 col-md-2 d-grid">
+                      <button
+                        class="btn btn-outline-danger"
+                        type="button"
+                        data-working-hours-reset-day
+                        aria-label="Rimuovi apertura {{ $label }}"
+                        title="Rimuovi apertura"
+                      >-</button>
+                    </div>
                   </div>
 
                   <div class="row g-2 align-items-end">
-                    <div class="col-12 col-md-6">
+                    <div class="col-12 col-md-5">
                       <label class="form-label" for="working-hours-{{ $weekday }}-break-start">Pausa pranzo da</label>
                       <x-time-select
                         id="working-hours-{{ $weekday }}-break-start"
@@ -241,7 +242,7 @@
                       />
                     </div>
 
-                    <div class="col-12 col-md-6">
+                    <div class="col-12 col-md-5">
                       <label class="form-label" for="working-hours-{{ $weekday }}-break-end">Pausa pranzo a</label>
                       <x-time-select
                         id="working-hours-{{ $weekday }}-break-end"
@@ -250,6 +251,16 @@
                         :value="$day['break_end_time'] ?? ''"
                         :include-end-of-day="true"
                       />
+                    </div>
+
+                    <div class="col-12 col-md-2 d-grid">
+                      <button
+                        class="btn btn-outline-danger"
+                        type="button"
+                        data-working-hours-reset-break
+                        aria-label="Rimuovi pausa pranzo {{ $label }}"
+                        title="Rimuovi pausa pranzo"
+                      >-</button>
                     </div>
                   </div>
                 </div>
@@ -313,9 +324,41 @@
         }
       }
 
+      function resettaSelectOrario(day, selector) {
+        const select = day.querySelector(selector);
+        if (select) select.value = "";
+      }
+
+      function resettaRigaOrarioGiorno(day) {
+        resettaSelectOrario(day, 'select[name$="[open_time]"]');
+        resettaSelectOrario(day, 'select[name$="[close_time]"]');
+        resettaRigaPausaPranzo(day);
+      }
+
+      function resettaRigaPausaPranzo(day) {
+        resettaSelectOrario(day, 'select[name$="[break_start_time]"]');
+        resettaSelectOrario(day, 'select[name$="[break_end_time]"]');
+        aggiornaGiornoOrario(day);
+      }
+
       document.addEventListener("change", (event) => {
         const day = event.target.closest?.("[data-working-hours-day]");
         if (day && event.target.matches?.("select")) aggiornaGiornoOrario(day);
+      });
+
+      document.addEventListener("click", (event) => {
+        const resetDayButton = event.target.closest("[data-working-hours-reset-day]");
+        const resetBreakButton = event.target.closest("[data-working-hours-reset-break]");
+        const resetButton = resetDayButton || resetBreakButton;
+        const day = resetButton?.closest("[data-working-hours-day]");
+
+        if (!day) return;
+
+        if (resetDayButton) {
+          resettaRigaOrarioGiorno(day);
+        } else {
+          resettaRigaPausaPranzo(day);
+        }
       });
     })();
   </script>
