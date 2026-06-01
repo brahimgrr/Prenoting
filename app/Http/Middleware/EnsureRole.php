@@ -8,14 +8,14 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureRole
 {
-  public function handle(Request $request, Closure $next, string ...$roles): Response
-  {
-    $user = $request->user();
+    public function handle(Request $request, Closure $next, string ...$roles): Response
+    {
+        $user = $request->user();
 
-    if (! $user || ! in_array($user->portalRole(), $roles, true)) {
-      abort(403);
+        if (!$user || !in_array($user->portalRole(), $roles, true)) {
+            abort(403);
+        }
+
+        return $next($request);
     }
-
-    return $next($request);
-  }
 }

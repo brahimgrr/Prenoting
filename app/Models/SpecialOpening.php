@@ -7,23 +7,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SpecialOpening extends Model
 {
-  protected $fillable = [
-    'doctor_profile_id',
-    'date',
-    'start_time',
-    'end_time',
-    'note',
-  ];
-
-  protected function casts(): array
-  {
-    return [
-      'date' => 'date',
+    protected $fillable = [
+        'doctor_profile_id',
+        'date',
+        'start_time',
+        'end_time',
+        'note',
     ];
-  }
 
-  public function doctor(): BelongsTo
-  {
-    return $this->belongsTo(DoctorProfile::class, 'doctor_profile_id');
-  }
+    public function doctor(): BelongsTo
+    {
+        return $this->belongsTo(DoctorProfile::class, 'doctor_profile_id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'date' => 'date',
+        ];
+    }
 }

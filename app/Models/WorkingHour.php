@@ -7,28 +7,28 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WorkingHour extends Model
 {
-  protected $fillable = [
-    'doctor_profile_id',
-    'weekday',
-    'start_time',
-    'end_time',
-    'effective_from',
-    'effective_until',
-    'is_active',
-  ];
-
-  protected function casts(): array
-  {
-    return [
-      'weekday' => 'integer',
-      'effective_from' => 'date',
-      'effective_until' => 'date',
-      'is_active' => 'boolean',
+    protected $fillable = [
+        'doctor_profile_id',
+        'weekday',
+        'start_time',
+        'end_time',
+        'effective_from',
+        'effective_until',
+        'is_active',
     ];
-  }
 
-  public function doctor(): BelongsTo
-  {
-    return $this->belongsTo(DoctorProfile::class, 'doctor_profile_id');
-  }
+    public function doctor(): BelongsTo
+    {
+        return $this->belongsTo(DoctorProfile::class, 'doctor_profile_id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'weekday' => 'integer',
+            'effective_from' => 'date',
+            'effective_until' => 'date',
+            'is_active' => 'boolean',
+        ];
+    }
 }

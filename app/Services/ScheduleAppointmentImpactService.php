@@ -13,126 +13,128 @@ use Illuminate\Support\Collection;
 
 class ScheduleAppointmentImpactService
 {
-  public const WORKING_HOURS_CANCELLATION_REASON = 'Cambio orario lavoro medico';
-  public const CLOSURE_CANCELLATION_REASON = 'Chiusura straordinaria studio';
+    public const WORKING_HOURS_CANCELLATION_REASON = 'Cambio orario lavoro medico';
+    public const CLOSURE_CANCELLATION_REASON = 'Chiusura straordinaria studio';
 
-  public function __construct(private readonly ScheduleWindowService $windows)
-  {
-  }
-
-  public function cancelOrRequestConfirmation(Collection $appointments, string $reason, bool $confirmed): void
-  {
-    $appointments = $appointments->unique('id')->values();
-
-    if ($appointments->isEmpty()) {
-      return;
+    public function __construct(private readonly ScheduleWindowService $windows)
+    {
     }
 
-    if (! $confirmed) {
-      throw new ScheduleAppointmentConflictsException($appointments, $reason);
+    public function cancelOrRequestConfirmation(Collection $appointments, string $reason, bool $confirmed): void
+    {
+        $appointments = $appointments->unique('id')->values();
+
+        if ($appointments->isEmpty()) {
+            return;
+        }
+
+        if (!$confirmed) {
+            throw new ScheduleAppointmentConflictsException($appointments, $reason);
+        }
+
+        $this->cancelAppointments($appointments, $reason);
     }
 
-    $this->cancelAppointments($appointments, $reason);
-  }
+    private function cancelAppointments(Collection $appointments, string $reason): void
+    {
+        $appointmentIds = $appointments->pluck('id')->all();
 
-  public function closureConflicts(DoctorProfile $doctor, array $closures): Collection
-  {
-    $conflicts = collect();
+        if ($appointmentIds === []) {
+            return;
+        }
 
-    foreach ($closures as $closure) {
-      $window = $this->closureDateTimeWindow($closure['date'], $closure['start_time'], $closure['end_time']);
-      $conflicts = $conflicts->concat($this->appointmentsOverlapping($doctor, $window['start_at'], $window['end_at']));
+        Appointment::query()
+            ->whereKey($appointmentIds)
+            ->futureActiveSlot()
+            ->update([
+                'status' => Appointment::STATUS_CANCELLED,
+                'cancellation_reason' => $reason,
+                'cancelled_by_role' => Appointment::CANCELLED_BY_DOCTOR,
+                'cancelled_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 
-    return $conflicts->unique('id')->values();
-  }
+    public function closureConflicts(DoctorProfile $doctor, array $closures): Collection
+    {
+        $conflicts = collect();
 
-  public function closureModelConflicts(DoctorProfile $doctor, ScheduleClosure $closure): Collection
-  {
-    $window = $this->closureDateTimeWindow(
-      CarbonImmutable::parse($closure->date)->toDateString(),
-      $closure->start_time ? (string) $closure->start_time : null,
-      $closure->end_time ? (string) $closure->end_time : null,
-    );
+        foreach ($closures as $closure) {
+            $window = $this->closureDateTimeWindow($closure['date'], $closure['start_time'], $closure['end_time']);
+            $conflicts = $conflicts->concat($this->appointmentsOverlapping($doctor, $window['start_at'], $window['end_at']));
+        }
 
-    return $this->appointmentsOverlapping($doctor, $window['start_at'], $window['end_at']);
-  }
-
-  public function appointmentsUnsupportedBy(
-    DoctorProfile $doctor,
-    ?array $weeklyWindows,
-    ?SpecialOpening $excludingSpecialOpening = null,
-  ): Collection {
-    return Appointment::withPortalRelations()
-      ->where('doctor_profile_id', $doctor->id)
-      ->futureActiveSlot()
-      ->orderBy('start_at')
-      ->get()
-      ->filter(fn (Appointment $appointment): bool => ! $this->appointmentCovered(
-        $doctor,
-        $appointment,
-        $weeklyWindows,
-        $excludingSpecialOpening,
-      ))
-      ->values();
-  }
-
-  private function appointmentsOverlapping(DoctorProfile $doctor, CarbonImmutable $start, CarbonImmutable $end): Collection
-  {
-    return Appointment::withPortalRelations()
-      ->where('doctor_profile_id', $doctor->id)
-      ->futureActiveSlot()
-      ->where('start_at', '<', $end)
-      ->where('end_at', '>', $start)
-      ->orderBy('start_at')
-      ->get();
-  }
-
-  private function cancelAppointments(Collection $appointments, string $reason): void
-  {
-    $appointmentIds = $appointments->pluck('id')->all();
-
-    if ($appointmentIds === []) {
-      return;
+        return $conflicts->unique('id')->values();
     }
 
-    Appointment::query()
-      ->whereKey($appointmentIds)
-      ->futureActiveSlot()
-      ->update([
-        'status' => Appointment::STATUS_CANCELLED,
-        'cancellation_reason' => $reason,
-        'cancelled_by_role' => Appointment::CANCELLED_BY_DOCTOR,
-        'cancelled_at' => now(),
-        'updated_at' => now(),
-      ]);
-  }
+    private function closureDateTimeWindow(string $date, ?string $startTime, ?string $endTime): array
+    {
+        $day = CarbonImmutable::parse($date)->startOfDay();
 
-  private function appointmentCovered(
-    DoctorProfile $doctor,
-    Appointment $appointment,
-    ?array $weeklyWindows,
-    ?SpecialOpening $excludingSpecialOpening,
-  ): bool {
-    $start = CarbonImmutable::parse($appointment->start_at);
-    $end = CarbonImmutable::parse($appointment->end_at);
-    $date = $start->startOfDay();
-    $windows = $weeklyWindows === null
-      ? $this->windows->openingWindowsForDate($doctor, $date, $excludingSpecialOpening)
-      : $this->windows->openingWindowsFromTemplate($doctor, $date, $weeklyWindows, $excludingSpecialOpening);
+        return [
+            'start_at' => $startTime ? ScheduleTime::combine($day, $startTime) : $day->startOfDay(),
+            'end_at' => $endTime ? ScheduleTime::combine($day, $endTime) : $day->endOfDay(),
+        ];
+    }
 
-    return $windows->contains(
-      fn (array $window): bool => $window['start_at']->lessThanOrEqualTo($start) && $window['end_at']->greaterThanOrEqualTo($end)
-    );
-  }
+    private function appointmentsOverlapping(DoctorProfile $doctor, CarbonImmutable $start, CarbonImmutable $end): Collection
+    {
+        return Appointment::withPortalRelations()
+            ->where('doctor_profile_id', $doctor->id)
+            ->futureActiveSlot()
+            ->where('start_at', '<', $end)
+            ->where('end_at', '>', $start)
+            ->orderBy('start_at')
+            ->get();
+    }
 
-  private function closureDateTimeWindow(string $date, ?string $startTime, ?string $endTime): array
-  {
-    $day = CarbonImmutable::parse($date)->startOfDay();
+    public function closureModelConflicts(DoctorProfile $doctor, ScheduleClosure $closure): Collection
+    {
+        $window = $this->closureDateTimeWindow(
+            CarbonImmutable::parse($closure->date)->toDateString(),
+            $closure->start_time ? (string)$closure->start_time : null,
+            $closure->end_time ? (string)$closure->end_time : null,
+        );
 
-    return [
-      'start_at' => $startTime ? ScheduleTime::combine($day, $startTime) : $day->startOfDay(),
-      'end_at' => $endTime ? ScheduleTime::combine($day, $endTime) : $day->endOfDay(),
-    ];
-  }
+        return $this->appointmentsOverlapping($doctor, $window['start_at'], $window['end_at']);
+    }
+
+    public function appointmentsUnsupportedBy(
+        DoctorProfile   $doctor,
+        ?array          $weeklyWindows,
+        ?SpecialOpening $excludingSpecialOpening = null,
+    ): Collection
+    {
+        return Appointment::withPortalRelations()
+            ->where('doctor_profile_id', $doctor->id)
+            ->futureActiveSlot()
+            ->orderBy('start_at')
+            ->get()
+            ->filter(fn(Appointment $appointment): bool => !$this->appointmentCovered(
+                $doctor,
+                $appointment,
+                $weeklyWindows,
+                $excludingSpecialOpening,
+            ))
+            ->values();
+    }
+
+    private function appointmentCovered(
+        DoctorProfile   $doctor,
+        Appointment     $appointment,
+        ?array          $weeklyWindows,
+        ?SpecialOpening $excludingSpecialOpening,
+    ): bool
+    {
+        $start = CarbonImmutable::parse($appointment->start_at);
+        $end = CarbonImmutable::parse($appointment->end_at);
+        $date = $start->startOfDay();
+        $windows = $weeklyWindows === null
+            ? $this->windows->openingWindowsForDate($doctor, $date, $excludingSpecialOpening)
+            : $this->windows->openingWindowsFromTemplate($doctor, $date, $weeklyWindows, $excludingSpecialOpening);
+
+        return $windows->contains(
+            fn(array $window): bool => $window['start_at']->lessThanOrEqualTo($start) && $window['end_at']->greaterThanOrEqualTo($end)
+        );
+    }
 }

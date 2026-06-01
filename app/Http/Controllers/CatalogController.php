@@ -9,22 +9,22 @@ use Illuminate\Http\Request;
 
 class CatalogController extends Controller
 {
-  public function services(Request $request): JsonResponse
-  {
-    $validated = $request->validate([
-      'search' => ['nullable', 'string'],
-      'category' => ['nullable', 'string'],
-    ]);
+    public function services(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string'],
+            'category' => ['nullable', 'string'],
+        ]);
 
-    $services = MedicalService::query()
-      ->where('is_active', true)
-      ->when($validated['search'] ?? null, fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))
-      ->when($validated['category'] ?? null, fn ($query, $category) => $query->where('category', $category))
-      ->orderBy('name')
-      ->get()
-      ->map(fn (MedicalService $service) => PortalFormat::service($service))
-      ->values();
+        $services = MedicalService::query()
+            ->where('is_active', true)
+            ->when($validated['search'] ?? null, fn($query, $search) => $query->where('name', 'like', "%{$search}%"))
+            ->when($validated['category'] ?? null, fn($query, $category) => $query->where('category', $category))
+            ->orderBy('name')
+            ->get()
+            ->map(fn(MedicalService $service) => PortalFormat::service($service))
+            ->values();
 
-    return response()->json($services);
-  }
+        return response()->json($services);
+    }
 }
