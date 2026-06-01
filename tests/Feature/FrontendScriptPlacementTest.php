@@ -68,6 +68,18 @@ class FrontendScriptPlacementTest extends TestCase
     $this->assertStringNotContainsString('<script>', $wizard);
   }
 
+  public function test_appointment_history_filter_is_enhanced_without_full_page_navigation(): void
+  {
+    $blade = file_get_contents(resource_path('views/patient/partials/appointments-history-interactions.blade.php'));
+    $historyPartial = file_get_contents(resource_path('views/patient/partials/appointments-history.blade.php'));
+
+    $this->assertStringContainsString('const historyFilter = event.target.closest("[data-appointments-history-filter]")', $blade);
+    $this->assertStringContainsString('fetchAndReplace(historyFilter.href, "[data-appointments-history]")', $blade);
+    $this->assertStringContainsString('"X-Requested-With": "XMLHttpRequest"', $blade);
+    $this->assertStringContainsString('data-appointments-history', $historyPartial);
+    $this->assertStringNotContainsString('<script>', $historyPartial);
+  }
+
   public function test_closure_all_day_toggle_owns_and_disables_time_fields(): void
   {
     $blade = file_get_contents(resource_path('views/doctor/agenda.blade.php'));

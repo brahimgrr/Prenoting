@@ -22,18 +22,7 @@
       @endforelse
     </section>
 
-    <section class="appointment-group mt-4">
-      <div class="section-heading d-flex align-items-center justify-content-between gap-3 mb-3">
-        <h2>Passati e annullati</h2>
-      </div>
-      @forelse ($pastAppointments as $appointment)
-        @include('patient.partials.appointment-card', ['appointment' => $appointment, 'manageable' => false, 'muted' => true])
-      @empty
-        <div class="portal-panel empty-state p-4">
-          <h3>Nessuno storico appuntamenti</h3>
-          <p>Le visite passate e gli appuntamenti annullati compariranno qui.</p>
-        </div>
-      @endforelse
-    </section>
+    @include('patient.partials.appointments-history')
+    @include('patient.partials.appointments-history-interactions')
   </section>
 @endsection

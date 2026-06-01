@@ -19,6 +19,7 @@ class PatientAppointmentController extends Controller
 
     public function index(Request $request): View
     {
+        $historyFilter = $this->historyFilter($request);
         $appointments = Appointment::withPortalRelations()
             ->where('patient_id', $request->user()->patientProfile->id)
             ->orderByDesc('start_at')
@@ -28,11 +29,55 @@ class PatientAppointmentController extends Controller
             ->filter(fn(Appointment $appointment) => in_array($appointment->status, Appointment::ACTIVE_SLOT_STATUSES, true) && $appointment->start_at->isFuture())
             ->sortBy('start_at')
             ->values();
+        $pastAppointments = $appointments->diff($upcoming)->values();
 
-        return view('patient.appointments', [
+        $viewData = [
             'upcomingAppointments' => $upcoming,
-            'pastAppointments' => $appointments->diff($upcoming)->values(),
-        ]);
+            'pastAppointments' => $this->filteredHistoryAppointments($pastAppointments, $historyFilter),
+            'historyFilter' => $historyFilter,
+            'historyFilters' => $this->historyFilters(),
+        ];
+
+        if ($request->ajax()) {
+            return view('patient.partials.appointments-history', $viewData);
+        }
+
+        return view('patient.appointments', $viewData);
+    }
+
+    private function historyFilter(Request $request): string
+    {
+        $filter = $request->query('history_filter', 'all');
+
+        return in_array($filter, array_keys($this->historyFilters()), true) ? $filter : 'all';
+    }
+
+    private function filteredHistoryAppointments($appointments, string $filter)
+    {
+        return match ($filter) {
+            'past' => $appointments
+                ->filter(fn(Appointment $appointment): bool => $appointment->status !== Appointment::STATUS_CANCELLED)
+                ->values(),
+            'cancelled_by_patient' => $appointments
+                ->filter(fn(Appointment $appointment): bool => $appointment->status === Appointment::STATUS_CANCELLED
+                    && $appointment->cancelled_by_role === Appointment::CANCELLED_BY_PATIENT)
+                ->values(),
+            'cancelled_by_doctor' => $appointments
+                ->filter(fn(Appointment $appointment): bool => $appointment->status === Appointment::STATUS_CANCELLED
+                    && $appointment->cancelled_by_role === Appointment::CANCELLED_BY_DOCTOR)
+                ->values(),
+            default => $appointments,
+        };
+    }
+
+    private function historyFilters(): array
+    {
+        return [
+            'all' => 'Tutti',
+            'past' => 'Passati',
+            'cancelled_by_patient' => 'Annullati da te',
+            'cancelled_by_doctor' => 'Annullati dal medico',
+        ];
     }
 
     public function edit(Request $request, Appointment $appointment): View

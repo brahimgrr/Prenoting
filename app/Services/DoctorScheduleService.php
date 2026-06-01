@@ -172,11 +172,12 @@ class DoctorScheduleService
     {
         $closures = $this->normalizeClosureInput($input);
         $this->rejectPastClosureDates($closures);
+        $cancellationReason = $this->closureCancellationReason($closures);
 
-        return DB::transaction(function () use ($doctor, $closures, $confirmed): Collection {
+        return DB::transaction(function () use ($doctor, $closures, $confirmed, $cancellationReason): Collection {
             $this->appointments->cancelOrRequestConfirmation(
                 $this->appointments->closureConflicts($doctor, $closures),
-                ScheduleAppointmentImpactService::CLOSURE_CANCELLATION_REASON,
+                $cancellationReason,
                 $confirmed,
             );
 
@@ -192,6 +193,17 @@ class DoctorScheduleService
                 ]);
             });
         });
+    }
+
+    private function closureCancellationReason(array $closures): string
+    {
+        foreach ($closures as $closure) {
+            if (($closure['reason'] ?? null) !== null) {
+                return $closure['reason'];
+            }
+        }
+
+        return ScheduleAppointmentImpactService::CLOSURE_CANCELLATION_REASON;
     }
 
     private function normalizeClosureInput(array $input): array

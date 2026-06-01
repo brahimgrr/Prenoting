@@ -353,6 +353,124 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSee('<dt>Motivo annullamento</dt>', false);
   }
 
+  public function test_patient_appointments_history_can_be_filtered_by_past_and_cancellation_actor(): void
+  {
+    [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
+
+    $pastSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 30),
+      $doctor->id,
+    );
+    $patientCancelledSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->addDays(4)->setTime(11, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->addDays(4)->setTime(11, 0),
+      CarbonImmutable::now()->addDays(4)->setTime(11, 30),
+      $doctor->id,
+    );
+    $doctorCancelledSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->addDays(5)->setTime(12, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->addDays(5)->setTime(12, 0),
+      CarbonImmutable::now()->addDays(5)->setTime(12, 30),
+      $doctor->id,
+    );
+
+    $this->appointment($patient, $doctor, $service, $pastSlot, Appointment::STATUS_COMPLETED, 'Solo appuntamento passato');
+    $this->appointment(
+      $patient,
+      $doctor,
+      $service,
+      $patientCancelledSlot,
+      Appointment::STATUS_CANCELLED,
+      '',
+      'Solo annullamento paziente',
+      Appointment::CANCELLED_BY_PATIENT,
+    );
+    $this->appointment(
+      $patient,
+      $doctor,
+      $service,
+      $doctorCancelledSlot,
+      Appointment::STATUS_CANCELLED,
+      '',
+      'Solo annullamento medico',
+      Appointment::CANCELLED_BY_DOCTOR,
+    );
+
+    $this->actingAs($patientUser)
+      ->get('/patient/appointments')
+      ->assertOk()
+      ->assertSee('Tutti')
+      ->assertSee('Passati')
+      ->assertSee('Annullati da te')
+      ->assertSee('Annullati dal medico')
+      ->assertSeeText('Solo appuntamento passato')
+      ->assertSeeText('Solo annullamento paziente')
+      ->assertSeeText('Solo annullamento medico');
+
+    $this->actingAs($patientUser)
+      ->get('/patient/appointments?history_filter=past')
+      ->assertOk()
+      ->assertSeeText('Solo appuntamento passato')
+      ->assertDontSeeText('Solo annullamento paziente')
+      ->assertDontSeeText('Solo annullamento medico');
+
+    $this->actingAs($patientUser)
+      ->get('/patient/appointments?history_filter=cancelled_by_patient')
+      ->assertOk()
+      ->assertDontSeeText('Solo appuntamento passato')
+      ->assertSeeText('Solo annullamento paziente')
+      ->assertDontSeeText('Solo annullamento medico');
+
+    $this->actingAs($patientUser)
+      ->get('/patient/appointments?history_filter=cancelled_by_doctor')
+      ->assertOk()
+      ->assertDontSeeText('Solo appuntamento passato')
+      ->assertDontSeeText('Solo annullamento paziente')
+      ->assertSeeText('Solo annullamento medico');
+  }
+
+  public function test_patient_appointments_history_filter_ajax_request_returns_history_partial(): void
+  {
+    [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
+
+    $pastSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 30),
+      $doctor->id,
+    );
+    $patientCancelledSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->addDays(4)->setTime(11, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->addDays(4)->setTime(11, 0),
+      CarbonImmutable::now()->addDays(4)->setTime(11, 30),
+      $doctor->id,
+    );
+
+    $this->appointment($patient, $doctor, $service, $pastSlot, Appointment::STATUS_COMPLETED, 'Storico passato');
+    $this->appointment(
+      $patient,
+      $doctor,
+      $service,
+      $patientCancelledSlot,
+      Appointment::STATUS_CANCELLED,
+      '',
+      'Storico annullato dal paziente',
+      Appointment::CANCELLED_BY_PATIENT,
+    );
+
+    $this->actingAs($patientUser)
+      ->withHeader('X-Requested-With', 'XMLHttpRequest')
+      ->get('/patient/appointments?history_filter=cancelled_by_patient')
+      ->assertOk()
+      ->assertSee('data-appointments-history', false)
+      ->assertSeeText('Storico annullato dal paziente')
+      ->assertDontSeeText('Storico passato')
+      ->assertDontSee('<!doctype html>', false)
+      ->assertDontSee('<main class="app-content', false);
+  }
+
   public function test_patient_can_open_reschedule_wizard_and_confirm_new_start(): void
   {
     [$patientUser, $patient, $doctor, $service, $oldSlot] = $this->bookingContext();

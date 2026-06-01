@@ -606,16 +606,17 @@ class DoctorSchedulingUxTest extends TestCase
     [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
     $start = CarbonImmutable::now()->next(CarbonImmutable::MONDAY)->setTime(9, 0);
     $appointment = $this->appointment($patient, $doctor, $service, $start);
+    $cancellationReason = 'Formazione fuori sede';
 
     $this->actingAs($doctorUser)
       ->from('/doctor/agenda?date='.$start->toDateString())
       ->post('/doctor/closures', [
         'date' => $start->toDateString(),
         'all_day' => '1',
-        'reason' => 'Ferie',
+        'reason' => $cancellationReason,
       ])
       ->assertRedirect('/doctor/agenda?date='.$start->toDateString())
-      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool => $confirmation['reason'] === 'Chiusura straordinaria studio'
+      ->assertSessionHas('schedule_confirmation', fn (array $confirmation): bool => $confirmation['reason'] === $cancellationReason
        && $confirmation['action'] === '/doctor/closures'
        && count($confirmation['appointments']) === 1
        && $confirmation['appointments'][0]['id'] === $appointment->id
@@ -633,7 +634,7 @@ class DoctorSchedulingUxTest extends TestCase
         'confirm_appointment_cancellations' => '1',
         'date' => $start->toDateString(),
         'all_day' => '1',
-        'reason' => 'Ferie',
+        'reason' => $cancellationReason,
       ])
       ->assertRedirect('/doctor/agenda?date='.$start->toDateString())
       ->assertSessionHas('status', 'Chiusura creata.');
@@ -642,7 +643,7 @@ class DoctorSchedulingUxTest extends TestCase
     $this->assertDatabaseHas('appointments', [
       'id' => $appointment->id,
       'status' => Appointment::STATUS_CANCELLED,
-      'cancellation_reason' => 'Chiusura straordinaria studio',
+      'cancellation_reason' => $cancellationReason,
     ]);
   }
 
@@ -651,6 +652,7 @@ class DoctorSchedulingUxTest extends TestCase
     [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
     $start = CarbonImmutable::now()->next(CarbonImmutable::MONDAY)->setTime(9, 0);
     $this->appointment($patient, $doctor, $service, $start);
+    $cancellationReason = 'Ferie';
 
     $this->actingAs($doctorUser)
       ->followingRedirects()
@@ -658,7 +660,7 @@ class DoctorSchedulingUxTest extends TestCase
       ->post('/doctor/closures', [
         'date' => $start->toDateString(),
         'all_day' => '1',
-        'reason' => 'Ferie',
+        'reason' => $cancellationReason,
       ])
       ->assertOk()
       ->assertSee('id="scheduleConfirmationModal"', false)
@@ -669,7 +671,8 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertSee('action="/doctor/closures"', false)
       ->assertSee('name="date" value="'.$start->toDateString().'"', false)
       ->assertSee('name="all_day" value="1"', false)
-      ->assertSee('Chiusura straordinaria studio');
+      ->assertSee($cancellationReason)
+      ->assertDontSee('Chiusura straordinaria studio');
   }
 
   public function test_creating_larger_closure_replaces_contained_closures(): void
