@@ -133,16 +133,101 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertOk()
       ->assertSee('data-working-hours-reset-day', false)
       ->assertSee('data-working-hours-reset-break', false)
+      ->assertSee('data-working-hours-add-break', false)
+      ->assertSee('data-working-hours-break-row', false)
+      ->assertSee('Aggiungi pausa pranzo')
+      ->assertSee('working-hours-reset-button', false)
+      ->assertSee('class="col-12 col-md-auto d-flex align-items-end justify-content-md-end"', false)
       ->assertSee('aria-label="Rimuovi apertura Lunedi"', false)
       ->assertSee('aria-label="Rimuovi pausa pranzo Lunedi"', false)
       ->getContent();
 
     $this->assertSame(7, preg_match_all('/<button[^>]+data-working-hours-reset-day/', $content));
     $this->assertSame(7, preg_match_all('/<button[^>]+data-working-hours-reset-break/', $content));
+    $this->assertSame(7, preg_match_all('/<button[^>]+data-working-hours-add-break/', $content));
+    $this->assertMatchesRegularExpression('/<button[^>]*data-working-hours-add-break[^>]*aria-controls="working-hours-1-break-row"[^>]*>\\s*Aggiungi pausa pranzo\\s*<\\/button>/s', $content);
+    $this->assertMatchesRegularExpression('/<div[^>]*id="working-hours-1-break-row"[^>]*data-working-hours-break-row[^>]*hidden/s', $content);
     $this->assertStringContainsString('function resettaRigaOrarioGiorno', $content);
     $this->assertStringContainsString('function resettaRigaPausaPranzo', $content);
+    $this->assertStringContainsString('function mostraRigaPausaPranzo', $content);
+    $this->assertStringContainsString('function nascondiRigaPausaPranzo', $content);
+    $this->assertStringContainsString('const addBreakButton = event.target.closest("[data-working-hours-add-break]")', $content);
     $this->assertStringContainsString('const resetDayButton = event.target.closest("[data-working-hours-reset-day]")', $content);
     $this->assertStringContainsString('const resetBreakButton = event.target.closest("[data-working-hours-reset-break]")', $content);
+  }
+
+  public function test_doctor_profile_shows_lunch_break_row_when_lunch_break_exists(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    WorkingHour::create([
+      'doctor_profile_id' => $doctor->id,
+      'weekday' => 1,
+      'start_time' => '09:00',
+      'end_time' => '13:00',
+      'is_active' => true,
+    ]);
+    WorkingHour::create([
+      'doctor_profile_id' => $doctor->id,
+      'weekday' => 1,
+      'start_time' => '14:00',
+      'end_time' => '18:00',
+      'is_active' => true,
+    ]);
+
+    $content = $this->actingAs($doctorUser)
+      ->get('/doctor/profile')
+      ->assertOk()
+      ->getContent();
+
+    $this->assertMatchesRegularExpression('/<button[^>]*data-working-hours-add-break[^>]*hidden[^>]*aria-controls="working-hours-1-break-row"/s', $content);
+    $this->assertMatchesRegularExpression('/<div[^>]*id="working-hours-1-break-row"[^>]*data-working-hours-break-row(?![^>]*hidden)/s', $content);
+    $this->assertStringContainsString('<option value="13:00" selected>13:00</option>', $this->selectByName($content, 'working_hours[1][break_start_time]'));
+    $this->assertStringContainsString('<option value="14:00" selected>14:00</option>', $this->selectByName($content, 'working_hours[1][break_end_time]'));
+  }
+
+  public function test_doctor_profile_hides_working_hours_editor_until_editing(): void
+  {
+    [$doctorUser] = $this->doctorContext();
+
+    $content = $this->actingAs($doctorUser)
+      ->get('/doctor/profile')
+      ->assertOk()
+      ->assertSee('data-working-hours-summary', false)
+      ->assertSee('data-working-hours-edit', false)
+      ->assertSee('Modifica')
+      ->assertSee('id="working-hours-editor"', false)
+      ->getContent();
+
+    $this->assertMatchesRegularExpression('/<div[^>]*id="working-hours-editor"[^>]*hidden[^>]*data-working-hours-editor/s', $content);
+    $this->assertStringContainsString('function mostraEditorOrariAmbulatorio', $content);
+    $this->assertStringContainsString('const editButton = event.target.closest("[data-working-hours-edit]")', $content);
+  }
+
+  public function test_doctor_profile_keeps_working_hours_editor_open_after_validation_errors(): void
+  {
+    [$doctorUser] = $this->doctorContext();
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/profile')
+      ->patch('/doctor/profile/working-hours', [
+        'working_hours' => [
+          1 => [
+            'open_time' => '09:00',
+            'break_start_time' => '13:00',
+            'close_time' => '18:00',
+          ],
+        ],
+      ])
+      ->assertRedirect('/doctor/profile')
+      ->assertSessionHasErrors('working_hours');
+
+    $content = $this->actingAs($doctorUser)
+      ->get('/doctor/profile')
+      ->assertOk()
+      ->getContent();
+
+    $this->assertDoesNotMatchRegularExpression('/<div[^>]*id="working-hours-editor"[^>]*hidden[^>]*data-working-hours-editor/s', $content);
+    $this->assertMatchesRegularExpression('/<button[^>]*data-working-hours-edit[^>]*hidden/s', $content);
   }
 
   public function test_time_forms_render_half_hour_selects_instead_of_native_time_inputs(): void

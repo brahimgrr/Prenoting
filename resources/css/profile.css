@@ -15,3 +15,16 @@
 .profile-data-tile strong {
   color: var(--color-navy);
 }
+
+.working-hours-reset-button {
+  align-items: center;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  display: inline-flex;
+  font-weight: 700;
+  height: 2.25rem;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 2.25rem;
+}

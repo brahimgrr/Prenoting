@@ -21,6 +21,7 @@
   ];
   $hasConfiguredWorkingHours = collect($workingHourDays ?? [])
     ->contains(fn ($day) => collect($day['fields'] ?? [])->contains(fn ($value) => filled($value)));
+  $showWorkingHoursEditor = is_array($oldWorkingHours) || $errors->has('working_hours');
 @endphp
 
 @section('content')
@@ -115,9 +116,16 @@
 
           <div class="section-heading d-flex align-items-center justify-content-between gap-3 mb-3">
             <h2>Orari ambulatorio</h2>
+            <button
+              class="btn btn-outline-secondary btn-sm"
+              type="button"
+              data-working-hours-edit
+              @if ($showWorkingHoursEditor) hidden @endif
+              aria-controls="working-hours-editor"
+            >Modifica</button>
           </div>
 
-          <div class="mb-3">
+          <div class="mb-3" data-working-hours-summary>
             <div class="row g-2">
               @foreach ($weekdays as $weekday => $label)
                 @php
@@ -147,6 +155,7 @@
             </div>
           </div>
 
+          <div id="working-hours-editor" @unless ($showWorkingHoursEditor) hidden @endunless data-working-hours-editor>
           <div class="vstack gap-3">
 
             @foreach ($weekdays as $weekday => $label)
@@ -178,6 +187,7 @@
                 }
                 $dayMinutes = max(0, $dayMinutes);
                 $isOpen = filled($day['open_time'] ?? null) || filled($day['close_time'] ?? null);
+                $hasLunchBreak = filled($day['break_start_time'] ?? null) || filled($day['break_end_time'] ?? null);
                 $dayHours = intdiv($dayMinutes, 60);
                 $dayRemainder = $dayMinutes % 60;
                 $dayDuration = $dayMinutes > 0
@@ -199,7 +209,7 @@
                 <div class="vstack gap-2">
                   <div class="row g-2 align-items-end">
                     <div class="visually-hidden">Orari di apertura</div>
-                    <div class="col-12 col-md-5">
+                    <div class="col-12 col-md">
                       <label class="form-label" for="working-hours-{{ $weekday }}-open">Apri alle</label>
                       <x-time-select
                         id="working-hours-{{ $weekday }}-open"
@@ -209,7 +219,7 @@
                       />
                     </div>
 
-                    <div class="col-12 col-md-5">
+                    <div class="col-12 col-md">
                       <label class="form-label" for="working-hours-{{ $weekday }}-close">Chiudi alle</label>
                       <x-time-select
                         id="working-hours-{{ $weekday }}-close"
@@ -220,9 +230,9 @@
                       />
                     </div>
 
-                    <div class="col-12 col-md-2 d-grid">
+                    <div class="col-12 col-md-auto d-flex align-items-end justify-content-md-end">
                       <button
-                        class="btn btn-outline-danger"
+                        class="btn btn-outline-secondary working-hours-reset-button"
                         type="button"
                         data-working-hours-reset-day
                         aria-label="Rimuovi apertura {{ $label }}"
@@ -231,8 +241,21 @@
                     </div>
                   </div>
 
-                  <div class="row g-2 align-items-end">
-                    <div class="col-12 col-md-5">
+                  <button
+                    class="btn btn-link align-self-start px-0 py-1 text-decoration-none"
+                    type="button"
+                    data-working-hours-add-break
+                    @if ($hasLunchBreak) hidden @endif
+                    aria-controls="working-hours-{{ $weekday }}-break-row"
+                  >Aggiungi pausa pranzo</button>
+
+                  <div
+                    class="row g-2 align-items-end"
+                    id="working-hours-{{ $weekday }}-break-row"
+                    data-working-hours-break-row
+                    @unless ($hasLunchBreak) hidden @endunless
+                  >
+                    <div class="col-12 col-md">
                       <label class="form-label" for="working-hours-{{ $weekday }}-break-start">Pausa pranzo da</label>
                       <x-time-select
                         id="working-hours-{{ $weekday }}-break-start"
@@ -242,7 +265,7 @@
                       />
                     </div>
 
-                    <div class="col-12 col-md-5">
+                    <div class="col-12 col-md">
                       <label class="form-label" for="working-hours-{{ $weekday }}-break-end">Pausa pranzo a</label>
                       <x-time-select
                         id="working-hours-{{ $weekday }}-break-end"
@@ -253,9 +276,9 @@
                       />
                     </div>
 
-                    <div class="col-12 col-md-2 d-grid">
+                    <div class="col-12 col-md-auto d-flex align-items-end justify-content-md-end">
                       <button
-                        class="btn btn-outline-danger"
+                        class="btn btn-outline-secondary working-hours-reset-button"
                         type="button"
                         data-working-hours-reset-break
                         aria-label="Rimuovi pausa pranzo {{ $label }}"
@@ -271,6 +294,7 @@
           <div class="d-flex justify-content-end gap-2 pt-3 mt-3 border-top">
             <a class="btn btn-outline-secondary" href="/doctor/profile">Reset</a>
             <button type="submit" class="btn btn-primary">Salva orari</button>
+          </div>
           </div>
 
         </form>
@@ -338,7 +362,34 @@
       function resettaRigaPausaPranzo(day) {
         resettaSelectOrario(day, 'select[name$="[break_start_time]"]');
         resettaSelectOrario(day, 'select[name$="[break_end_time]"]');
+        nascondiRigaPausaPranzo(day);
         aggiornaGiornoOrario(day);
+      }
+
+      function mostraEditorOrariAmbulatorio(editor, editButton) {
+        editor.hidden = false;
+        editButton.hidden = true;
+        editor.querySelector("select")?.focus();
+      }
+
+      function mostraRigaPausaPranzo(day) {
+        const breakRow = day.querySelector("[data-working-hours-break-row]");
+        const addBreakButton = day.querySelector("[data-working-hours-add-break]");
+
+        if (breakRow) {
+          breakRow.hidden = false;
+          breakRow.querySelector("select")?.focus();
+        }
+
+        if (addBreakButton) addBreakButton.hidden = true;
+      }
+
+      function nascondiRigaPausaPranzo(day) {
+        const breakRow = day.querySelector("[data-working-hours-break-row]");
+        const addBreakButton = day.querySelector("[data-working-hours-add-break]");
+
+        if (breakRow) breakRow.hidden = true;
+        if (addBreakButton) addBreakButton.hidden = false;
       }
 
       document.addEventListener("change", (event) => {
@@ -347,6 +398,20 @@
       });
 
       document.addEventListener("click", (event) => {
+        const editButton = event.target.closest("[data-working-hours-edit]");
+        if (editButton) {
+          const editor = document.getElementById(editButton.getAttribute("aria-controls"));
+          if (editor) mostraEditorOrariAmbulatorio(editor, editButton);
+          return;
+        }
+
+        const addBreakButton = event.target.closest("[data-working-hours-add-break]");
+        if (addBreakButton) {
+          const day = addBreakButton.closest("[data-working-hours-day]");
+          if (day) mostraRigaPausaPranzo(day);
+          return;
+        }
+
         const resetDayButton = event.target.closest("[data-working-hours-reset-day]");
         const resetBreakButton = event.target.closest("[data-working-hours-reset-break]");
         const resetButton = resetDayButton || resetBreakButton;
