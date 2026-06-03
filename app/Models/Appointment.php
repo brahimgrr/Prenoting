@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Appointment extends Model
 {
-    public const PORTAL_RELATIONS = ['patient.user', 'service', 'doctor'];
+    public const PORTAL_RELATIONS = ['patient.user', 'service', 'doctor.user'];
 
     public const CANCELLED_BY_PATIENT = 'patient';
     public const CANCELLED_BY_DOCTOR = 'doctor';

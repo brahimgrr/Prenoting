@@ -4,7 +4,7 @@
       <h2>Storico appuntamenti</h2>
       <a
         class="btn btn-link px-0 py-1 text-decoration-none fw-semibold"
-        href="/patient/appointments"
+        href="/doctor/appointments"
         data-appointments-history-hide
       >Nascondi storico appuntamenti</a>
     </div>
@@ -12,7 +12,7 @@
     @foreach ($historyFilters as $filterValue => $filterLabel)
       @php
         $isActiveHistoryFilter = $historyFilter === $filterValue;
-        $filterUrl = '/patient/appointments?show_history=1&history_filter='.$filterValue;
+        $filterUrl = '/doctor/appointments?show_history=1&history_filter='.$filterValue;
       @endphp
       <a
         class="btn btn-sm {{ $isActiveHistoryFilter ? 'btn-primary' : 'btn-outline-secondary' }}"
@@ -24,11 +24,11 @@
     </div>
   </div>
   @forelse ($pastAppointments as $appointment)
-    @include('patient.partials.appointment-card', ['appointment' => $appointment, 'manageable' => false, 'muted' => true])
+    @include('doctor.partials.appointment-card', ['appointment' => $appointment, 'manageable' => false, 'muted' => true])
   @empty
     <div class="portal-panel empty-state p-4">
       <h3>Nessuno storico appuntamenti</h3>
-      <p>Le visite passate e gli appuntamenti annullati compariranno qui.</p>
+      <p>Gli appuntamenti passati e annullati compariranno qui.</p>
     </div>
   @endforelse
 </section>

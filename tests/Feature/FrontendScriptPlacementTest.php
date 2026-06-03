@@ -74,9 +74,14 @@ class FrontendScriptPlacementTest extends TestCase
     $historyPartial = file_get_contents(resource_path('views/patient/partials/appointments-history.blade.php'));
 
     $this->assertStringContainsString('const historyFilter = event.target.closest("[data-appointments-history-filter]")', $blade);
+    $this->assertStringContainsString('const historyReveal = event.target.closest("[data-appointments-history-reveal]")', $blade);
+    $this->assertStringContainsString('const historyHide = event.target.closest("[data-appointments-history-hide]")', $blade);
     $this->assertStringContainsString('fetchAndReplace(historyFilter.href, "[data-appointments-history]")', $blade);
+    $this->assertStringContainsString('fetchAndReplace(historyReveal.href, "[data-appointments-history-placeholder]")', $blade);
+    $this->assertStringContainsString('collapseHistory("[data-appointments-history]")', $blade);
     $this->assertStringContainsString('"X-Requested-With": "XMLHttpRequest"', $blade);
     $this->assertStringContainsString('data-appointments-history', $historyPartial);
+    $this->assertStringContainsString('data-appointments-history-hide', $historyPartial);
     $this->assertStringNotContainsString('<script>', $historyPartial);
   }
 

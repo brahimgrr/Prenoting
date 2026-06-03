@@ -3,26 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
+use App\Models\DoctorProfile;
 use App\Services\AppointmentService;
-use App\Services\PatientBookingWizardViewData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-class PatientAppointmentController extends Controller
+class DoctorAppointmentController extends Controller
 {
-    public function __construct(
-        private readonly PatientBookingWizardViewData $bookingWizard,
-    )
-    {
-    }
-
     public function index(Request $request): View
     {
+        $doctor = $this->doctorFor($request);
         $showHistory = $this->showHistory($request);
         $historyFilter = $this->historyFilter($request);
         $appointments = Appointment::withPortalRelations()
-            ->where('patient_id', $request->user()->patientProfile->id);
+            ->where('doctor_profile_id', $doctor->id);
 
         $upcoming = (clone $appointments)
             ->whereIn('status', Appointment::ACTIVE_SLOT_STATUSES)
@@ -52,11 +47,35 @@ class PatientAppointmentController extends Controller
 
         if ($request->ajax()) {
             return $showHistory
-                ? view('patient.partials.appointments-history', $viewData)
-                : view('patient.partials.appointments-history-placeholder');
+                ? view('doctor.partials.appointments-history', $viewData)
+                : view('doctor.partials.appointments-history-placeholder');
         }
 
-        return view('patient.appointments', $viewData);
+        return view('doctor.appointments', $viewData);
+    }
+
+    public function updateStatus(Request $request, Appointment $appointment, AppointmentService $appointments): RedirectResponse
+    {
+        $this->authorizeDoctorAppointment($request, $appointment);
+        $validated = $request->validate([
+            'status' => ['required', 'string'],
+        ]);
+
+        $appointments->updateByDoctor($appointment, $validated['status']);
+
+        return redirect()->back()->with('status', 'Stato appuntamento aggiornato.');
+    }
+
+    public function cancel(Request $request, Appointment $appointment, AppointmentService $appointments): RedirectResponse
+    {
+        $this->authorizeDoctorAppointment($request, $appointment);
+        $validated = $request->validate([
+            'cancellation_reason' => ['nullable', 'string'],
+        ]);
+
+        $appointments->cancelByDoctor($appointment, $validated['cancellation_reason'] ?? '', $request->user());
+
+        return redirect()->back()->with('status', 'Appuntamento annullato.');
     }
 
     private function showHistory(Request $request): bool
@@ -93,59 +112,22 @@ class PatientAppointmentController extends Controller
     {
         return [
             'past' => 'Passati',
-            'cancelled_by_patient' => 'Annullati da te',
-            'cancelled_by_doctor' => 'Annullati dal medico',
+            'cancelled_by_patient' => 'Annullati dal paziente',
+            'cancelled_by_doctor' => 'Annullati da te',
             'all' => 'Tutti',
         ];
     }
 
-    public function edit(Request $request, Appointment $appointment): View
+    private function authorizeDoctorAppointment(Request $request, Appointment $appointment): void
     {
-        $this->authorizePatientAppointment($request, $appointment);
-        $viewData = $this->bookingWizard->reschedule($request, $appointment);
-
-        if ($request->ajax()) {
-            return view('patient.partials.booking-wizard', $viewData);
-        }
-
-        return view('patient.appointment-edit', $viewData);
+        abort_unless($appointment->doctor_profile_id === $this->doctorFor($request)->id, 404);
     }
 
-    private function authorizePatientAppointment(Request $request, Appointment $appointment): void
+    private function doctorFor(Request $request): DoctorProfile
     {
-        abort_unless($appointment->patient_id === $request->user()->patientProfile->id, 404);
-    }
+        $doctor = $request->user()->doctorProfile;
+        abort_unless($doctor, 404);
 
-    public function reschedule(Request $request, Appointment $appointment, AppointmentService $appointments): RedirectResponse
-    {
-        $this->authorizePatientAppointment($request, $appointment);
-        $validated = $request->validate([
-            'slot_start' => ['required', 'date_format:Y-m-d\TH:i'],
-        ]);
-
-        $appointments->reschedule($appointment, (string)$validated['slot_start']);
-
-        return redirect('/patient/appointments')->with('status', 'Appuntamento spostato.');
-    }
-
-    public function editWeek(Request $request, Appointment $appointment): View
-    {
-        $this->authorizePatientAppointment($request, $appointment);
-
-        return view('patient.partials.booking-week-partial', array_replace($this->bookingWizard->reschedule($request, $appointment), [
-            'selectedSlot' => null,
-        ]));
-    }
-
-    public function cancel(Request $request, Appointment $appointment, AppointmentService $appointments): RedirectResponse
-    {
-        $this->authorizePatientAppointment($request, $appointment);
-        $validated = $request->validate([
-            'cancellation_reason' => ['nullable', 'string'],
-        ]);
-
-        $appointments->cancelByPatient($appointment, $validated['cancellation_reason'] ?? '', $request->user());
-
-        return redirect('/patient/appointments')->with('status', 'Appuntamento annullato.');
+        return $doctor;
     }
 }

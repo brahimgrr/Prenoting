@@ -233,9 +233,19 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertDontSee('<main class="app-content', false);
   }
 
-  public function test_patient_appointments_page_renders_compact_action_menu_and_cancel_modal(): void
+  public function test_patient_appointments_page_renders_icon_actions_and_cancel_modal(): void
   {
     [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
+    $doctor->forceFill([
+      'bio' => 'Dermatologo specializzato in prevenzione.',
+      'license_number' => 'DERM-001',
+      'phone' => '3331000000',
+      'clinic_address' => 'Via Roma 1',
+    ])->save();
+    $doctor->user->forceFill([
+      'first_name' => 'Kylian',
+      'last_name' => 'Mbappe',
+    ])->save();
     $appointment = $this->appointment($patient, $doctor, $service, $slot);
     $pastSlot = new VirtualAvailabilitySlot(
       CarbonImmutable::now()->subDays(2)->setTime(9, 0)->format('Y-m-d\TH:i'),
@@ -248,15 +258,29 @@ class AppointmentWorkflowTest extends TestCase
     $response = $this->actingAs($patientUser)->get('/patient/appointments');
 
     $response->assertOk();
-    $response->assertSee('<h3>'.$service->name.'</h3>', false);
+    $response->assertSee('<h3 class="mb-0">'.$service->name.'</h3>', false);
     $response->assertSee('<dt>Orario</dt>', false);
     $response->assertSee('<dd>'.$appointment->start_at->format('d/m/Y H:i').' - '.$appointment->end_at->format('H:i').'</dd>', false);
-    $response->assertSee('aria-label="Azioni appuntamento"', false);
-    $response->assertSee('Sposta appuntamento');
-    $response->assertSee('Annulla appuntamento');
+    $response->assertDontSee('aria-label="Azioni appuntamento"', false);
+    $response->assertSee('aria-label="Informazioni medico"', false);
+    $response->assertSee('<i class="bi bi-info-circle"', false);
+    $response->assertSee("data-bs-target=\"#doctorInfoModal{$appointment->id}\"", false);
+    $response->assertSee('aria-label="Sposta appuntamento"', false);
+    $response->assertSee('<i class="bi bi-pencil-square"', false);
+    $response->assertSee("href=\"/appointments/{$appointment->id}/edit\"", false);
+    $response->assertSee('aria-label="Annulla appuntamento"', false);
+    $response->assertSee('<i class="bi bi-trash"', false);
+    $response->assertSee("id=\"doctorInfoModal{$appointment->id}\"", false);
+    $response->assertSeeText('Informazioni medico');
+    $response->assertSeeText('Dott. Mbappe');
+    $response->assertSeeText('doctor.derm@example.com');
+    $response->assertSeeText('3331000000');
+    $response->assertSeeText('Via Roma 1');
+    $response->assertSeeText('DERM-001');
+    $response->assertSeeText('Dermatologo specializzato in prevenzione.');
     $response->assertSee("id=\"appointmentCancelModal{$appointment->id}\"", false);
     $response->assertSee("action=\"/appointments/{$appointment->id}/cancel\"", false);
-    $response->assertDontSeeText('Medico');
+    $response->assertDontSee('<dt>Medico</dt>', false);
     $response->assertDontSeeText('Ambulatorio');
   }
 
@@ -290,6 +314,72 @@ class AppointmentWorkflowTest extends TestCase
     } finally {
       $this->travelBack();
     }
+  }
+
+  public function test_patient_appointments_page_collapses_history_until_requested(): void
+  {
+    [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
+
+    $pastSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 30),
+      $doctor->id,
+    );
+    $this->appointment($patient, $doctor, $service, $pastSlot, Appointment::STATUS_COMPLETED, 'Storico pesante');
+
+    $response = $this->actingAs($patientUser)->get('/patient/appointments');
+
+    $response->assertOk();
+    $response->assertSee('Visualizza storico appuntamenti');
+    $response->assertSee('data-appointments-history-placeholder', false);
+    $response->assertDontSee('<section class="appointment-group mt-4" data-appointments-history>', false);
+    $response->assertDontSeeText('Storico pesante');
+    $response->assertDontSee('Nascondi storico appuntamenti');
+  }
+
+  public function test_patient_appointments_history_defaults_to_past_when_opened(): void
+  {
+    [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
+
+    $pastSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 30),
+      $doctor->id,
+    );
+    $patientCancelledSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->addDays(4)->setTime(11, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->addDays(4)->setTime(11, 0),
+      CarbonImmutable::now()->addDays(4)->setTime(11, 30),
+      $doctor->id,
+    );
+
+    $this->appointment($patient, $doctor, $service, $pastSlot, Appointment::STATUS_COMPLETED, 'Solo passato predefinito');
+    $this->appointment(
+      $patient,
+      $doctor,
+      $service,
+      $patientCancelledSlot,
+      Appointment::STATUS_CANCELLED,
+      '',
+      'Solo annullato nascosto',
+      Appointment::CANCELLED_BY_PATIENT,
+    );
+
+    $response = $this->actingAs($patientUser)->get('/patient/appointments?show_history=1');
+
+    $response->assertOk();
+    $response->assertSee('data-appointments-history', false);
+    $response->assertSee('Nascondi storico appuntamenti');
+    $response->assertSee('aria-current="page"', false);
+    $response->assertSeeText('Solo passato predefinito');
+    $response->assertDontSeeText('Solo annullato nascosto');
+
+    $content = $response->getContent();
+    $this->assertLessThan(strpos($content, 'Annullati da te'), strpos($content, 'Passati'));
+    $this->assertLessThan(strpos($content, 'Annullati dal medico'), strpos($content, 'Annullati da te'));
+    $this->assertLessThan(strpos($content, 'Tutti'), strpos($content, 'Annullati dal medico'));
   }
 
   public function test_patient_appointments_history_marks_past_and_cancelled_and_shows_visit_details(): void
@@ -338,7 +428,7 @@ class AppointmentWorkflowTest extends TestCase
       Appointment::CANCELLED_BY_DOCTOR,
     );
 
-    $response = $this->actingAs($patientUser)->get('/patient/appointments');
+    $response = $this->actingAs($patientUser)->get('/patient/appointments?show_history=1&history_filter=all');
 
     $response->assertOk();
     $response->assertSeeText('Passato');
@@ -399,7 +489,7 @@ class AppointmentWorkflowTest extends TestCase
     );
 
     $this->actingAs($patientUser)
-      ->get('/patient/appointments')
+      ->get('/patient/appointments?show_history=1&history_filter=all')
       ->assertOk()
       ->assertSee('Tutti')
       ->assertSee('Passati')
@@ -410,21 +500,21 @@ class AppointmentWorkflowTest extends TestCase
       ->assertSeeText('Solo annullamento medico');
 
     $this->actingAs($patientUser)
-      ->get('/patient/appointments?history_filter=past')
+      ->get('/patient/appointments?show_history=1&history_filter=past')
       ->assertOk()
       ->assertSeeText('Solo appuntamento passato')
       ->assertDontSeeText('Solo annullamento paziente')
       ->assertDontSeeText('Solo annullamento medico');
 
     $this->actingAs($patientUser)
-      ->get('/patient/appointments?history_filter=cancelled_by_patient')
+      ->get('/patient/appointments?show_history=1&history_filter=cancelled_by_patient')
       ->assertOk()
       ->assertDontSeeText('Solo appuntamento passato')
       ->assertSeeText('Solo annullamento paziente')
       ->assertDontSeeText('Solo annullamento medico');
 
     $this->actingAs($patientUser)
-      ->get('/patient/appointments?history_filter=cancelled_by_doctor')
+      ->get('/patient/appointments?show_history=1&history_filter=cancelled_by_doctor')
       ->assertOk()
       ->assertDontSeeText('Solo appuntamento passato')
       ->assertDontSeeText('Solo annullamento paziente')
@@ -462,13 +552,193 @@ class AppointmentWorkflowTest extends TestCase
 
     $this->actingAs($patientUser)
       ->withHeader('X-Requested-With', 'XMLHttpRequest')
-      ->get('/patient/appointments?history_filter=cancelled_by_patient')
+      ->get('/patient/appointments?show_history=1&history_filter=cancelled_by_patient')
       ->assertOk()
       ->assertSee('data-appointments-history', false)
       ->assertSeeText('Storico annullato dal paziente')
       ->assertDontSeeText('Storico passato')
       ->assertDontSee('<!doctype html>', false)
       ->assertDontSee('<main class="app-content', false);
+  }
+
+  public function test_doctor_appointments_page_shows_current_appointments_with_cancel_action(): void
+  {
+    [, $patient, $doctor, $service, $slot] = $this->bookingContext();
+    $patient->forceFill([
+      'date_of_birth' => '1990-05-12',
+      'place_of_birth' => 'Milano',
+      'gender' => 'M',
+      'address' => 'Via Roma 10',
+      'codice_fiscale' => 'RSSMRA90E12F205X',
+    ])->save();
+    $appointment = $this->appointment($patient, $doctor, $service, $slot, notes: 'Portare referti');
+
+    $response = $this->actingAs($doctor->user)->get('/doctor/appointments');
+
+    $response->assertOk();
+    $response->assertSeeText('Appuntamenti');
+    $response->assertSeeText('Imminenti');
+    $response->assertSee('<h3 class="mb-0">'.$patient->displayName().'</h3>', false);
+    $response->assertDontSee('<h3 class="mb-0">'.$service->name.'</h3>', false);
+    $response->assertSeeText($service->name);
+    $response->assertSeeText('Portare referti');
+    $response->assertDontSee('<dt>Telefono paziente</dt>', false);
+    $response->assertDontSee('<dt>Email paziente</dt>', false);
+    $response->assertDontSee('aria-label="Azioni appuntamento"', false);
+    $response->assertSee('aria-label="Informazioni paziente"', false);
+    $response->assertSee('<i class="bi bi-info-circle"', false);
+    $response->assertSee("data-bs-target=\"#patientInfoModal{$appointment->id}\"", false);
+    $response->assertSee("id=\"patientInfoModal{$appointment->id}\"", false);
+    $response->assertSeeText($patient->displayName());
+    $response->assertSeeText('555-0100');
+    $response->assertSeeText('patient@example.com');
+    $response->assertSeeText('12/05/1990');
+    $response->assertSeeText('Milano');
+    $response->assertSeeText('M');
+    $response->assertSeeText('Via Roma 10');
+    $response->assertSeeText('RSSMRA90E12F205X');
+    $response->assertSee('aria-label="Annulla appuntamento"', false);
+    $response->assertSee('<i class="bi bi-trash"', false);
+    $response->assertSee("id=\"appointmentCancelModal{$appointment->id}\"", false);
+    $response->assertSee("action=\"/doctor/appointments/{$appointment->id}/cancel\"", false);
+    $response->assertSee('href="/doctor/appointments?show_history=1"', false);
+  }
+
+  public function test_doctor_appointments_history_can_be_filtered_by_past_and_cancellation_actor(): void
+  {
+    [, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
+    $pastSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 30),
+      $doctor->id,
+    );
+    $patientCancelledSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->addDays(4)->setTime(11, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->addDays(4)->setTime(11, 0),
+      CarbonImmutable::now()->addDays(4)->setTime(11, 30),
+      $doctor->id,
+    );
+    $doctorCancelledSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->addDays(5)->setTime(12, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->addDays(5)->setTime(12, 0),
+      CarbonImmutable::now()->addDays(5)->setTime(12, 30),
+      $doctor->id,
+    );
+
+    $this->appointment($patient, $doctor, $service, $pastSlot, Appointment::STATUS_COMPLETED, 'Solo appuntamento passato');
+    $this->appointment(
+      $patient,
+      $doctor,
+      $service,
+      $patientCancelledSlot,
+      Appointment::STATUS_CANCELLED,
+      '',
+      'Solo annullamento paziente',
+      Appointment::CANCELLED_BY_PATIENT,
+    );
+    $this->appointment(
+      $patient,
+      $doctor,
+      $service,
+      $doctorCancelledSlot,
+      Appointment::STATUS_CANCELLED,
+      '',
+      'Solo annullamento medico',
+      Appointment::CANCELLED_BY_DOCTOR,
+    );
+
+    $this->actingAs($doctor->user)
+      ->get('/doctor/appointments?show_history=1&history_filter=all')
+      ->assertOk()
+      ->assertSee('Tutti')
+      ->assertSee('Passati')
+      ->assertSee('Annullati dal paziente')
+      ->assertSee('Annullati da te')
+      ->assertSeeText('Solo appuntamento passato')
+      ->assertSeeText('Solo annullamento paziente')
+      ->assertSeeText('Solo annullamento medico');
+
+    $this->actingAs($doctor->user)
+      ->get('/doctor/appointments?show_history=1&history_filter=past')
+      ->assertOk()
+      ->assertSeeText('Solo appuntamento passato')
+      ->assertDontSeeText('Solo annullamento paziente')
+      ->assertDontSeeText('Solo annullamento medico');
+
+    $this->actingAs($doctor->user)
+      ->get('/doctor/appointments?show_history=1&history_filter=cancelled_by_patient')
+      ->assertOk()
+      ->assertDontSeeText('Solo appuntamento passato')
+      ->assertSeeText('Solo annullamento paziente')
+      ->assertDontSeeText('Solo annullamento medico');
+
+    $this->actingAs($doctor->user)
+      ->get('/doctor/appointments?show_history=1&history_filter=cancelled_by_doctor')
+      ->assertOk()
+      ->assertDontSeeText('Solo appuntamento passato')
+      ->assertDontSeeText('Solo annullamento paziente')
+      ->assertSeeText('Solo annullamento medico');
+  }
+
+  public function test_doctor_appointments_history_filter_ajax_request_returns_history_partial(): void
+  {
+    [, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
+    $pastSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 0),
+      CarbonImmutable::now()->subDays(3)->setTime(9, 30),
+      $doctor->id,
+    );
+    $patientCancelledSlot = new VirtualAvailabilitySlot(
+      CarbonImmutable::now()->addDays(4)->setTime(11, 0)->format('Y-m-d\TH:i'),
+      CarbonImmutable::now()->addDays(4)->setTime(11, 0),
+      CarbonImmutable::now()->addDays(4)->setTime(11, 30),
+      $doctor->id,
+    );
+
+    $this->appointment($patient, $doctor, $service, $pastSlot, Appointment::STATUS_COMPLETED, 'Storico passato medico');
+    $this->appointment(
+      $patient,
+      $doctor,
+      $service,
+      $patientCancelledSlot,
+      Appointment::STATUS_CANCELLED,
+      '',
+      'Storico annullato dal paziente',
+      Appointment::CANCELLED_BY_PATIENT,
+    );
+
+    $this->actingAs($doctor->user)
+      ->withHeader('X-Requested-With', 'XMLHttpRequest')
+      ->get('/doctor/appointments?show_history=1&history_filter=cancelled_by_patient')
+      ->assertOk()
+      ->assertSee('data-appointments-history', false)
+      ->assertSeeText('Storico annullato dal paziente')
+      ->assertDontSeeText('Storico passato medico')
+      ->assertDontSee('<!doctype html>', false)
+      ->assertDontSee('<main class="app-content', false);
+  }
+
+  public function test_doctor_can_cancel_future_active_appointment_from_appointments_page(): void
+  {
+    [, $patient, $doctor, $service, $slot] = $this->bookingContext();
+    $appointment = $this->appointment($patient, $doctor, $service, $slot);
+
+    $this->actingAs($doctor->user)
+      ->from('/doctor/appointments')
+      ->post("/doctor/appointments/{$appointment->id}/cancel", [
+        'cancellation_reason' => 'Cambio disponibilita',
+      ])
+      ->assertRedirect('/doctor/appointments')
+      ->assertSessionHas('status', 'Appuntamento annullato.');
+
+    $appointment->refresh();
+    $this->assertSame(Appointment::STATUS_CANCELLED, $appointment->status);
+    $this->assertSame(Appointment::CANCELLED_BY_DOCTOR, $appointment->cancelled_by_role);
+    $this->assertSame($doctor->user->id, $appointment->cancelled_by_user_id);
+    $this->assertSame('Cambio disponibilita', $appointment->cancellation_reason);
+    $this->assertNotNull($appointment->cancelled_at);
   }
 
   public function test_patient_can_open_reschedule_wizard_and_confirm_new_start(): void

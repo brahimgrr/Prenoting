@@ -127,6 +127,7 @@
                                 type="button"
                                 data-bs-toggle="modal"
                                 data-bs-target="#appointmentInfoModal{{ $appointment->id }}"
+                                aria-label="Informazioni appuntamento"
                               ><i class="bi bi-info-circle"></i></button>
                               @if ($canCancelAppointment)
                                 <button
@@ -135,6 +136,7 @@
                                   data-bs-toggle="modal"
                                   data-bs-target="#{{ $appointmentCancelModalId }}"
                                   title="Annulla appuntamento"
+                                  aria-label="Annulla appuntamento"
                                 ><i class="bi bi-trash"></i></button>
                               @endif
                             </div>
@@ -181,6 +183,7 @@
                                     type="submit"
                                     class="btn btn-sm btn-outline-primary"
                                     title="Riapri disponibilita"
+                                    aria-label="Riapri disponibilita"
                                   ><i class="bi bi-unlock"></i></button>
                                 </form>
                               @elseif ($state === 'free' && ! $hasStarted)
@@ -191,6 +194,7 @@
                                     type="submit"
                                     class="btn btn-sm btn-outline-danger"
                                     title="Blocca slot libero"
+                                    aria-label="Blocca slot libero"
                                   ><i class="bi bi-slash-circle"></i></button>
                                 </form>
                               @endif

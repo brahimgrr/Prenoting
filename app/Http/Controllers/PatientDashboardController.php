@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
+use App\Models\DoctorProfile;
 use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,10 @@ class PatientDashboardController extends Controller
             'appointments' => $appointments,
             'upcomingAppointments' => $upcoming,
             'nextAppointment' => $upcoming->first(),
+            'primaryDoctor' => DoctorProfile::with('user')
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->first(),
         ]);
     }
 

@@ -18,11 +18,34 @@ class RoleDashboardTest extends TestCase
 {
   use RefreshDatabase;
 
+  public function test_doctor_dashboard_shows_appointment_summary_and_management_links(): void
+  {
+    [$doctorUser, , $appointment] = $this->dashboardContext();
+
+    $this->actingAs($doctorUser)
+      ->get('/doctor')
+      ->assertOk()
+      ->assertSeeText('Portale medico')
+      ->assertSeeText('Benvenuto Dott. Mbappe')
+      ->assertSeeText('Prossimi appuntamenti')
+      ->assertSeeText('2')
+      ->assertSeeText('appuntamenti prenotati')
+      ->assertSeeText('Prossimo appuntamento')
+      ->assertSeeText('Visita dermatologica')
+      ->assertSeeText($appointment->patientName())
+      ->assertSeeText($appointment->start_at->format('d/m/Y H:i').' - '.$appointment->end_at->format('H:i'))
+      ->assertSeeText('Gestisci Agenda')
+      ->assertSeeText('Gestisci appuntamenti')
+      ->assertSeeText('Gestisci Trattamenti')
+      ->assertSee('href="/doctor/agenda"', false)
+      ->assertSee('href="/doctor/appointments"', false)
+      ->assertSee('href="/doctor/treatments"', false);
+  }
+
   public function test_doctor_only_uses_agenda_section(): void
   {
     [$doctorUser, $doctor, $appointment] = $this->dashboardContext();
 
-    $this->actingAs($doctorUser)->get('/doctor')->assertRedirect('/doctor/agenda');
     $this->actingAs($doctorUser)->get('/doctor/schedule')->assertNotFound();
     $this->actingAs($doctorUser)->get('/doctor/availability')->assertNotFound();
 
@@ -392,15 +415,30 @@ class RoleDashboardTest extends TestCase
   {
     [, , $appointment] = $this->dashboardContext();
 
-    $this->actingAs($appointment->patient->user)
+    $response = $this->actingAs($appointment->patient->user)
       ->get('/patient')
       ->assertOk()
+      ->assertSeeText('Benvenuto Mario')
+      ->assertDontSeeText('Benvenuto nella clinica di Dott. Mbappe')
+      ->assertSeeText('Il tuo medico')
+      ->assertSee('class="doctor-summary__contact doctor-summary__contact--email"', false)
+      ->assertSeeText('doctor.derm@example.com')
+      ->assertSeeText('3331000000')
+      ->assertSeeText('Via Roma 1')
       ->assertSeeText('Prossimo appuntamento')
       ->assertSeeText('Visita dermatologica')
       ->assertSeeText('I miei appuntamenti')
       ->assertSee('href="/patient/appointments"', false)
       ->assertDontSee('Appuntamenti imminenti')
       ->assertDontSee('patient-upcoming-panel', false);
+
+    $content = $response->getContent();
+    $this->assertLessThan(
+      strpos($content, 'class="dashboard-doctor-section'),
+      strpos($content, 'href="/patient/appointments"'),
+    );
+    $this->assertLessThan(strpos($content, '<dt>Email</dt>'), strpos($content, '<dt>Studio</dt>'));
+    $this->assertLessThan(strpos($content, '<dt>Telefono</dt>'), strpos($content, '<dt>Email</dt>'));
   }
 
   public function test_legacy_doctor_agendav2_url_is_not_registered(): void
@@ -422,6 +460,8 @@ class RoleDashboardTest extends TestCase
     $doctor = DoctorProfile::create([
       'user_id' => $doctorUser->id,
       'display_name' => 'Dott. Mbappe',
+      'phone' => '3331000000',
+      'clinic_address' => 'Via Roma 1',
     ]);
     [$patientUser, $patient] = $this->patient('patient@example.com', 'Mario', 'Rossi');
     [$otherPatientUser, $otherPatient] = $this->patient('other@example.com', 'Altro', 'Paziente');

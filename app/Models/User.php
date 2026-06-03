@@ -49,7 +49,7 @@ class User extends Authenticatable
     public function portalRoute(): ?string
     {
         return match ($this->portalRole()) {
-            self::ROLE_DOCTOR => '/doctor/agenda',
+            self::ROLE_DOCTOR => '/doctor',
             self::ROLE_PATIENT => '/patient',
             default => null,
         };

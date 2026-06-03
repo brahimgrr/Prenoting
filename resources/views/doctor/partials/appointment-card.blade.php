@@ -1,6 +1,6 @@
 @php
   $cancelModalId = "appointmentCancelModal{$appointment->id}";
-  $doctorInfoModalId = "doctorInfoModal{$appointment->id}";
+  $patientInfoModalId = "patientInfoModal{$appointment->id}";
   $serviceCategoryLabel = match ($appointment->service?->category) {
     'ESAME' => 'ESAME',
     default => 'VISITA',
@@ -8,16 +8,20 @@
   $priceLabel = $appointment->service?->price !== null
     ? 'EUR ' . number_format((float) $appointment->service->price, 2, ',', '.')
     : 'Da definire';
-  $historyStatusLabel = $appointment->status === \App\Models\Appointment::STATUS_CANCELLED ? $appointment->cancellationActorLabel() : 'Passato';
+  $historyStatusLabel = match (true) {
+    $appointment->status === \App\Models\Appointment::STATUS_CANCELLED && $appointment->cancelled_by_role === \App\Models\Appointment::CANCELLED_BY_PATIENT => 'Annullato dal paziente',
+    $appointment->status === \App\Models\Appointment::STATUS_CANCELLED && $appointment->cancelled_by_role === \App\Models\Appointment::CANCELLED_BY_DOCTOR => 'Annullato da te',
+    $appointment->status === \App\Models\Appointment::STATUS_CANCELLED => 'Annullato',
+    default => 'Passato',
+  };
   $historyStatusClass = $appointment->status === \App\Models\Appointment::STATUS_CANCELLED ? 'cancelled' : 'past';
-  $changeLocked = ($manageable ?? false) && $appointment->start_at->lte(now()->addDay());
   $hasBookingNotes = filled($appointment->notes);
 @endphp
 
 <article class="appointment-card d-grid gap-3 p-3 mb-3 {{ ($muted ?? false) ? 'appointment-card--muted' : '' }}">
   <div class="appointment-card__header d-flex align-items-center justify-content-between gap-3">
     <div class="appointment-card__title">
-      <h3 class="mb-0">{{ $appointment->service?->name ?? 'Appuntamento' }}</h3>
+      <h3 class="mb-0">{{ $appointment->patientName() }}</h3>
     </div>
     @if ($muted ?? false)
       <span class="appointment-status-badge appointment-status-badge--{{ $historyStatusClass }} d-inline-flex align-items-center flex-shrink-0 px-2 py-1">{{ $historyStatusLabel }}</span>
@@ -26,18 +30,12 @@
       <button
         class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center px-2"
         type="button"
-        title="Informazioni medico"
-        aria-label="Informazioni medico"
+        title="Informazioni paziente"
+        aria-label="Informazioni paziente"
         data-bs-toggle="modal"
-        data-bs-target="#{{ $doctorInfoModalId }}"
+        data-bs-target="#{{ $patientInfoModalId }}"
       ><i class="bi bi-info-circle" aria-hidden="true"></i></button>
-      @if ($manageable && ! $changeLocked)
-        <a
-          class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center px-2"
-          href="/appointments/{{ $appointment->id }}/edit"
-          title="Sposta appuntamento"
-          aria-label="Sposta appuntamento"
-        ><i class="bi bi-pencil-square" aria-hidden="true"></i></a>
+      @if ($manageable)
         <button
           class="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center px-2"
           type="button"
@@ -49,13 +47,10 @@
       @endif
     </div>
   </div>
-  @if ($manageable && $changeLocked)
-    <p class="appointment-card__notice m-0 px-3 py-2">Modifiche e cancellazioni non disponibili nelle 24 ore precedenti.</p>
-  @endif
   <dl class="appointment-details row g-3 mb-0">
     <div class="col-12 col-md-6">
       <dt>Prestazione</dt>
-      <dd>{{ $serviceCategoryLabel }}</dd>
+      <dd>{{ $appointment->service?->name ?? 'Appuntamento' }} · {{ $serviceCategoryLabel }}</dd>
     </div>
     <div class="col-12 col-md-6">
       <dt>Orario</dt>
@@ -78,12 +73,12 @@
       </div>
     @endif
   </dl>
-  @if ($manageable && ! $changeLocked)
+  @if ($manageable)
     <x-appointment-cancel-modal
       :appointment="$appointment"
-      :action="'/appointments/'.$appointment->id.'/cancel'"
+      :action="'/doctor/appointments/'.$appointment->id.'/cancel'"
       :modal-id="$cancelModalId"
     />
   @endif
-  @include('patient.partials.doctor-info-modal', ['appointment' => $appointment, 'modalId' => $doctorInfoModalId])
+  @include('doctor.partials.patient-info-modal', ['appointment' => $appointment, 'modalId' => $patientInfoModalId])
 </article>

@@ -1,6 +1,8 @@
 @once
   <script>
     (() => {
+      const baseUrl = "/doctor/appointments";
+
       function fetchAndReplace(url, replaceSelector) {
         const target = document.querySelector(replaceSelector);
         if (!target) {
@@ -27,7 +29,7 @@
           <div class="appointment-history-placeholder mt-4" data-appointments-history-placeholder>
             <a
               class="btn btn-link px-0 py-1 text-decoration-none fw-semibold"
-              href="/patient/appointments?show_history=1"
+              href="${baseUrl}?show_history=1"
               data-appointments-history-reveal
             >Visualizza storico appuntamenti</a>
           </div>
@@ -37,12 +39,12 @@
       function collapseHistory(replaceSelector) {
         const target = document.querySelector(replaceSelector);
         if (!target) {
-          window.location.href = "/patient/appointments";
+          window.location.href = baseUrl;
           return;
         }
 
         target.outerHTML = historyPlaceholderHtml();
-        history.pushState({}, "", "/patient/appointments");
+        history.pushState({}, "", baseUrl);
       }
 
       document.addEventListener("click", (event) => {

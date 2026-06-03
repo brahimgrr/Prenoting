@@ -27,7 +27,7 @@ class RootRouteTest extends TestCase
   {
     $this->actingAs($this->userWithRole(User::ROLE_DOCTOR))
       ->get('/')
-      ->assertRedirect('/doctor/agenda');
+      ->assertRedirect('/doctor');
   }
 
   public function test_authenticated_legacy_admin_is_redirected_to_unsupported_role(): void

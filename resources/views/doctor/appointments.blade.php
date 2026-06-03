@@ -1,10 +1,10 @@
-@extends('layouts.portal', ['title' => 'I miei appuntamenti - MedPortal'])
+@extends('layouts.portal', ['title' => 'Appuntamenti - MedPortal'])
 
 @section('content')
   <section class="portal-section container-xl">
     <div class="portal-page-heading mb-4">
       <span class="portal-eyebrow">Appuntamenti</span>
-      <h1>I miei appuntamenti</h1>
+      <h1>Appuntamenti</h1>
     </div>
 
     <section class="appointment-group">
@@ -12,21 +12,20 @@
         <h2>Imminenti</h2>
       </div>
       @forelse ($upcomingAppointments as $appointment)
-        @include('patient.partials.appointment-card', ['appointment' => $appointment, 'manageable' => $appointment->isFutureConfirmed()])
+        @include('doctor.partials.appointment-card', ['appointment' => $appointment, 'manageable' => true])
       @empty
         <div class="portal-panel empty-state p-4">
           <h3>Nessun appuntamento imminente</h3>
-          <p>Le visite future confermate compariranno qui.</p>
-          <a class="btn btn-primary empty-state__action d-inline-flex mt-3" href="/patient/book">Prenota visita</a>
+          <p>Gli appuntamenti futuri prenotati compariranno qui.</p>
         </div>
       @endforelse
     </section>
 
     @if ($showHistory)
-      @include('patient.partials.appointments-history')
+      @include('doctor.partials.appointments-history')
     @else
-      @include('patient.partials.appointments-history-placeholder')
+      @include('doctor.partials.appointments-history-placeholder')
     @endif
-    @include('patient.partials.appointments-history-interactions')
+    @include('doctor.partials.appointments-history-interactions')
   </section>
 @endsection

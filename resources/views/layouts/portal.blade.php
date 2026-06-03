@@ -10,7 +10,9 @@
       ['to' => '/patient/profile', 'label' => 'Profilo', 'active' => ['patient/profile']],
     ],
     'doctor' => [
+      ['to' => '/doctor', 'label' => 'Riepilogo', 'active' => ['doctor']],
       ['to' => '/doctor/agenda', 'label' => 'Agenda', 'active' => ['doctor/agenda']],
+      ['to' => '/doctor/appointments', 'label' => 'Appuntamenti', 'active' => ['doctor/appointments']],
       ['to' => '/doctor/treatments', 'label' => 'Trattamenti', 'active' => ['doctor/treatments', 'doctor/treatments/*']],
       ['to' => '/doctor/profile', 'label' => 'Profilo', 'active' => ['doctor/profile']],
     ],
