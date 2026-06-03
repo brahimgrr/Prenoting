@@ -156,6 +156,26 @@ class DoctorSchedulingUxTest extends TestCase
     $this->assertStringContainsString('const resetBreakButton = event.target.closest("[data-working-hours-reset-break]")', $content);
   }
 
+  public function test_doctor_profile_disables_lunch_break_button_for_closed_days(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    WorkingHour::create([
+      'doctor_profile_id' => $doctor->id,
+      'weekday' => 1,
+      'start_time' => '09:00',
+      'end_time' => '18:00',
+      'is_active' => true,
+    ]);
+
+    $content = $this->actingAs($doctorUser)
+      ->get('/doctor/profile')
+      ->assertOk()
+      ->getContent();
+
+    $this->assertMatchesRegularExpression('/<button(?=[^>]*data-working-hours-add-break)(?=[^>]*aria-controls="working-hours-1-break-row")(?![^>]*disabled)[^>]*>/s', $content);
+    $this->assertMatchesRegularExpression('/<button(?=[^>]*data-working-hours-add-break)(?=[^>]*aria-controls="working-hours-2-break-row")(?=[^>]*disabled)[^>]*>/s', $content);
+  }
+
   public function test_doctor_profile_shows_lunch_break_row_when_lunch_break_exists(): void
   {
     [$doctorUser, $doctor] = $this->doctorContext();
@@ -781,7 +801,7 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertDontSee('Chiusura straordinaria studio');
   }
 
-  public function test_creating_larger_closure_replaces_contained_closures(): void
+  public function test_creating_larger_closure_that_contains_existing_closures_is_rejected(): void
   {
     [$doctorUser, $doctor] = $this->doctorContext();
     $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
@@ -799,6 +819,7 @@ class DoctorSchedulingUxTest extends TestCase
     ]);
 
     $this->actingAs($doctorUser)
+      ->from('/doctor/agenda?date='.$date->toDateString())
       ->post('/doctor/closures', [
         'date' => $date->toDateString(),
         'start_time' => '09:00',
@@ -806,16 +827,76 @@ class DoctorSchedulingUxTest extends TestCase
         'reason' => 'Riunione lunga',
       ])
       ->assertRedirect('/doctor/agenda?date='.$date->toDateString())
-      ->assertSessionHas('status', 'Chiusura creata.');
+      ->assertSessionHasErrors([
+        'closure' => 'Questa chiusura si sovrappone a una chiusura esistente.',
+      ]);
 
-    $this->assertDatabaseMissing('closures', ['id' => $first->id]);
-    $this->assertDatabaseMissing('closures', ['id' => $second->id]);
-    $this->assertSame(1, $doctor->closures()->whereDate('date', $date->toDateString())->count());
+    $this->assertSame(2, $doctor->closures()->whereDate('date', $date->toDateString())->count());
+    $this->assertDatabaseHas('closures', ['id' => $first->id]);
+    $this->assertDatabaseHas('closures', ['id' => $second->id]);
+  }
 
-    $closure = $doctor->closures()->whereDate('date', $date->toDateString())->firstOrFail();
-    $this->assertSame('09:00', substr((string) $closure->start_time, 0, 5));
-    $this->assertSame('12:00', substr((string) $closure->end_time, 0, 5));
-    $this->assertSame('Riunione lunga', $closure->reason);
+  public function test_multi_day_closure_with_any_overlapping_day_is_rejected_without_partial_creation(): void
+  {
+    [$doctorUser, $doctor] = $this->doctorContext();
+    $startDate = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    $overlappingDate = $startDate->addDay();
+    $existing = $doctor->closures()->create([
+      'date' => $overlappingDate->toDateString(),
+      'start_time' => null,
+      'end_time' => null,
+      'reason' => 'Ferie esistenti',
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->from('/doctor/agenda?date='.$startDate->toDateString())
+      ->post('/doctor/closures', [
+        'date' => $startDate->toDateString(),
+        'end_date' => $startDate->addDays(2)->toDateString(),
+        'all_day' => '1',
+        'reason' => 'Ferie',
+      ])
+      ->assertRedirect('/doctor/agenda?date='.$startDate->toDateString())
+      ->assertSessionHasErrors([
+        'closure' => 'Questa chiusura si sovrappone a una chiusura esistente.',
+      ]);
+
+    $this->assertSame(0, $doctor->closures()->whereDate('date', $startDate->toDateString())->count());
+    $this->assertDatabaseHas('closures', ['id' => $existing->id]);
+  }
+
+  public function test_overlapping_multi_day_closure_shows_closure_error_before_appointment_confirmation(): void
+  {
+    [$doctorUser, $doctor, $patient, $service] = $this->doctorContext(withPatient: true);
+    $startDate = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+    $appointment = $this->appointment($patient, $doctor, $service, $startDate->setTime(9, 0));
+    $overlappingDate = $startDate->addDay();
+    $existing = $doctor->closures()->create([
+      'date' => $overlappingDate->toDateString(),
+      'start_time' => null,
+      'end_time' => null,
+      'reason' => 'Ferie esistenti',
+    ]);
+
+    $this->actingAs($doctorUser)
+      ->followingRedirects()
+      ->from('/doctor/agenda?date='.$startDate->toDateString())
+      ->post('/doctor/closures', [
+        'date' => $startDate->toDateString(),
+        'end_date' => $startDate->addDays(2)->toDateString(),
+        'all_day' => '1',
+        'reason' => 'Ferie',
+      ])
+      ->assertOk()
+      ->assertSee('Questa chiusura si sovrappone a una chiusura esistente.')
+      ->assertDontSee('id="scheduleConfirmationModal"', false);
+
+    $this->assertDatabaseHas('appointments', [
+      'id' => $appointment->id,
+      'status' => Appointment::STATUS_CONFIRMED,
+    ]);
+    $this->assertSame(0, $doctor->closures()->whereDate('date', $startDate->toDateString())->count());
+    $this->assertDatabaseHas('closures', ['id' => $existing->id]);
   }
 
   public function test_creating_closure_inside_existing_larger_closure_is_rejected(): void
@@ -839,7 +920,7 @@ class DoctorSchedulingUxTest extends TestCase
       ])
       ->assertRedirect('/doctor/agenda?date='.$date->toDateString())
       ->assertSessionHasErrors([
-        'closure' => 'Questa chiusura e gia coperta da una chiusura esistente.',
+        'closure' => 'Questa chiusura si sovrappone a una chiusura esistente.',
       ]);
 
     $this->assertSame(1, $doctor->closures()->whereDate('date', $date->toDateString())->count());
@@ -1249,7 +1330,11 @@ class DoctorSchedulingUxTest extends TestCase
       'role' => User::ROLE_PATIENT,
     ]);
     $patient = PatientProfile::create(['user_id' => $patientUser->id, 'phone' => '555-0100']);
-    $service = MedicalService::create(['name' => 'Visita dermatologica', 'duration_minutes' => 30]);
+    $service = MedicalService::create([
+      'doctor_profile_id' => $doctor->id,
+      'name' => 'Visita dermatologica',
+      'duration_minutes' => 30,
+    ]);
 
     return [$doctorUser, $doctor, $patient, $service];
   }
@@ -1262,7 +1347,6 @@ class DoctorSchedulingUxTest extends TestCase
   ): Appointment {
     return Appointment::create([
       'patient_id' => $patient->id,
-      'doctor_profile_id' => $doctor->id,
       'service_id' => $service->id,
       'start_at' => $start,
       'end_at' => $start->addMinutes(30),

@@ -8,11 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Appointment extends Model
 {
-    public const PORTAL_RELATIONS = ['patient.user', 'service', 'doctor.user'];
+    public const PORTAL_RELATIONS = ['patient.user', 'service.doctor.user'];
 
     public const CANCELLED_BY_PATIENT = 'patient';
     public const CANCELLED_BY_DOCTOR = 'doctor';
-    public const CANCELLED_BY_SYSTEM = 'system';
 
     public const STATUS_CONFIRMED = 'confirmed';
     public const STATUS_CHECKED_IN = 'checked_in';
@@ -25,17 +24,8 @@ class Appointment extends Model
         self::STATUS_CHECKED_IN,
     ];
 
-    public const ALL_STATUSES = [
-        self::STATUS_CONFIRMED,
-        self::STATUS_CHECKED_IN,
-        self::STATUS_COMPLETED,
-        self::STATUS_CANCELLED,
-        self::STATUS_NO_SHOW,
-    ];
-
     protected $fillable = [
         'patient_id',
-        'doctor_profile_id',
         'service_id',
         'start_at',
         'end_at',
@@ -57,9 +47,13 @@ class Appointment extends Model
         return $this->belongsTo(MedicalService::class, 'service_id');
     }
 
-    public function doctor(): BelongsTo
+    public function getDoctorAttribute(): ?DoctorProfile
     {
-        return $this->belongsTo(DoctorProfile::class, 'doctor_profile_id');
+        if ($this->relationLoaded('service')) {
+            return $this->service?->doctor;
+        }
+
+        return $this->service()->with('doctor.user')->first()?->doctor;
     }
 
     public function cancelledByUser(): BelongsTo
@@ -80,6 +74,13 @@ class Appointment extends Model
     public function scopeFutureActiveSlot(Builder $query): Builder
     {
         return $query->activeSlot()->where('start_at', '>=', now());
+    }
+
+    public function scopeForDoctor(Builder $query, DoctorProfile|int $doctor): Builder
+    {
+        $doctorId = $doctor instanceof DoctorProfile ? $doctor->id : $doctor;
+
+        return $query->whereHas('service', fn (Builder $query): Builder => $query->where('doctor_profile_id', $doctorId));
     }
 
     public function patientName(): string

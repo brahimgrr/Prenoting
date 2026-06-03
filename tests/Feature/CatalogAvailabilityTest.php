@@ -15,9 +15,10 @@ class CatalogAvailabilityTest extends TestCase
 
   public function test_services_endpoint_returns_active_services_and_filters_search(): void
   {
-    $matched = MedicalService::create(['name' => 'Visita dermatologica']);
-    MedicalService::create(['name' => 'Mappatura nei']);
-    MedicalService::create(['name' => 'Servizio inattivo', 'is_active' => false]);
+    $doctor = $this->doctor();
+    $matched = MedicalService::create(['doctor_profile_id' => $doctor->id, 'name' => 'Visita dermatologica']);
+    MedicalService::create(['doctor_profile_id' => $doctor->id, 'name' => 'Mappatura nei']);
+    MedicalService::create(['doctor_profile_id' => $doctor->id, 'name' => 'Servizio inattivo', 'is_active' => false]);
 
     $response = $this->getJson('/catalog/services?search=derm');
 
@@ -31,7 +32,7 @@ class CatalogAvailabilityTest extends TestCase
   {
     $doctorUser = User::create(['email' => 'doctor@example.com', 'password' => 'x', 'role' => User::ROLE_DOCTOR]);
     $doctor = DoctorProfile::create(['user_id' => $doctorUser->id, 'display_name' => 'Dott. Test']);
-    $service = MedicalService::create(['name' => 'Visita dermatologica']);
+    $service = MedicalService::create(['doctor_profile_id' => $doctor->id, 'name' => 'Visita dermatologica']);
     $start = CarbonImmutable::now()->addDay()->setTime(9, 0);
     $doctor->specialOpenings()->create([
       'date' => $start->toDateString(),
@@ -54,6 +55,26 @@ class CatalogAvailabilityTest extends TestCase
     $response->assertJsonMissingPath('0.clinic_name');
   }
 
+  public function test_availability_uses_user_active_flag_for_doctors(): void
+  {
+    $doctorUser = User::create([
+      'email' => 'doctor@example.com',
+      'password' => 'x',
+      'role' => User::ROLE_DOCTOR,
+      'is_active' => false,
+    ]);
+    $doctor = DoctorProfile::create(['user_id' => $doctorUser->id, 'display_name' => 'Dott. Test']);
+    $service = MedicalService::create(['doctor_profile_id' => $doctor->id, 'name' => 'Visita dermatologica']);
+    $start = CarbonImmutable::now()->addDay()->setTime(9, 0);
+    $doctor->specialOpenings()->create([
+      'date' => $start->toDateString(),
+      'start_time' => $start->format('H:i:s'),
+      'end_time' => $start->addHour()->format('H:i:s'),
+    ]);
+
+    $this->getJson('/availability?service='.$service->id)->assertNotFound();
+  }
+
   public function test_availability_rejects_malformed_filters(): void
   {
     $this->getJson('/availability?date=bad')
@@ -63,5 +84,12 @@ class CatalogAvailabilityTest extends TestCase
     $this->getJson('/availability?service=abc')
       ->assertUnprocessable()
       ->assertJsonValidationErrors('service');
+  }
+
+  private function doctor(): DoctorProfile
+  {
+    $user = User::create(['email' => 'doctor@example.com', 'password' => 'x', 'role' => User::ROLE_DOCTOR]);
+
+    return DoctorProfile::create(['user_id' => $user->id, 'display_name' => 'Dott. Test']);
   }
 }

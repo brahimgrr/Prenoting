@@ -31,7 +31,7 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertRedirect('/patient/appointments');
     $appointment = Appointment::firstOrFail();
     $this->assertSame($patient->id, $appointment->patient_id);
-    $this->assertSame($doctor->id, $appointment->doctor_profile_id);
+    $this->assertSame($doctor->id, $appointment->service->doctor_profile_id);
     $this->assertSame(Appointment::STATUS_CONFIRMED, $appointment->status);
     $this->assertSame($slot->key, $appointment->start_at->format('Y-m-d\TH:i'));
   }
@@ -237,7 +237,6 @@ class AppointmentWorkflowTest extends TestCase
   {
     [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
     $doctor->forceFill([
-      'bio' => 'Dermatologo specializzato in prevenzione.',
       'license_number' => 'DERM-001',
       'phone' => '3331000000',
       'clinic_address' => 'Via Roma 1',
@@ -277,7 +276,8 @@ class AppointmentWorkflowTest extends TestCase
     $response->assertSeeText('3331000000');
     $response->assertSeeText('Via Roma 1');
     $response->assertSeeText('DERM-001');
-    $response->assertSeeText('Dermatologo specializzato in prevenzione.');
+    $response->assertDontSeeText('Bio');
+    $response->assertDontSeeText('Dermatologo specializzato in prevenzione.');
     $response->assertSee("id=\"appointmentCancelModal{$appointment->id}\"", false);
     $response->assertSee("action=\"/appointments/{$appointment->id}/cancel\"", false);
     $response->assertDontSee('<dt>Medico</dt>', false);
@@ -842,7 +842,10 @@ class AppointmentWorkflowTest extends TestCase
       'user_id' => $doctorUser->id,
       'display_name' => 'Dott. Mbappe',
     ]);
-    $service = MedicalService::create(['name' => 'Visita dermatologica']);
+    $service = MedicalService::create([
+      'doctor_profile_id' => $doctor->id,
+      'name' => 'Visita dermatologica',
+    ]);
     $slot = $createSlot ? $this->slotAt($doctor, CarbonImmutable::now()->addDays(2)->setTime(9, 0)) : null;
 
     return array_filter([$patientUser, $patient, $doctor, $service, $slot], fn ($value) => $value !== null);
@@ -888,7 +891,6 @@ class AppointmentWorkflowTest extends TestCase
   ): Appointment {
     return Appointment::create([
       'patient_id' => $patient->id,
-      'doctor_profile_id' => $doctor->id,
       'service_id' => $service->id,
       'start_at' => $slot->start_at,
       'end_at' => $slot->end_at,

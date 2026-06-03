@@ -17,10 +17,10 @@ class PatientBookingWizardViewData
 
     public function booking(Request $request): array
     {
-        $doctor = $this->availability->primaryDoctor();
         $selectedService = $request->integer('service_id')
-            ? MedicalService::where('is_active', true)->find($request->integer('service_id'))
+            ? MedicalService::with('doctor.user')->where('is_active', true)->find($request->integer('service_id'))
             : null;
+        $doctor = $selectedService?->doctor ?? $this->availability->primaryDoctor();
 
         return $this->calendar->build($doctor, $selectedService, $request->query()) + [
                 'services' => $this->activeServices(),
@@ -33,12 +33,15 @@ class PatientBookingWizardViewData
 
     private function activeServices()
     {
-        return MedicalService::where('is_active', true)->orderBy('name')->get();
+        return MedicalService::where('is_active', true)
+            ->whereHas('doctor.user', fn ($query) => $query->where('is_active', true))
+            ->orderBy('name')
+            ->get();
     }
 
     public function reschedule(Request $request, Appointment $appointment): array
     {
-        $appointment->loadMissing(['service']);
+        $appointment->loadMissing(['service.doctor.user']);
         $doctor = $appointment->doctor ?? $this->availability->primaryDoctor();
         $service = $appointment->service;
 

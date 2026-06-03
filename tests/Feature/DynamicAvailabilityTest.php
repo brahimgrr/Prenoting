@@ -77,6 +77,7 @@ class DynamicAvailabilityTest extends TestCase
       'display_name' => 'Dott. Mbappe',
     ]);
     $service = MedicalService::create([
+      'doctor_profile_id' => $doctor->id,
       'name' => 'Visita dermatologica',
       'duration_minutes' => 30,
     ]);

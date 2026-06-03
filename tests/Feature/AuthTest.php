@@ -542,12 +542,12 @@ class AuthTest extends TestCase
       'display_name' => 'Dott. Mbappe',
     ]);
     $service = MedicalService::create([
+      'doctor_profile_id' => $doctor->id,
       'name' => 'Visita dermatologica',
     ]);
     $start = CarbonImmutable::now()->addDay()->setTime(10, 0);
     $appointment = Appointment::create([
       'patient_id' => $patient->id,
-      'doctor_profile_id' => $doctor->id,
       'service_id' => $service->id,
       'start_at' => $start,
       'end_at' => $start->addMinutes(30),

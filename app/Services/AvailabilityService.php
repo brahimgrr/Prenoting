@@ -21,7 +21,7 @@ class AvailabilityService
     public function primaryDoctor(): DoctorProfile
     {
         return DoctorProfile::query()
-            ->where('is_active', true)
+            ->whereHas('user', fn ($query) => $query->where('is_active', true))
             ->orderBy('id')
             ->firstOrFail();
     }
@@ -83,7 +83,7 @@ class AvailabilityService
     ): Collection
     {
         $query = Appointment::query()
-            ->where('doctor_profile_id', $doctor->id)
+            ->forDoctor($doctor)
             ->activeSlot()
             ->where('start_at', '<', $day->endOfDay())
             ->where('end_at', '>', $day->startOfDay());

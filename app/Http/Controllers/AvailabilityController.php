@@ -18,14 +18,20 @@ class AvailabilityController extends Controller
         ]);
 
         $service = isset($validated['service'])
-            ? MedicalService::where('is_active', true)->find($validated['service'])
-            : MedicalService::where('is_active', true)->orderBy('name')->first();
+            ? MedicalService::with('doctor.user')->where('is_active', true)->find($validated['service'])
+            : MedicalService::with('doctor.user')
+                ->where('is_active', true)
+                ->whereHas('doctor.user', fn ($query) => $query->where('is_active', true))
+                ->orderBy('name')
+                ->first();
 
         if (!$service) {
             return response()->json([]);
         }
 
-        $doctor = $availability->primaryDoctor();
+        abort_unless($service->doctor?->user?->is_active, 404);
+
+        $doctor = $service->doctor;
         $slots = isset($validated['date'])
             ? $availability->availableSlotsForDate($doctor, $service, $validated['date'])
             : $availability->availableDates($doctor, $service)

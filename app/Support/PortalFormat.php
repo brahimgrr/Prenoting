@@ -36,7 +36,7 @@ class PortalFormat
             'patient_name' => $appointment->patientName(),
             'service' => $appointment->service_id,
             'service_name' => $appointment->service?->name,
-            'doctor' => $appointment->doctor_profile_id,
+            'doctor' => $appointment->doctor?->id,
             'start_at' => $appointment->start_at?->toISOString(),
             'end_at' => $appointment->end_at?->toISOString(),
             'status' => $appointment->status,

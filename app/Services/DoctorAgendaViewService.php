@@ -27,7 +27,7 @@ class DoctorAgendaViewService
         $currentTime = CarbonImmutable::now();
 
         $appointments = Appointment::withPortalRelations()
-            ->where('doctor_profile_id', $doctor->id)
+            ->forDoctor($doctor)
             ->whereDate('start_at', $selectedDate)
             ->where('status', '!=', Appointment::STATUS_CANCELLED)
             ->when($this->stringQuery($query, 'status'), fn($q, $status) => $q->where('status', $status))
@@ -198,7 +198,7 @@ class DoctorAgendaViewService
     private function weekDays(DoctorProfile $doctor, CarbonImmutable $weekStart, CarbonImmutable $currentTime): Collection
     {
         $daysWithAppointments = Appointment::query()
-            ->where('doctor_profile_id', $doctor->id)
+            ->forDoctor($doctor)
             ->where('status', '!=', Appointment::STATUS_CANCELLED)
             ->where('start_at', '>=', $weekStart->startOfDay())
             ->where('start_at', '<', $weekStart->addWeek()->startOfDay())

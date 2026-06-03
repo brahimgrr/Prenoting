@@ -74,11 +74,7 @@
                   <span class="portal-eyebrow">Il tuo medico</span>
                   <div>
                     <h2 class="mb-1">{{ $doctorName }}</h2>
-                    @if ($primaryDoctor->bio)
-                      <p class="mb-0">{{ $primaryDoctor->bio }}</p>
-                    @else
-                      <p class="mb-0">Il riferimento della clinica per visite, controlli e appuntamenti.</p>
-                    @endif
+                    <p class="mb-0">Il riferimento della clinica per visite, controlli e appuntamenti.</p>
                   </div>
                 </div>
               </div>

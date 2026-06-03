@@ -18,6 +18,7 @@ class CatalogController extends Controller
 
         $services = MedicalService::query()
             ->where('is_active', true)
+            ->whereHas('doctor.user', fn ($query) => $query->where('is_active', true))
             ->when($validated['search'] ?? null, fn($query, $search) => $query->where('name', 'like', "%{$search}%"))
             ->when($validated['category'] ?? null, fn($query, $category) => $query->where('category', $category))
             ->orderBy('name')

@@ -5,17 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class DoctorProfile extends Model
 {
     protected $fillable = [
         'user_id',
         'display_name',
-        'bio',
         'license_number',
         'phone',
         'clinic_address',
-        'is_active',
     ];
 
     public function user(): BelongsTo
@@ -38,15 +37,20 @@ class DoctorProfile extends Model
         return $this->hasMany(ScheduleClosure::class, 'doctor_profile_id');
     }
 
-    public function appointments(): HasMany
+    public function medicalServices(): HasMany
     {
-        return $this->hasMany(Appointment::class, 'doctor_profile_id');
+        return $this->hasMany(MedicalService::class, 'doctor_profile_id');
     }
 
-    protected function casts(): array
+    public function appointments(): HasManyThrough
     {
-        return [
-            'is_active' => 'boolean',
-        ];
+        return $this->hasManyThrough(
+            Appointment::class,
+            MedicalService::class,
+            'doctor_profile_id',
+            'service_id',
+            'id',
+            'id',
+        );
     }
 }

@@ -80,7 +80,7 @@ class ScheduleAppointmentImpactService
     private function appointmentsOverlapping(DoctorProfile $doctor, CarbonImmutable $start, CarbonImmutable $end): Collection
     {
         return Appointment::withPortalRelations()
-            ->where('doctor_profile_id', $doctor->id)
+            ->forDoctor($doctor)
             ->futureActiveSlot()
             ->where('start_at', '<', $end)
             ->where('end_at', '>', $start)
@@ -106,7 +106,7 @@ class ScheduleAppointmentImpactService
     ): Collection
     {
         return Appointment::withPortalRelations()
-            ->where('doctor_profile_id', $doctor->id)
+            ->forDoctor($doctor)
             ->futureActiveSlot()
             ->orderBy('start_at')
             ->get()

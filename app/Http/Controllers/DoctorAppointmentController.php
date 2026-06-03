@@ -17,7 +17,7 @@ class DoctorAppointmentController extends Controller
         $showHistory = $this->showHistory($request);
         $historyFilter = $this->historyFilter($request);
         $appointments = Appointment::withPortalRelations()
-            ->where('doctor_profile_id', $doctor->id);
+            ->forDoctor($doctor);
 
         $upcoming = (clone $appointments)
             ->whereIn('status', Appointment::ACTIVE_SLOT_STATUSES)
@@ -120,7 +120,9 @@ class DoctorAppointmentController extends Controller
 
     private function authorizeDoctorAppointment(Request $request, Appointment $appointment): void
     {
-        abort_unless($appointment->doctor_profile_id === $this->doctorFor($request)->id, 404);
+        $appointment->loadMissing('service');
+
+        abort_unless($appointment->service?->doctor_profile_id === $this->doctorFor($request)->id, 404);
     }
 
     private function doctorFor(Request $request): DoctorProfile

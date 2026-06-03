@@ -30,7 +30,7 @@ class PatientDashboardController extends Controller
             'upcomingAppointments' => $upcoming,
             'nextAppointment' => $upcoming->first(),
             'primaryDoctor' => DoctorProfile::with('user')
-                ->where('is_active', true)
+                ->whereHas('user', fn ($query) => $query->where('is_active', true))
                 ->orderBy('id')
                 ->first(),
         ]);

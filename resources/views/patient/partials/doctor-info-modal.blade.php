@@ -46,10 +46,6 @@
               <dt>Numero albo</dt>
               <dd>{{ $doctor?->license_number ?: 'Non indicato' }}</dd>
             </div>
-            <div>
-              <dt>Bio</dt>
-              <dd>{{ $doctor?->bio ?: 'Non indicata' }}</dd>
-            </div>
           </dl>
         </section>
       </div>

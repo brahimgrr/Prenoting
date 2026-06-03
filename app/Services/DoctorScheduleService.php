@@ -175,6 +175,10 @@ class DoctorScheduleService
         $cancellationReason = $this->closureCancellationReason($closures);
 
         return DB::transaction(function () use ($doctor, $closures, $confirmed, $cancellationReason): Collection {
+            collect($closures)->each(function (array $closure) use ($doctor): void {
+                $this->rejectOverlappingClosure($doctor, $closure);
+            });
+
             $this->appointments->cancelOrRequestConfirmation(
                 $this->appointments->closureConflicts($doctor, $closures),
                 $cancellationReason,
@@ -182,8 +186,6 @@ class DoctorScheduleService
             );
 
             return collect($closures)->map(function (array $closure) use ($doctor): ScheduleClosure {
-                $this->rejectCoveredClosureAndDeleteContained($doctor, $closure);
-
                 return ScheduleClosure::create([
                     'doctor_profile_id' => $doctor->id,
                     'date' => $closure['date'],
@@ -273,7 +275,7 @@ class DoctorScheduleService
         }
     }
 
-    private function rejectCoveredClosureAndDeleteContained(DoctorProfile $doctor, array $closure): void
+    private function rejectOverlappingClosure(DoctorProfile $doctor, array $closure): void
     {
         $newWindow = $this->closureWindow($closure['start_time'], $closure['end_time']);
         $existingClosures = $doctor->closures()
@@ -284,28 +286,12 @@ class DoctorScheduleService
         foreach ($existingClosures as $existingClosure) {
             $existingWindow = $this->closureModelWindow($existingClosure);
 
-            if ($this->containsClosureWindow($existingWindow, $newWindow)) {
-                throw ValidationException::withMessages([
-                    'closure' => 'Questa chiusura e gia coperta da una chiusura esistente.',
-                ]);
-            }
-
-            if (
-                $this->windowsOverlap($existingWindow, $newWindow)
-                && !$this->containsClosureWindow($newWindow, $existingWindow)
-            ) {
+            if ($this->windowsOverlap($existingWindow, $newWindow)) {
                 throw ValidationException::withMessages([
                     'closure' => 'Questa chiusura si sovrappone a una chiusura esistente.',
                 ]);
             }
         }
-
-        $existingClosures
-            ->filter(fn(ScheduleClosure $existingClosure): bool => $this->containsClosureWindow(
-                $newWindow,
-                $this->closureModelWindow($existingClosure),
-            ))
-            ->each(fn(ScheduleClosure $existingClosure): ?bool => $existingClosure->delete());
     }
 
     private function closureWindow(?string $startTime, ?string $endTime): array
@@ -322,11 +308,6 @@ class DoctorScheduleService
             $closure->start_time ? (string)$closure->start_time : null,
             $closure->end_time ? (string)$closure->end_time : null,
         );
-    }
-
-    private function containsClosureWindow(array $outer, array $inner): bool
-    {
-        return $outer['start'] <= $inner['start'] && $outer['end'] >= $inner['end'];
     }
 
     private function windowsOverlap(array $first, array $second): bool

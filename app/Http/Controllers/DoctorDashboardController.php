@@ -11,8 +11,9 @@ class DoctorDashboardController extends Controller
 {
     public function index(Request $request): View
     {
+        $doctor = $this->doctorFor($request);
         $upcoming = Appointment::withPortalRelations()
-            ->where('doctor_profile_id', $this->doctorFor($request)->id)
+            ->forDoctor($doctor)
             ->futureActiveSlot()
             ->orderBy('start_at')
             ->get();

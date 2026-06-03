@@ -31,13 +31,12 @@ class AppointmentService
     public function book(PatientProfile $patient, string $slotStart, int $serviceId, string $notes = ''): Appointment
     {
         return DB::transaction(function () use ($patient, $slotStart, $serviceId, $notes): Appointment {
-            $doctor = $this->lockPrimaryDoctor();
-            $service = MedicalService::findOrFail($serviceId);
+            $service = MedicalService::with('doctor')->lockForUpdate()->findOrFail($serviceId);
+            $doctor = $this->lockServiceDoctor($service);
             $slot = $this->validateSlotForService($doctor, $service, $slotStart);
 
             $appointment = Appointment::create([
                 'patient_id' => $patient->id,
-                'doctor_profile_id' => $doctor->id,
                 'service_id' => $service->id,
                 'start_at' => $slot->start_at,
                 'end_at' => $slot->end_at,
@@ -49,11 +48,9 @@ class AppointmentService
         });
     }
 
-    private function lockPrimaryDoctor(): DoctorProfile
+    private function lockServiceDoctor(MedicalService $service): DoctorProfile
     {
-        $doctorId = $this->availability->primaryDoctor()->id;
-
-        return DoctorProfile::query()->lockForUpdate()->findOrFail($doctorId);
+        return DoctorProfile::query()->lockForUpdate()->findOrFail($service->doctor_profile_id);
     }
 
     public function validateSlotForService(
@@ -175,10 +172,10 @@ class AppointmentService
     public function reschedule(Appointment $appointment, string $newSlotStart): Appointment
     {
         return DB::transaction(function () use ($appointment, $newSlotStart): Appointment {
-            $locked = Appointment::with('service')->lockForUpdate()->findOrFail($appointment->id);
+            $locked = Appointment::with('service.doctor')->lockForUpdate()->findOrFail($appointment->id);
             $this->validateFutureConfirmed($locked, 'rescheduled');
 
-            $doctor = DoctorProfile::query()->lockForUpdate()->findOrFail($locked->doctor_profile_id);
+            $doctor = $this->lockServiceDoctor($locked->service);
             $parsedStart = ScheduleTime::parseSlotStart($newSlotStart);
 
             if ($parsedStart && $locked->start_at->format('Y-m-d\TH:i') === $parsedStart->format('Y-m-d\TH:i')) {

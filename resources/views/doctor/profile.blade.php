@@ -246,6 +246,7 @@
                     type="button"
                     data-working-hours-add-break
                     @if ($hasLunchBreak) hidden @endif
+                    @disabled(! $isOpen)
                     aria-controls="working-hours-{{ $weekday }}-break-row"
                   >Aggiungi pausa pranzo</button>
 
@@ -334,18 +335,32 @@
         return `${hours}h${remainder > 0 ? ` ${remainder}m` : ""}`;
       }
 
+      function haAperturaGiorno(day) {
+        return Boolean(
+          day.querySelector('select[name$="[open_time]"]')?.value ||
+          day.querySelector('select[name$="[close_time]"]')?.value
+        );
+      }
+
+      function aggiornaPulsantePausaPranzo(day) {
+        const addBreakButton = day.querySelector("[data-working-hours-add-break]");
+        if (addBreakButton) addBreakButton.disabled = !haAperturaGiorno(day);
+      }
+
       function aggiornaGiornoOrario(day) {
         const status = day.querySelector("[data-working-hours-status]");
-        const hasValues = Array.from(day.querySelectorAll("select")).some((select) => select.value);
+        const hasOpeningHours = haAperturaGiorno(day);
 
-        day.classList.toggle("text-secondary", !hasValues);
+        day.classList.toggle("text-secondary", !hasOpeningHours);
 
         if (status) {
-          status.classList.toggle("text-primary", hasValues);
-          status.classList.toggle("text-secondary", !hasValues);
+          status.classList.toggle("text-primary", hasOpeningHours);
+          status.classList.toggle("text-secondary", !hasOpeningHours);
           const duration = etichettaDurataOrario(minutiGiornoOrario(day));
-          status.textContent = hasValues ? `Aperto${duration ? ` - ${duration}` : ""}` : "Chiuso";
+          status.textContent = hasOpeningHours ? `Aperto${duration ? ` - ${duration}` : ""}` : "Chiuso";
         }
+
+        aggiornaPulsantePausaPranzo(day);
       }
 
       function resettaSelectOrario(day, selector) {
@@ -376,6 +391,8 @@
         const breakRow = day.querySelector("[data-working-hours-break-row]");
         const addBreakButton = day.querySelector("[data-working-hours-add-break]");
 
+        if (!haAperturaGiorno(day)) return;
+
         if (breakRow) {
           breakRow.hidden = false;
           breakRow.querySelector("select")?.focus();
@@ -389,7 +406,10 @@
         const addBreakButton = day.querySelector("[data-working-hours-add-break]");
 
         if (breakRow) breakRow.hidden = true;
-        if (addBreakButton) addBreakButton.hidden = false;
+        if (addBreakButton) {
+          addBreakButton.hidden = false;
+          aggiornaPulsantePausaPranzo(day);
+        }
       }
 
       document.addEventListener("change", (event) => {

@@ -37,6 +37,7 @@ class DatabaseSeeder extends Seeder
         'first_name' => 'Kylian',
         'last_name' => 'Mbappe',
         'role' => User::ROLE_DOCTOR,
+        'is_active' => true,
         'password' => Hash::make('doctor123'),
       ],
     );
@@ -47,9 +48,10 @@ class DatabaseSeeder extends Seeder
         'license_number' => 'DERM-001',
         'phone' => '3331000000',
         'clinic_address' => 'Via Roma 1',
-        'is_active' => true,
       ],
     );
+
+    $doctor = DoctorProfile::where('user_id', $doctorUser->id)->firstOrFail();
 
     foreach ([
       ['Visita dermatologica', MedicalService::CATEGORY_VISIT, 30, '120.00'],
@@ -63,6 +65,7 @@ class DatabaseSeeder extends Seeder
       MedicalService::updateOrCreate(
         ['name' => $name],
         [
+          'doctor_profile_id' => $doctor->id,
           'category' => $category,
           'duration_minutes' => $duration,
           'price' => $price,
@@ -71,7 +74,6 @@ class DatabaseSeeder extends Seeder
       );
     }
 
-    $doctor = DoctorProfile::first();
     foreach ([1, 2, 3, 4, 5] as $weekday) {
       WorkingHour::updateOrCreate(
         [

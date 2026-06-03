@@ -231,12 +231,20 @@ class RoleDashboardTest extends TestCase
     $this->assertTrue(Schema::hasColumn('doctor_profiles', 'clinic_address'));
   }
 
+  public function test_active_status_lives_on_users_not_doctor_profiles(): void
+  {
+    $this->assertTrue(Schema::hasColumn('users', 'is_active'));
+    $this->assertFalse(Schema::hasColumn('doctor_profiles', 'is_active'));
+    $this->assertFalse(Schema::hasColumn('doctor_profiles', 'bio'));
+  }
+
   public function test_dynamic_availability_tables_exist(): void
   {
     $this->assertTrue(Schema::hasTable('working_hours'));
     $this->assertTrue(Schema::hasTable('special_openings'));
     $this->assertTrue(Schema::hasTable('closures'));
-    $this->assertTrue(Schema::hasColumn('appointments', 'doctor_profile_id'));
+    $this->assertTrue(Schema::hasColumn('medical_services', 'doctor_profile_id'));
+    $this->assertFalse(Schema::hasColumn('appointments', 'doctor_profile_id'));
     $this->assertFalse(Schema::hasColumn('appointments', 'slot_id'));
   }
 
@@ -264,6 +272,7 @@ class RoleDashboardTest extends TestCase
 
     $this->assertDatabaseHas('medical_services', [
       'id' => $offering->id,
+      'doctor_profile_id' => $doctorUser->doctorProfile->id,
       'name' => 'Dermatoscopia',
       'category' => 'ESAME',
       'duration_minutes' => 30,
@@ -425,6 +434,7 @@ class RoleDashboardTest extends TestCase
       ->assertSeeText('doctor.derm@example.com')
       ->assertSeeText('3331000000')
       ->assertSeeText('Via Roma 1')
+      ->assertDontSeeText('Dermatologo specializzato in prevenzione.')
       ->assertSeeText('Prossimo appuntamento')
       ->assertSeeText('Visita dermatologica')
       ->assertSeeText('I miei appuntamenti')
@@ -465,7 +475,10 @@ class RoleDashboardTest extends TestCase
     ]);
     [$patientUser, $patient] = $this->patient('patient@example.com', 'Mario', 'Rossi');
     [$otherPatientUser, $otherPatient] = $this->patient('other@example.com', 'Altro', 'Paziente');
-    $service = MedicalService::create(['name' => 'Visita dermatologica']);
+    $service = MedicalService::create([
+      'doctor_profile_id' => $doctor->id,
+      'name' => 'Visita dermatologica',
+    ]);
     $slot = $this->slotAt($doctor, CarbonImmutable::now()->addDay()->setTime(9, 0));
     $otherSlot = $this->slotAt($doctor, CarbonImmutable::now()->addDay()->setTime(10, 0));
     $appointment = $this->appointment($patient, $doctor, $service, $slot, $status);
@@ -513,7 +526,6 @@ class RoleDashboardTest extends TestCase
   ): Appointment {
     return Appointment::create([
       'patient_id' => $patient->id,
-      'doctor_profile_id' => $doctor->id,
       'service_id' => $service->id,
       'start_at' => $slot->start_at,
       'end_at' => $slot->end_at,
