@@ -52,7 +52,7 @@
       <div class="col-12 col-md-6">
         <a class="quick-action d-grid gap-2 h-100 p-4" href="/patient/book?mode=service">
           <span>Prenota visita</span>
-          <strong>Trova assistenza</strong>
+          <strong>Scegli una prestazione</strong>
         </a>
       </div>
       <div class="col-12 col-md-6">

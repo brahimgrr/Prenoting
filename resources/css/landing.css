@@ -46,6 +46,57 @@
   width: 2.4rem;
 }
 
+.landing-doctor {
+  background: var(--color-canvas);
+  border-top: 1px solid var(--color-border);
+}
+
+.landing-doctor__text {
+  color: var(--color-muted);
+  max-width: 30rem;
+}
+
+.landing-doctor__details {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--app-card-radius);
+  box-shadow: var(--shadow-panel);
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+}
+
+.landing-doctor__detail {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem 1.25rem;
+}
+
+.landing-doctor__detail + .landing-doctor__detail {
+  border-top: 1px solid var(--color-border);
+}
+
+.landing-doctor__detail dt {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.landing-doctor__detail dd {
+  color: var(--color-ink);
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.landing-doctor__detail a {
+  color: inherit;
+  text-decoration-color: rgba(37, 99, 235, 0.35);
+  text-underline-offset: 0.18em;
+}
+
 .landing-steps {
   background: linear-gradient(135deg, rgba(15, 118, 110, 0.06), rgba(37, 99, 235, 0.04));
 }

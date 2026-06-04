@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DoctorProfile;
 use App\Models\MedicalService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -17,6 +18,10 @@ class LandingController extends Controller
         }
 
         return view('landing', [
+            'doctor' => DoctorProfile::with('user')
+                ->whereHas('user', fn ($query) => $query->where('is_active', true))
+                ->orderBy('id')
+                ->first(),
             'services' => MedicalService::where('is_active', true)
                 ->whereHas('doctor.user', fn ($query) => $query->where('is_active', true))
                 ->orderBy('name')

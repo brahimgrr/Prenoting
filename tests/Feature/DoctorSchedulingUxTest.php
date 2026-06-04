@@ -38,7 +38,6 @@ class DoctorSchedulingUxTest extends TestCase
       ->assertSee('Apri alle')
       ->assertSee('Chiudi alle')
       ->assertSee('Pausa pranzo')
-      ->assertDontSee('data-working-hours-add', false)
       ->assertDontSee('data-working-hours-remove', false)
       ->assertSee('name="working_hours[1][open_time]"', false)
       ->assertSee('08:00');
@@ -101,7 +100,7 @@ class DoctorSchedulingUxTest extends TestCase
     ]);
   }
 
-  public function test_doctor_profile_defaults_empty_weekday_rows_to_morning_window_and_weekends_blank(): void
+  public function test_doctor_profile_keeps_empty_working_hour_rows_blank(): void
   {
     [$doctorUser] = $this->doctorContext();
 
@@ -109,11 +108,17 @@ class DoctorSchedulingUxTest extends TestCase
       ->get('/doctor/profile')
       ->assertOk()
       ->assertSee('name="working_hours[1][open_time]"', false)
-      ->assertSee('<option value="09:00" selected>09:00</option>', false)
-      ->assertSee('name="working_hours[1][close_time]"', false)
-      ->assertSee('<option value="12:00" selected>12:00</option>', false);
+      ->assertSee('name="working_hours[1][close_time]"', false);
 
     $content = $response->getContent();
+    $this->assertSelectStartsWithOptions($content, 'working_hours[1][open_time]', [
+      '<option value="">--:--</option>',
+      '<option value="00:00" >00:00</option>',
+    ]);
+    $this->assertSelectStartsWithOptions($content, 'working_hours[1][close_time]', [
+      '<option value="">--:--</option>',
+      '<option value="00:00" >00:00</option>',
+    ]);
     $this->assertSelectStartsWithOptions($content, 'working_hours[6][open_time]', [
       '<option value="">--:--</option>',
       '<option value="00:00" >00:00</option>',

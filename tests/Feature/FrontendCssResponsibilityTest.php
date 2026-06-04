@@ -55,6 +55,17 @@ class FrontendCssResponsibilityTest extends TestCase
     $this->assertMatchesRegularExpression('/\.app-main\s*\{[^}]*min-width:\s*0;/s', $portalCss);
   }
 
+  public function test_portal_flash_alerts_overlay_content_without_layout_shift(): void
+  {
+    $layout = file_get_contents(resource_path('views/layouts/portal.blade.php'));
+    $portalCss = file_get_contents(resource_path('css/portal-layout.css'));
+
+    $this->assertStringContainsString('class="app-flash-overlay"', $layout);
+    $this->assertMatchesRegularExpression('/\.app-flash-overlay\s*\{[^}]*position:\s*fixed;/s', $portalCss);
+    $this->assertMatchesRegularExpression('/\.app-flash-overlay\s*\{[^}]*z-index:\s*\d+;/s', $portalCss);
+    $this->assertMatchesRegularExpression('/\.app-flash-overlay\s*\.alert\s*\{[^}]*margin-bottom:\s*0;/s', $portalCss);
+  }
+
   public function test_portal_page_headings_use_bootstrap_spacing_from_following_content(): void
   {
     foreach ([

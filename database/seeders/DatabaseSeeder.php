@@ -74,20 +74,18 @@ class DatabaseSeeder extends Seeder
       );
     }
 
-    foreach ([1, 2, 3, 4, 5] as $weekday) {
-      WorkingHour::updateOrCreate(
-        [
+    if (! $doctor->workingHours()->exists()) {
+      foreach ([1, 2, 3, 4, 5] as $weekday) {
+        WorkingHour::create([
           'doctor_profile_id' => $doctor->id,
           'weekday' => $weekday,
           'start_time' => '09:00:00',
           'end_time' => '12:00:00',
-        ],
-        [
           'effective_from' => null,
           'effective_until' => null,
           'is_active' => true,
-        ],
-      );
+        ]);
+      }
     }
   }
 }

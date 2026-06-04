@@ -1,0 +1,695 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[a4paper,margin=2.35cm,headheight=15pt]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{lmodern}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{fvextra}
+\usepackage[most]{tcolorbox}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{PrenotingBlue}{HTML}{1F4E79}
+\definecolor{PrenotingRule}{HTML}{C8D3DD}
+\definecolor{PrenotingText}{HTML}{1F2933}
+\definecolor{PrenotingSoft}{HTML}{F7FAFC}
+
+\hypersetup{
+    pdftitle={Prenoting - User story e casi d'uso},
+    pdfauthor={Prenoting},
+    pdfsubject={Documento dei requisiti e specifica dei casi d'uso},
+    pdfkeywords={Prenoting, requisiti, casi d'uso, specifica}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Prenoting}
+\rhead{User story e casi d'uso}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\titleformat{\section}
+  {\Large\bfseries\color{PrenotingBlue}}
+  {\thesection}{0.75em}{}
+\titleformat{\subsection}
+  {\large\bfseries\color{PrenotingText}}
+  {\thesubsection}{0.65em}{}
+\titlespacing*{\section}{0pt}{1.2cm}{0.35cm}
+
+\newtcolorbox{RequirementBlock}{
+    enhanced,
+    breakable,
+    colback=white,
+    colframe=PrenotingRule,
+    boxrule=0.35pt,
+    arc=1mm,
+    left=4mm,
+    right=4mm,
+    top=3mm,
+    bottom=3mm,
+    before skip=0.25cm,
+    after skip=0.55cm,
+    before upper={\sloppy\setlength{\parindent}{0pt}\setlength{\parskip}{0.28em}\emergencystretch=3em}
+}
+
+\newcommand{\RequirementHeading}[1]{\par\medskip\noindent{\bfseries\color{PrenotingBlue}#1}\par\smallskip}
+\newcommand{\RequirementScenario}[1]{\par\medskip\noindent{\bfseries\color{PrenotingBlue}#1}\par\smallskip}
+\newcommand{\RequirementField}[2]{\par\noindent\textbf{#1:} #2\par}
+\newcommand{\RequirementStory}[1]{\par\noindent\textit{#1}\par}
+\newcommand{\RequirementParagraph}[1]{\par\noindent #1\par}
+\newcommand{\RequirementNote}[1]{\par\medskip\noindent\textbf{Nota:} #1\par}
+\newcommand{\RequirementEnd}{\par\smallskip\noindent\textbf{Fine}\par}
+\newcommand{\RequirementStep}[2]{\par\hangindent=1.45cm\hangafter=1\noindent\makebox[1.45cm][l]{\textbf{#1}}#2\par}
+\newcommand{\RequirementBullet}[1]{\par\hangindent=1.2cm\hangafter=1\noindent\makebox[1.2cm][l]{-}#1\par}
+\newcommand{\RequirementContinuation}[1]{\par{\leftskip=1.45cm\noindent #1\par}}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{2.5cm}
+    {\Huge\bfseries Prenoting\par}
+    \vspace{0.45cm}
+    {\LARGE User story e casi d'uso\par}
+    \vspace{1.2cm}
+    {\Large Documento dei requisiti e specifica dei casi d'uso\par}
+    \vfill
+    {\large Versione 2\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section*{Nota introduttiva}
+\addcontentsline{toc}{section}{Nota introduttiva}
+\begin{RequirementBlock}
+\RequirementParagraph{Nota: l'utente puo abortire ogni operazione e abbandonare la pagina in ogni momento;}
+
+\RequirementParagraph{le operazioni non confermate non producono alcun salvataggio.}
+
+\RequirementParagraph{Attori: Visitatore, Paziente, Medico}
+\end{RequirementBlock}
+
+\section{Casi d'uso}
+
+\subsection{UC01 - Registrazione}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come visitatore, voglio registrarmi al portale fornendo i miei dati anagrafici, per diventare paziente dello studio e poter prenotare visite ed esami online.}
+
+\RequirementField{Nome}{Registrazione}
+\RequirementField{Attore}{Visitatore}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il visitatore apre la pagina di registrazione}
+\RequirementStep{2.}{Il sistema mostra il form di registrazione e chiede nome, cognome, email, password con}
+\RequirementContinuation{conferma, data di nascita, comune di nascita, sesso e telefono}
+\RequirementStep{3.}{Il visitatore inserisce i dati richiesti}
+\RequirementStep{4.}{Il visitatore invia il form}
+\RequirementStep{5.}{Il sistema valida i dati inseriti}
+\RequirementStep{6.}{Il sistema crea l'account con ruolo paziente, calcola automaticamente il codice fiscale}
+\RequirementContinuation{dai dati anagrafici ed effettua il login automatico}
+\RequirementStep{7.}{Il sistema mostra la dashboard del paziente}
+\RequirementField{Postcondizione}{l'account paziente e il relativo profilo sono stati salvati in modo persistente}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{5a.}{Precondizione: l'email inserita e gia associata a un altro account}
+\RequirementContinuation{Il sistema avvisa il visitatore dell'errore}
+\RequirementContinuation{Torna al punto 2}
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{5b.}{Precondizione: uno o piu campi non sono validi (nome o cognome con caratteri diversi}
+\RequirementContinuation{da lettere e spazi, password di meno di 8 caratteri o non coincidente con la conferma,}
+\RequirementContinuation{comune di nascita sconosciuto, data di nascita non precedente a oggi, telefono che}
+\RequirementContinuation{non e un numero di cellulare italiano valido)}
+\RequirementContinuation{Il sistema evidenzia i campi errati e avvisa il visitatore}
+\RequirementContinuation{Torna al punto 2}
+\end{RequirementBlock}
+
+\subsection{UC02 - Effettuare login}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come paziente o medico, voglio accedere al portale con le mie credenziali, per utilizzare le funzionalita riservate al mio ruolo.}
+
+\RequirementField{Nome}{Effettuare login}
+\RequirementField{Attore}{Paziente, Medico}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{L'utente apre la pagina di login}
+\RequirementStep{2.}{Il sistema chiede email e password}
+\RequirementStep{3.}{L'utente inserisce le proprie credenziali}
+\RequirementStep{4.}{Il sistema verifica le credenziali e rigenera la sessione}
+\RequirementStep{5.}{Il sistema reindirizza l'utente al portale corrispondente al suo ruolo}
+\RequirementContinuation{(area paziente o area medico)}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{4a.}{Precondizione: le credenziali inserite sono errate}
+\RequirementContinuation{Il sistema avvisa l'utente che le credenziali non sono valide}
+\RequirementContinuation{Torna al punto 2}
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{5a.}{Precondizione: il ruolo dell'account non e supportato}
+\RequirementContinuation{Il sistema mostra una pagina di avviso e non consente l'accesso ad alcun portale}
+\RequirementEnd
+\end{RequirementBlock}
+
+\subsection{UC03 - Effettuare logout}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come paziente o medico, voglio disconnettermi dal portale, per impedire che altri utilizzino la mia sessione.}
+
+\RequirementField{Nome}{Effettuare logout}
+\RequirementField{Attore}{Paziente, Medico}
+\RequirementField{Precondizione}{l'utente e autenticato}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{L'utente seleziona l'opzione di logout}
+\RequirementStep{2.}{Il sistema invalida la sessione corrente}
+\RequirementStep{3.}{Il sistema reindirizza l'utente alla pagina di login}
+\RequirementField{Postcondizione}{la sessione dell'utente e stata chiusa}
+\RequirementEnd
+\end{RequirementBlock}
+
+\subsection{UC04 - Modifica password}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come paziente o medico, voglio cambiare la mia password, per mantenere sicuro il mio account.}
+
+\RequirementField{Nome}{Modifica password}
+\RequirementField{Attore}{Paziente, Medico}
+\RequirementField{Precondizione}{l'utente e autenticato}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{L'utente apre la sezione profilo}
+\RequirementStep{2.}{Il sistema chiede la password attuale, la nuova password e la conferma della nuova password}
+\RequirementStep{3.}{L'utente inserisce i dati richiesti e conferma}
+\RequirementStep{4.}{Il sistema verifica la password attuale e la validita della nuova password}
+\RequirementStep{5.}{Il sistema salva la nuova password e conferma l'avvenuta modifica}
+\RequirementField{Postcondizione}{la nuova password e stata salvata in modo persistente}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{4a.}{Precondizione: la password attuale inserita Ã¨ errata}
+\RequirementContinuation{Il sistema avvisa l'utente dell'errore}
+\RequirementContinuation{Torna al punto 2}
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{4b.}{Precondizione: la nuova password non e conforme ai requisiti o non coincide con la conferma}
+\RequirementContinuation{Il sistema avvisa l'utente dell'errore}
+\RequirementContinuation{Torna al punto 2}
+\end{RequirementBlock}
+
+\subsection{UC05 - Visualizzare dashboard paziente}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come paziente, voglio vedere una panoramica dei miei appuntamenti e del mio medico, per avere subito sotto controllo la mia situazione.}
+
+\RequirementField{Nome}{Visualizzare dashboard paziente}
+\RequirementField{Attore}{Paziente}
+\RequirementField{Precondizione}{l'utente e autenticato con ruolo paziente}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il paziente apre la dashboard}
+\RequirementStep{2.}{Il sistema recupera gli appuntamenti del paziente e separa quelli futuri attivi}
+\RequirementContinuation{da quelli passati o annullati}
+\RequirementStep{3.}{Il sistema evidenzia il prossimo appuntamento (data, ora e prestazione)}
+\RequirementStep{4.}{Il sistema mostra le azioni rapide (prenota visita, i miei appuntamenti)}
+\RequirementContinuation{e il riepilogo del medico (nome, indirizzo dello studio, email, telefono)}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{3a.}{Precondizione: il paziente non ha appuntamenti futuri attivi}
+\RequirementContinuation{Il sistema mostra un messaggio che invita a prenotare la prima visita}
+\RequirementContinuation{Vai al punto 4}
+\end{RequirementBlock}
+
+\subsection{UC06 - Aggiornare info personali}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come paziente o medico, voglio aggiornare le mie informazioni personali e di contatto, per mantenere corretti i dati che lo studio utilizza.}
+
+\RequirementField{Nome}{Aggiornare info personali}
+\RequirementField{Attore}{Paziente, Medico}
+\RequirementField{Precondizione}{l'utente e autenticato}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{L'utente apre la sezione profilo}
+\RequirementStep{2.}{Il sistema mostra le informazioni attuali; i dati anagrafici fissi sono in sola lettura}
+\RequirementStep{3.}{L'utente modifica le informazioni consentite (per il paziente: telefono e indirizzo;}
+\RequirementContinuation{per il medico: telefono e indirizzo dell'ambulatorio); tutti gli altri dati (nome,}
+\RequirementContinuation{email, dati anagrafici, nome visualizzato e numero di albo del medico) sono in sola lettura}
+\RequirementStep{4.}{L'utente conferma}
+\RequirementStep{5.}{Il sistema valida e salva i dati}
+\RequirementField{Postcondizione}{le informazioni aggiornate sono state salvate in modo persistente}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{5a.}{Precondizione: uno o piu campi non sono validi (stringhe vuote nei campi obbligatori}
+\RequirementContinuation{o telefono in formato errato)}
+\RequirementContinuation{Il sistema evidenzia i campi errati e avvisa l'utente}
+\RequirementContinuation{Torna al punto 3}
+\end{RequirementBlock}
+
+\subsection{UC07 - Avviare prenotazione guidata}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come paziente, voglio prenotare una visita o un esame scegliendo tra gli orari disponibili, per fissare un appuntamento senza dover telefonare allo studio.}
+
+\RequirementField{Nome}{Avviare prenotazione guidata}
+\RequirementField{Attore}{Paziente}
+\RequirementField{Precondizione}{l'utente e autenticato con ruolo paziente; esistono prestazioni attive}
+\RequirementParagraph{e disponibilita future}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il paziente apre la sezione di prenotazione}
+\RequirementStep{2.}{Il sistema mostra l'elenco delle prestazioni attive (dei soli medici con account attivo)}
+\RequirementStep{3.}{Il paziente sceglie una prestazione (scegliendo cosi anche il medico che la offre)}
+\RequirementStep{4.}{Il sistema genera e mostra i giorni con disponibilita (5 alla volta, navigabili, entro}
+\RequirementContinuation{un orizzonte di 90 giorni) e gli orari liberi su griglia di 30 minuti, calcolati dagli}
+\RequirementContinuation{orari del medico titolare della prestazione al netto di chiusure e appuntamenti}
+\RequirementContinuation{esistenti; gli orari sono filtrabili per mattina o pomeriggio}
+\RequirementStep{5.}{Il paziente sceglie un giorno e un orario}
+\RequirementStep{6.}{Il paziente aggiunge eventuali note facoltative per il medico}
+\RequirementStep{7.}{Il sistema chiede conferma della prenotazione}
+\RequirementStep{8.}{Il paziente conferma}
+\RequirementStep{9.}{Il sistema, in transazione, riverifica l'orario richiesto (non passato, non chiuso,}
+\RequirementContinuation{non sovrapposto ad altri appuntamenti attivi) e crea l'appuntamento con stato confermato}
+\RequirementStep{10.}{Il sistema reindirizza alla sezione appuntamenti con il messaggio di conferma}
+\RequirementField{Postcondizione}{l'appuntamento confermato e stato salvato in modo persistente}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{8a.}{Il paziente non conferma}
+\RequirementContinuation{Torna al punto 4}
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{9a.}{Precondizione: l'orario scelto non e piu disponibile o la prestazione e stata disattivata}
+\RequirementContinuation{Il sistema avvisa il paziente dell'errore}
+\RequirementContinuation{Torna al punto 4}
+\end{RequirementBlock}
+
+\subsection{UC08 - Modificare appuntamento}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come paziente, voglio spostare un mio appuntamento confermato a un altro orario disponibile, per gestire i miei impegni senza dover annullare e riprenotare.}
+
+\RequirementField{Nome}{Modificare appuntamento}
+\RequirementField{Attore}{Paziente}
+\RequirementField{Precondizione}{l'appuntamento appartiene al paziente, e confermato, e in data futura}
+\RequirementParagraph{e mancano piu di 24 ore al suo inizio}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il paziente seleziona l'appuntamento da modificare}
+\RequirementStep{2.}{Il sistema mostra le disponibilita generate per la stessa prestazione, escludendo}
+\RequirementContinuation{l'appuntamento attuale dal controllo delle sovrapposizioni}
+\RequirementStep{3.}{Il paziente seleziona un nuovo orario}
+\RequirementStep{4.}{Il sistema chiede conferma dello spostamento}
+\RequirementStep{5.}{Il paziente conferma}
+\RequirementStep{6.}{Il sistema, in transazione, riverifica il nuovo orario e aggiorna l'appuntamento}
+\RequirementField{Postcondizione}{il nuovo orario dell'appuntamento e stato salvato in modo persistente}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{5a.}{Il paziente non conferma}
+\RequirementContinuation{Torna al punto 2}
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{6a.}{Precondizione: il nuovo orario non e piu disponibile}
+\RequirementContinuation{Il sistema avvisa il paziente dell'errore}
+\RequirementContinuation{Torna al punto 2}
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{6b.}{Precondizione: nel frattempo mancano meno di 24 ore all'inizio dell'appuntamento}
+\RequirementContinuation{Il sistema avvisa che gli appuntamenti non possono essere spostati nelle 24 ore precedenti}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{6c.}{Precondizione: il nuovo orario coincide con quello attuale}
+\RequirementContinuation{Il sistema chiede di selezionare un orario diverso}
+\RequirementContinuation{Torna al punto 2}
+
+\RequirementNote{si puo modificare solo l'orario; la prestazione e le note inserite alla prenotazione}
+\RequirementParagraph{non sono modificabili.}
+\end{RequirementBlock}
+
+\subsection{UC09 - Annullare appuntamento}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come paziente, voglio annullare un mio appuntamento indicandone il motivo, per liberare l'orario quando non posso piu presentarmi.}
+
+\RequirementField{Nome}{Annullare appuntamento}
+\RequirementField{Attore}{Paziente}
+\RequirementField{Precondizione}{l'appuntamento appartiene al paziente, e confermato, e in data futura}
+\RequirementParagraph{e mancano piu di 24 ore al suo inizio}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il paziente avvia l'annullamento dell'appuntamento}
+\RequirementStep{2.}{Il sistema chiede conferma dell'operazione e un motivo facoltativo}
+\RequirementStep{3.}{Il paziente inserisce eventualmente il motivo e conferma}
+\RequirementStep{4.}{Il sistema, in transazione, imposta lo stato dell'appuntamento ad annullato,}
+\RequirementContinuation{registrando che l'annullamento e stato effettuato dal paziente;}
+\RequirementContinuation{l'orario torna prenotabile se ancora coperto dalle regole di apertura}
+\RequirementField{Postcondizione}{l'annullamento e stato salvato in modo persistente}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{3a.}{Il paziente non conferma}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{4a.}{Precondizione: l'appuntamento non e piu confermato, e gia passato o mancano meno}
+\RequirementContinuation{di 24 ore al suo inizio}
+\RequirementContinuation{Il sistema avvisa il paziente dell'errore (gli appuntamenti non possono essere}
+\RequirementContinuation{annullati nelle 24 ore precedenti)}
+\RequirementEnd
+\end{RequirementBlock}
+
+\subsection{UC10 - Visualizzare calendario}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come medico, voglio vedere il calendario della giornata con appuntamenti, chiusure e fatturato, per organizzare il mio lavoro in ambulatorio.}
+
+\RequirementField{Nome}{Visualizzare calendario}
+\RequirementField{Attore}{Medico}
+\RequirementField{Precondizione}{l'utente e autenticato con ruolo medico}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il medico apre l'agenda}
+\RequirementStep{2.}{Il sistema costruisce una timeline a intervalli di 30 minuti che integra gli orari}
+\RequirementContinuation{di apertura generati, le chiusure e gli appuntamenti, con navigazione per settimana}
+\RequirementContinuation{e selezione del giorno}
+\RequirementStep{3.}{Il sistema evidenzia l'ora corrente e mostra i contatori della giornata (appuntamenti,}
+\RequirementContinuation{slot disponibili) e il fatturato previsto (somma dei prezzi delle prestazioni degli}
+\RequirementContinuation{appuntamenti non annullati del giorno)}
+\RequirementStep{4.}{Il sistema mostra l'elenco dei prossimi eventi non ricorrenti (chiusure e aperture extra)}
+\RequirementEnd
+\end{RequirementBlock}
+
+\subsection{UC11 - Visualizzare dettaglio appuntamento e dati paziente}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come medico, voglio consultare il dettaglio di un appuntamento con i dati del paziente, per prepararmi alla visita.}
+
+\RequirementField{Nome}{Visualizzare dettaglio appuntamento e dati paziente}
+\RequirementField{Attore}{Medico}
+\RequirementField{Precondizione}{l'utente e autenticato con ruolo medico; l'appuntamento esiste}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il medico seleziona un appuntamento dall'agenda}
+\RequirementStep{2.}{Il sistema mostra il dettaglio dell'appuntamento: dati del paziente, prestazione,}
+\RequirementContinuation{orario ed eventuali note}
+\RequirementEnd
+\end{RequirementBlock}
+
+\subsection{UC12 - Gestione disponibilita}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come medico, voglio definire gli orari ricorrenti dell'ambulatorio e gestire chiusure e aperture straordinarie, per controllare quando i pazienti possono prenotare.}
+
+\RequirementField{Nome}{Gestione disponibilita}
+\RequirementField{Attore}{Medico}
+\RequirementField{Precondizione}{l'utente e autenticato con ruolo medico}
+\RequirementScenario{Scenario principale (orari ricorrenti)}
+\RequirementStep{1.}{Il medico apre la sezione del profilo dedicata agli orari di lavoro}
+\RequirementStep{2.}{Il sistema mostra gli orari ricorrenti per i sette giorni della settimana; ogni giorno}
+\RequirementContinuation{puo avere apertura e chiusura ed eventualmente una pausa pranzo (che divide la giornata}
+\RequirementContinuation{in due finestre separate)}
+\RequirementStep{3.}{Il medico modifica gli orari desiderati}
+\RequirementStep{4.}{Il medico conferma}
+\RequirementStep{5.}{Il sistema valida le finestre inserite}
+\RequirementStep{6.}{Il sistema verifica che nessun appuntamento futuro attivo resti fuori dai nuovi orari}
+\RequirementStep{7.}{Il sistema sostituisce gli orari ricorrenti attivi con quelli inseriti}
+\RequirementField{Postcondizione}{i nuovi orari ricorrenti sono stati salvati in modo persistente}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{5a.}{Precondizione: le finestre inserite non sono valide (apertura senza chiusura o viceversa,}
+\RequirementContinuation{chiusura non successiva all'apertura, pausa pranzo incompleta o non compresa negli orari}
+\RequirementContinuation{di apertura)}
+\RequirementContinuation{Il sistema avvisa il medico dell'errore e non salva}
+\RequirementContinuation{Torna al punto 3}
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{6a.}{Precondizione: uno o piu appuntamenti futuri attivi resterebbero fuori dai nuovi orari}
+\RequirementContinuation{Il sistema mostra l'elenco degli appuntamenti coinvolti e avvisa che verranno annullati,}
+\RequirementContinuation{chiedendo conferma}
+\RequirementStep{6b.}{Il medico conferma}
+\RequirementStep{6c.}{Il sistema annulla gli appuntamenti coinvolti (annullamento da parte del medico, con}
+\RequirementContinuation{motivo "Cambio orario lavoro medico") e salva i nuovi orari}
+\RequirementField{Postcondizione}{gli annullamenti e i nuovi orari sono stati salvati in modo persistente}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{6b-bis.}{Il medico non conferma}
+\RequirementContinuation{Il sistema non salva alcuna modifica}
+\RequirementContinuation{Torna al punto 3}
+
+\RequirementScenario{Scenario alternativo (chiusure)}
+\RequirementStep{1a.}{Il medico apre l'agenda e inserisce una chiusura: a giornata intera (anche su un}
+\RequirementContinuation{intervallo di piu giorni) oppure parziale con ora di inizio e fine (solo su una}
+\RequirementContinuation{singola giornata)}
+\RequirementStep{1b.}{Il sistema valida la chiusura: la data non deve essere passata, la fine deve essere}
+\RequirementContinuation{successiva all'inizio, le chiusure parziali devono riguardare un solo giorno}
+\RequirementStep{1c.}{Il sistema confronta la chiusura con quelle esistenti nello stesso giorno:}
+\RequirementContinuation{se si sovrappone in qualsiasi modo a una chiusura esistente (anche solo}
+\RequirementContinuation{parzialmente o se gia coperta), avvisa dell'errore e non salva}
+\RequirementStep{1d.}{Il sistema verifica gli appuntamenti futuri attivi che ricadono nella chiusura:}
+\RequirementContinuation{se non ce ne sono, salva la chiusura}
+\RequirementField{Postcondizione}{la chiusura e stata salvata in modo persistente}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{1d-bis.}{Precondizione: uno o piu appuntamenti futuri attivi ricadono nella chiusura}
+\RequirementContinuation{Il sistema mostra l'elenco degli appuntamenti coinvolti e avvisa che verranno}
+\RequirementContinuation{annullati per creare la chiusura, chiedendo conferma}
+\RequirementBullet{se il medico conferma: il sistema annulla gli appuntamenti (annullamento da parte}
+\RequirementContinuation{del medico, con motivo della chiusura o "Chiusura straordinaria studio") e salva}
+\RequirementContinuation{la chiusura}
+\RequirementBullet{se il medico non conferma: il sistema non salva nulla}
+\RequirementEnd
+
+\RequirementNote{il blocco di una singola disponibilita di 30 minuti dall'agenda crea una chiusura}
+\RequirementParagraph{parziale ("Disponibilita bloccata") e segue le stesse regole, inclusa la conferma se lo}
+\RequirementParagraph{slot e occupato da un appuntamento.}
+
+\RequirementScenario{Scenario alternativo (aperture extra)}
+\RequirementStep{1a.}{Il medico apre l'agenda e inserisce un'apertura extra: data, ora di inizio e fine}
+\RequirementStep{1b.}{Il sistema valida l'apertura: la data non deve essere passata, la fine deve essere}
+\RequirementContinuation{successiva all'inizio}
+\RequirementStep{1c.}{Il sistema verifica le sovrapposizioni:}
+\RequirementBullet{se si sovrappone a un'altra apertura extra dello stesso giorno, avvisa dell'errore}
+\RequirementContinuation{e non salva}
+\RequirementBullet{se e gia interamente coperta dagli orari di apertura esistenti, avvisa che e}
+\RequirementContinuation{ridondante e non salva}
+\RequirementStep{1d.}{Il sistema salva l'apertura extra}
+\RequirementField{Postcondizione}{l'apertura extra e stata salvata in modo persistente}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo (rimozione di chiusure o aperture extra)}
+\RequirementStep{1a.}{Il medico rimuove una chiusura o un'apertura extra dall'agenda}
+\RequirementStep{1b.}{Il sistema verifica gli appuntamenti futuri attivi che resterebbero scoperti}
+\RequirementContinuation{dalla rimozione (es. appuntamenti prenotati dentro un'apertura extra che si elimina)}
+\RequirementStep{1c.}{Se ce ne sono, il sistema mostra l'elenco e avvisa che verranno annullati, chiedendo}
+\RequirementContinuation{conferma: se il medico conferma, annulla gli appuntamenti e rimuove l'evento;}
+\RequirementContinuation{se non conferma, non modifica nulla}
+\RequirementStep{1d.}{Se non ce ne sono, il sistema rimuove l'evento}
+\RequirementField{Postcondizione}{la rimozione (ed eventuali annullamenti) e stata salvata in modo persistente}
+\RequirementEnd
+\end{RequirementBlock}
+
+\subsection{UC13 - Gestione tipi di visita}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come medico, voglio gestire il catalogo delle mie prestazioni, per decidere cosa i pazienti possono prenotare e a quale prezzo.}
+
+\RequirementField{Nome}{Gestione tipi di visita}
+\RequirementField{Attore}{Medico}
+\RequirementField{Precondizione}{l'utente e autenticato con ruolo medico}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il medico apre la pagina dei trattamenti}
+\RequirementStep{2.}{Il sistema mostra l'elenco delle proprie prestazioni attive (ogni prestazione}
+\RequirementContinuation{appartiene al medico che l'ha creata)}
+\RequirementStep{3.}{Il medico inserisce una nuova prestazione: nome, categoria (visita o esame)}
+\RequirementContinuation{e prezzo}
+\RequirementStep{4.}{Il medico conferma}
+\RequirementStep{5.}{Il sistema valida la prestazione e la salva associandola al medico}
+\RequirementField{Postcondizione}{la nuova prestazione e stata salvata in modo persistente}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{5a.}{Precondizione: il nome inserito non e univoco tra le prestazioni del medico}
+\RequirementContinuation{o e una stringa vuota}
+\RequirementContinuation{Il sistema avvisa il medico dell'errore}
+\RequirementContinuation{Torna al punto 3}
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{3a.}{Il medico seleziona una propria prestazione esistente e ne modifica i dati}
+\RequirementContinuation{Vai al punto 4}
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{3b.}{Il medico seleziona l'eliminazione di una propria prestazione esistente}
+\RequirementStep{3c.}{Il sistema chiede conferma e avvisa che la prestazione verra disabilitata,}
+\RequirementContinuation{non sara piu prenotabile e gli appuntamenti gia prenotati resteranno validi}
+\RequirementStep{3d.}{Il medico conferma}
+\RequirementField{Postcondizione}{la prestazione e stata disattivata (non eliminata fisicamente,}
+\RequirementContinuation{per preservare lo storico degli appuntamenti)}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{3e.}{Precondizione: il medico tenta di modificare o eliminare una prestazione}
+\RequirementContinuation{di un altro medico}
+\RequirementContinuation{Il sistema nega l'accesso}
+\RequirementEnd
+
+\RequirementNote{la durata delle prestazioni e fissa a 30 minuti e non e modificabile; il prezzo,}
+\RequirementParagraph{se omesso, viene mostrato come "Da definire". Il medico di un appuntamento e derivato}
+\RequirementParagraph{dalla prestazione prenotata (la prestazione appartiene a un medico).}
+\end{RequirementBlock}
+
+\subsection{UC14 - Consultare landing page}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come visitatore, voglio consultare la pagina di presentazione dello studio con l'elenco dei trattamenti offerti, per decidere se registrarmi e prenotare una visita.}
+
+\RequirementField{Nome}{Consultare landing page}
+\RequirementField{Attore}{Visitatore}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il visitatore apre il sito dello studio}
+\RequirementStep{2.}{Il sistema mostra la landing page con la presentazione dello studio, l'elenco dei}
+\RequirementContinuation{trattamenti attivi dei medici con account attivo, la sezione "come funziona" e i}
+\RequirementContinuation{pulsanti di accesso e registrazione}
+\RequirementStep{3.}{Il visitatore consulta i contenuti}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{1a.}{Precondizione: l'utente e gia autenticato}
+\RequirementContinuation{Il sistema reindirizza l'utente al portale corrispondente al suo ruolo}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{3a.}{Il visitatore seleziona il pulsante di registrazione}
+\RequirementContinuation{\textless{}\textless{}include\textgreater{}\textgreater{} "Registrazione"}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{3b.}{Il visitatore seleziona il pulsante di accesso}
+\RequirementContinuation{\textless{}\textless{}include\textgreater{}\textgreater{} "Effettuare login"}
+\RequirementEnd
+\end{RequirementBlock}
+
+\subsection{UC15 - Annullare appuntamento (medico)}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come medico, voglio annullare un appuntamento futuro indicandone il motivo, per gestire gli imprevisti dello studio anche all'ultimo momento.}
+
+\RequirementField{Nome}{Annullare appuntamento (medico)}
+\RequirementField{Attore}{Medico}
+\RequirementField{Precondizione}{l'appuntamento e attivo (confermato) ed e in data futura}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il medico avvia l'annullamento dall'agenda o dall'elenco appuntamenti}
+\RequirementStep{2.}{Il sistema chiede conferma dell'operazione e un motivo facoltativo}
+\RequirementStep{3.}{Il medico inserisce eventualmente il motivo e conferma}
+\RequirementStep{4.}{Il sistema, in transazione, imposta lo stato dell'appuntamento ad annullato,}
+\RequirementContinuation{registrando che l'annullamento e stato effettuato dal medico;}
+\RequirementContinuation{l'orario torna prenotabile se ancora coperto dalle regole di apertura}
+\RequirementField{Postcondizione}{l'annullamento e stato salvato in modo persistente}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{3a.}{Il medico non conferma}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{4a.}{Precondizione: l'appuntamento non e piu attivo o e gia passato}
+\RequirementContinuation{Il sistema avvisa il medico dell'errore}
+\RequirementEnd
+
+\RequirementNote{a differenza del paziente, il medico non ha il vincolo delle 24 ore e puo annullare}
+\RequirementParagraph{fino all'inizio dell'appuntamento.}
+\end{RequirementBlock}
+
+\subsection{UC16 - Consultare i miei appuntamenti (paziente)}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come paziente, voglio consultare i miei appuntamenti imminenti e lo storico di quelli passati o annullati, per tenere traccia delle mie visite.}
+
+\RequirementField{Nome}{Consultare i miei appuntamenti}
+\RequirementField{Attore}{Paziente}
+\RequirementField{Precondizione}{l'utente e autenticato con ruolo paziente}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il paziente apre la sezione "I miei appuntamenti"}
+\RequirementStep{2.}{Il sistema mostra gli appuntamenti imminenti in ordine cronologico; ogni scheda riporta}
+\RequirementContinuation{prestazione, categoria, data e ora, prezzo, eventuali note (omesse se vuote) e le azioni}
+\RequirementContinuation{disponibili (info medico, sposta, annulla; sposta e annulla non sono disponibili nelle}
+\RequirementContinuation{24 ore precedenti)}
+\RequirementStep{3.}{Il paziente apre lo storico (nascosto inizialmente)}
+\RequirementStep{4.}{Il sistema mostra gli appuntamenti passati o annullati, dal piu recente, con il badge}
+\RequirementContinuation{di stato (passato, annullato da te, annullato dal medico) e l'eventuale motivo}
+\RequirementContinuation{dell'annullamento}
+\RequirementStep{5.}{Il paziente applica un filtro allo storico (passati, annullati da te, annullati dal}
+\RequirementContinuation{medico, tutti)}
+\RequirementStep{6.}{Il sistema aggiorna l'elenco secondo il filtro}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{2a.}{Precondizione: non ci sono appuntamenti imminenti}
+\RequirementContinuation{Il sistema mostra un messaggio che invita a prenotare}
+\RequirementContinuation{Vai al punto 3}
+\end{RequirementBlock}
+
+\subsection{UC17 - Consultare appuntamenti (medico)}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come medico, voglio consultare gli appuntamenti imminenti e lo storico con i dati dei pazienti, per avere il quadro completo dell'attivita dello studio.}
+
+\RequirementField{Nome}{Consultare appuntamenti (medico)}
+\RequirementField{Attore}{Medico}
+\RequirementField{Precondizione}{l'utente e autenticato con ruolo medico}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il medico apre la sezione appuntamenti}
+\RequirementStep{2.}{Il sistema mostra gli appuntamenti imminenti in ordine cronologico; ogni scheda riporta}
+\RequirementContinuation{paziente, prestazione con categoria, data e ora, prezzo, eventuali note e le azioni}
+\RequirementContinuation{disponibili (info paziente, annulla)}
+\RequirementStep{3.}{Il medico apre lo storico (nascosto inizialmente)}
+\RequirementStep{4.}{Il sistema mostra gli appuntamenti passati o annullati, dal piu recente, con il badge}
+\RequirementContinuation{di stato (passato, annullato dal paziente, annullato da te) e l'eventuale motivo}
+\RequirementContinuation{dell'annullamento}
+\RequirementStep{5.}{Il medico applica un filtro allo storico (passati, annullati dal paziente, annullati}
+\RequirementContinuation{da te, tutti)}
+\RequirementStep{6.}{Il sistema aggiorna l'elenco secondo il filtro}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{2b.}{Il medico apre il dettaglio di un appuntamento}
+\RequirementContinuation{\textless{}\textless{}include\textgreater{}\textgreater{} "Visualizzare dettaglio appuntamento e dati paziente"}
+\RequirementContinuation{Torna al punto 2}
+\end{RequirementBlock}
+
+\subsection{UC18 - Visualizzare dashboard medico}
+\begin{RequirementBlock}
+\RequirementHeading{User story}
+\RequirementStory{Come medico, voglio vedere una panoramica della mia attivita appena accedo al portale, per sapere subito quanti appuntamenti ho e qual e il prossimo.}
+
+\RequirementField{Nome}{Visualizzare dashboard medico}
+\RequirementField{Attore}{Medico}
+\RequirementField{Precondizione}{l'utente e autenticato con ruolo medico}
+\RequirementScenario{Scenario principale}
+\RequirementStep{1.}{Il medico apre il riepilogo}
+\RequirementStep{2.}{Il sistema mostra il conteggio degli appuntamenti futuri attivi}
+\RequirementStep{3.}{Il sistema evidenzia il prossimo appuntamento (prestazione, paziente, data e ora)}
+\RequirementStep{4.}{Il sistema mostra le azioni rapide (gestisci agenda, gestisci appuntamenti,}
+\RequirementContinuation{gestisci trattamenti)}
+\RequirementEnd
+
+\RequirementScenario{Scenario alternativo}
+\RequirementStep{3a.}{Precondizione: non ci sono appuntamenti imminenti}
+\RequirementContinuation{Il sistema mostra un messaggio che indica che il prossimo appuntamento prenotato}
+\RequirementContinuation{comparira nel riepilogo}
+\RequirementContinuation{Vai al punto 4}
+\end{RequirementBlock}
+
+\appendix
+\newpage
+\section{Documento sorgente originale}
+\IfFileExists{casi_uso_v2.txt}{%
+    \VerbatimInput[fontsize=\scriptsize,frame=single,framerule=0.35pt,framesep=2mm,rulecolor=\color{PrenotingRule},breaklines=true,breakanywhere=true,breakindent=0pt,breaksymbolleft={}]{casi_uso_v2.txt}%
+}{%
+    \VerbatimInput[fontsize=\scriptsize,frame=single,framerule=0.35pt,framesep=2mm,rulecolor=\color{PrenotingRule},breaklines=true,breakanywhere=true,breakindent=0pt,breaksymbolleft={}]{docs/casi_uso_v2.txt}%
+}
+
+\end{document}

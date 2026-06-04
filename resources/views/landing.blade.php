@@ -50,6 +50,60 @@
       </div>
     </section>
 
+    @if ($doctor)
+      @php
+        $doctorEmail = trim((string) ($doctor->user?->email ?? ''));
+        $doctorPhone = trim((string) ($doctor->phone ?? ''));
+        $doctorAddress = trim((string) ($doctor->clinic_address ?? ''));
+        $doctorLicense = trim((string) ($doctor->license_number ?? ''));
+      @endphp
+
+      <section class="landing-doctor py-5" id="medico">
+        <div class="container-xxl">
+          <div class="row align-items-center g-4">
+            <div class="col-12 col-lg-5">
+              <span class="landing-eyebrow">Il nostro medico</span>
+              <h2 class="landing-section-title mt-2 mb-3">{{ $doctor->display_name }}</h2>
+              <p class="landing-doctor__text mb-0">
+                Consulta i dati del medico e dello studio prima di prenotare la tua visita.
+              </p>
+            </div>
+            <div class="col-12 col-lg-7">
+              <dl class="landing-doctor__details mb-0">
+                @if ($doctorEmail !== '')
+                  <div class="landing-doctor__detail">
+                    <dt>Email</dt>
+                    <dd><a href="mailto:{{ $doctorEmail }}">{{ $doctorEmail }}</a></dd>
+                  </div>
+                @endif
+
+                @if ($doctorPhone !== '')
+                  <div class="landing-doctor__detail">
+                    <dt>Telefono</dt>
+                    <dd><a href="tel:{{ $doctorPhone }}">{{ $doctorPhone }}</a></dd>
+                  </div>
+                @endif
+
+                @if ($doctorAddress !== '')
+                  <div class="landing-doctor__detail">
+                    <dt>Studio</dt>
+                    <dd>{{ $doctorAddress }}</dd>
+                  </div>
+                @endif
+
+                @if ($doctorLicense !== '')
+                  <div class="landing-doctor__detail">
+                    <dt>Numero iscrizione</dt>
+                    <dd>{{ $doctorLicense }}</dd>
+                  </div>
+                @endif
+              </dl>
+            </div>
+          </div>
+        </div>
+      </section>
+    @endif
+
     <section class="landing-steps py-5">
       <div class="container-xxl">
         <div class="text-center mb-4">

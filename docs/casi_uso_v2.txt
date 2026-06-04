@@ -1,0 +1,683 @@
+Prenoting - User story e casi d'uso
+
+Nota: l'utente puo abortire ogni operazione e abbandonare la pagina in ogni momento;
+le operazioni non confermate non producono alcun salvataggio.
+
+Attori: Visitatore, Paziente, Medico
+
+
+===================================================================================================
+UC01 - Registrazione
+===================================================================================================
+
+User story:
+    Come visitatore, voglio registrarmi al portale fornendo i miei dati anagrafici,
+    per diventare paziente dello studio e poter prenotare visite ed esami online.
+
+---------------------------------------------------------------------------------------------------
+Nome: Registrazione
+Attore: Visitatore
+Scenario principale:
+    1. Il visitatore apre la pagina di registrazione
+    2. Il sistema mostra il form di registrazione e chiede nome, cognome, email, password con
+       conferma, data di nascita, comune di nascita, sesso e telefono
+    3. Il visitatore inserisce i dati richiesti
+    4. Il visitatore invia il form
+    5. Il sistema valida i dati inseriti
+    6. Il sistema crea l'account con ruolo paziente, calcola automaticamente il codice fiscale
+       dai dati anagrafici ed effettua il login automatico
+    7. Il sistema mostra la dashboard del paziente
+    Postcondizione: l'account paziente e il relativo profilo sono stati salvati in modo persistente
+    Fine
+
+Scenario alternativo:
+    5a. Precondizione: l'email inserita e gia associata a un altro account
+        Il sistema avvisa il visitatore dell'errore
+    Torna al punto 2
+
+Scenario alternativo:
+    5b. Precondizione: uno o piu campi non sono validi (nome o cognome con caratteri diversi
+        da lettere e spazi, password di meno di 8 caratteri o non coincidente con la conferma,
+        comune di nascita sconosciuto, data di nascita non precedente a oggi, telefono che
+        non e un numero di cellulare italiano valido)
+        Il sistema evidenzia i campi errati e avvisa il visitatore
+    Torna al punto 2
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC02 - Effettuare login
+===================================================================================================
+
+User story:
+    Come paziente o medico, voglio accedere al portale con le mie credenziali,
+    per utilizzare le funzionalita riservate al mio ruolo.
+
+---------------------------------------------------------------------------------------------------
+Nome: Effettuare login
+Attore: Paziente, Medico
+Scenario principale:
+    1. L'utente apre la pagina di login
+    2. Il sistema chiede email e password
+    3. L'utente inserisce le proprie credenziali
+    4. Il sistema verifica le credenziali e rigenera la sessione
+    5. Il sistema reindirizza l'utente al portale corrispondente al suo ruolo
+       (area paziente o area medico)
+    Fine
+
+Scenario alternativo:
+    4a. Precondizione: le credenziali inserite sono errate
+        Il sistema avvisa l'utente che le credenziali non sono valide
+    Torna al punto 2
+
+Scenario alternativo:
+    5a. Precondizione: il ruolo dell'account non e supportato
+        Il sistema mostra una pagina di avviso e non consente l'accesso ad alcun portale
+    Fine
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC03 - Effettuare logout
+===================================================================================================
+
+User story:
+    Come paziente o medico, voglio disconnettermi dal portale,
+    per impedire che altri utilizzino la mia sessione.
+
+---------------------------------------------------------------------------------------------------
+Nome: Effettuare logout
+Attore: Paziente, Medico
+Precondizione: l'utente e autenticato
+Scenario principale:
+    1. L'utente seleziona l'opzione di logout
+    2. Il sistema invalida la sessione corrente
+    3. Il sistema reindirizza l'utente alla pagina di login
+    Postcondizione: la sessione dell'utente e stata chiusa
+    Fine
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC04 - Modifica password
+===================================================================================================
+
+User story:
+    Come paziente o medico, voglio cambiare la mia password,
+    per mantenere sicuro il mio account.
+
+---------------------------------------------------------------------------------------------------
+Nome: Modifica password
+Attore: Paziente, Medico
+Precondizione: l'utente e autenticato
+Scenario principale:
+    1. L'utente apre la sezione profilo
+    2. Il sistema chiede la password attuale, la nuova password e la conferma della nuova password
+    3. L'utente inserisce i dati richiesti e conferma
+    4. Il sistema verifica la password attuale e la validita della nuova password
+    5. Il sistema salva la nuova password e conferma l'avvenuta modifica
+    Postcondizione: la nuova password e stata salvata in modo persistente
+    Fine
+
+Scenario alternativo:
+    4a. Precondizione: la password attuale inserita Ã¨ errata
+        Il sistema avvisa l'utente dell'errore
+    Torna al punto 2
+
+Scenario alternativo:
+    4b. Precondizione: la nuova password non e conforme ai requisiti o non coincide con la conferma
+        Il sistema avvisa l'utente dell'errore
+    Torna al punto 2
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC05 - Visualizzare dashboard paziente
+===================================================================================================
+
+User story:
+    Come paziente, voglio vedere una panoramica dei miei appuntamenti e del mio medico,
+    per avere subito sotto controllo la mia situazione.
+
+---------------------------------------------------------------------------------------------------
+Nome: Visualizzare dashboard paziente
+Attore: Paziente
+Precondizione: l'utente e autenticato con ruolo paziente
+Scenario principale:
+    1. Il paziente apre la dashboard
+    2. Il sistema recupera gli appuntamenti del paziente e separa quelli futuri attivi
+       da quelli passati o annullati
+    3. Il sistema evidenzia il prossimo appuntamento (data, ora e prestazione)
+    4. Il sistema mostra le azioni rapide (prenota visita, i miei appuntamenti)
+       e il riepilogo del medico (nome, indirizzo dello studio, email, telefono)
+    Fine
+
+Scenario alternativo:
+    3a. Precondizione: il paziente non ha appuntamenti futuri attivi
+        Il sistema mostra un messaggio che invita a prenotare la prima visita
+    Vai al punto 4
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC06 - Aggiornare info personali
+===================================================================================================
+
+User story:
+    Come paziente o medico, voglio aggiornare le mie informazioni personali e di contatto,
+    per mantenere corretti i dati che lo studio utilizza.
+
+---------------------------------------------------------------------------------------------------
+Nome: Aggiornare info personali
+Attore: Paziente, Medico
+Precondizione: l'utente e autenticato
+Scenario principale:
+    1. L'utente apre la sezione profilo
+    2. Il sistema mostra le informazioni attuali; i dati anagrafici fissi sono in sola lettura
+    3. L'utente modifica le informazioni consentite (per il paziente: telefono e indirizzo;
+       per il medico: telefono e indirizzo dell'ambulatorio); tutti gli altri dati (nome,
+       email, dati anagrafici, nome visualizzato e numero di albo del medico) sono in sola lettura
+    4. L'utente conferma
+    5. Il sistema valida e salva i dati
+    Postcondizione: le informazioni aggiornate sono state salvate in modo persistente
+    Fine
+
+Scenario alternativo:
+    5a. Precondizione: uno o piu campi non sono validi (stringhe vuote nei campi obbligatori
+        o telefono in formato errato)
+        Il sistema evidenzia i campi errati e avvisa l'utente
+    Torna al punto 3
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC07 - Avviare prenotazione guidata
+===================================================================================================
+
+User story:
+    Come paziente, voglio prenotare una visita o un esame scegliendo tra gli orari disponibili,
+    per fissare un appuntamento senza dover telefonare allo studio.
+
+---------------------------------------------------------------------------------------------------
+Nome: Avviare prenotazione guidata
+Attore: Paziente
+Precondizione: l'utente e autenticato con ruolo paziente; esistono prestazioni attive
+e disponibilita future
+Scenario principale:
+    1. Il paziente apre la sezione di prenotazione
+    2. Il sistema mostra l'elenco delle prestazioni attive (dei soli medici con account attivo)
+    3. Il paziente sceglie una prestazione (scegliendo cosi anche il medico che la offre)
+    4. Il sistema genera e mostra i giorni con disponibilita (5 alla volta, navigabili, entro
+       un orizzonte di 90 giorni) e gli orari liberi su griglia di 30 minuti, calcolati dagli
+       orari del medico titolare della prestazione al netto di chiusure e appuntamenti
+       esistenti; gli orari sono filtrabili per mattina o pomeriggio
+    5. Il paziente sceglie un giorno e un orario
+    6. Il paziente aggiunge eventuali note facoltative per il medico
+    7. Il sistema chiede conferma della prenotazione
+    8. Il paziente conferma
+    9. Il sistema, in transazione, riverifica l'orario richiesto (non passato, non chiuso,
+       non sovrapposto ad altri appuntamenti attivi) e crea l'appuntamento con stato confermato
+    10. Il sistema reindirizza alla sezione appuntamenti con il messaggio di conferma
+    Postcondizione: l'appuntamento confermato e stato salvato in modo persistente
+    Fine
+
+Scenario alternativo:
+    8a. Il paziente non conferma
+    Torna al punto 4
+
+Scenario alternativo:
+    9a. Precondizione: l'orario scelto non e piu disponibile o la prestazione e stata disattivata
+        Il sistema avvisa il paziente dell'errore
+    Torna al punto 4
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC08 - Modificare appuntamento
+===================================================================================================
+
+User story:
+    Come paziente, voglio spostare un mio appuntamento confermato a un altro orario disponibile,
+    per gestire i miei impegni senza dover annullare e riprenotare.
+
+---------------------------------------------------------------------------------------------------
+Nome: Modificare appuntamento
+Attore: Paziente
+Precondizione: l'appuntamento appartiene al paziente, e confermato, e in data futura
+e mancano piu di 24 ore al suo inizio
+Scenario principale:
+    1. Il paziente seleziona l'appuntamento da modificare
+    2. Il sistema mostra le disponibilita generate per la stessa prestazione, escludendo
+       l'appuntamento attuale dal controllo delle sovrapposizioni
+    3. Il paziente seleziona un nuovo orario
+    4. Il sistema chiede conferma dello spostamento
+    5. Il paziente conferma
+    6. Il sistema, in transazione, riverifica il nuovo orario e aggiorna l'appuntamento
+    Postcondizione: il nuovo orario dell'appuntamento e stato salvato in modo persistente
+    Fine
+
+Scenario alternativo:
+    5a. Il paziente non conferma
+    Torna al punto 2
+
+Scenario alternativo:
+    6a. Precondizione: il nuovo orario non e piu disponibile
+        Il sistema avvisa il paziente dell'errore
+    Torna al punto 2
+
+Scenario alternativo:
+    6b. Precondizione: nel frattempo mancano meno di 24 ore all'inizio dell'appuntamento
+        Il sistema avvisa che gli appuntamenti non possono essere spostati nelle 24 ore precedenti
+    Fine
+
+Scenario alternativo:
+    6c. Precondizione: il nuovo orario coincide con quello attuale
+        Il sistema chiede di selezionare un orario diverso
+    Torna al punto 2
+
+Nota: si puo modificare solo l'orario; la prestazione e le note inserite alla prenotazione
+non sono modificabili.
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC09 - Annullare appuntamento
+===================================================================================================
+
+User story:
+    Come paziente, voglio annullare un mio appuntamento indicandone il motivo,
+    per liberare l'orario quando non posso piu presentarmi.
+
+---------------------------------------------------------------------------------------------------
+Nome: Annullare appuntamento
+Attore: Paziente
+Precondizione: l'appuntamento appartiene al paziente, e confermato, e in data futura
+e mancano piu di 24 ore al suo inizio
+Scenario principale:
+    1. Il paziente avvia l'annullamento dell'appuntamento
+    2. Il sistema chiede conferma dell'operazione e un motivo facoltativo
+    3. Il paziente inserisce eventualmente il motivo e conferma
+    4. Il sistema, in transazione, imposta lo stato dell'appuntamento ad annullato,
+       registrando che l'annullamento e stato effettuato dal paziente;
+       l'orario torna prenotabile se ancora coperto dalle regole di apertura
+    Postcondizione: l'annullamento e stato salvato in modo persistente
+    Fine
+
+Scenario alternativo:
+    3a. Il paziente non conferma
+    Fine
+
+Scenario alternativo:
+    4a. Precondizione: l'appuntamento non e piu confermato, e gia passato o mancano meno
+        di 24 ore al suo inizio
+        Il sistema avvisa il paziente dell'errore (gli appuntamenti non possono essere
+        annullati nelle 24 ore precedenti)
+    Fine
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC10 - Visualizzare calendario
+===================================================================================================
+
+User story:
+    Come medico, voglio vedere il calendario della giornata con appuntamenti, chiusure
+    e fatturato, per organizzare il mio lavoro in ambulatorio.
+
+---------------------------------------------------------------------------------------------------
+Nome: Visualizzare calendario
+Attore: Medico
+Precondizione: l'utente e autenticato con ruolo medico
+Scenario principale:
+    1. Il medico apre l'agenda
+    2. Il sistema costruisce una timeline a intervalli di 30 minuti che integra gli orari
+       di apertura generati, le chiusure e gli appuntamenti, con navigazione per settimana
+       e selezione del giorno
+    3. Il sistema evidenzia l'ora corrente e mostra i contatori della giornata (appuntamenti,
+       slot disponibili) e il fatturato previsto (somma dei prezzi delle prestazioni degli
+       appuntamenti non annullati del giorno)
+    4. Il sistema mostra l'elenco dei prossimi eventi non ricorrenti (chiusure e aperture extra)
+    Fine
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC11 - Visualizzare dettaglio appuntamento e dati paziente
+===================================================================================================
+
+User story:
+    Come medico, voglio consultare il dettaglio di un appuntamento con i dati del paziente,
+    per prepararmi alla visita.
+
+---------------------------------------------------------------------------------------------------
+Nome: Visualizzare dettaglio appuntamento e dati paziente
+Attore: Medico
+Precondizione: l'utente e autenticato con ruolo medico; l'appuntamento esiste
+Scenario principale:
+    1. Il medico seleziona un appuntamento dall'agenda
+    2. Il sistema mostra il dettaglio dell'appuntamento: dati del paziente, prestazione,
+       orario ed eventuali note
+    Fine
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC12 - Gestione disponibilita
+===================================================================================================
+
+User story:
+    Come medico, voglio definire gli orari ricorrenti dell'ambulatorio e gestire chiusure
+    e aperture straordinarie, per controllare quando i pazienti possono prenotare.
+
+---------------------------------------------------------------------------------------------------
+Nome: Gestione disponibilita
+Attore: Medico
+Precondizione: l'utente e autenticato con ruolo medico
+Scenario principale (orari ricorrenti):
+    1. Il medico apre la sezione del profilo dedicata agli orari di lavoro
+    2. Il sistema mostra gli orari ricorrenti per i sette giorni della settimana; ogni giorno
+       puo avere apertura e chiusura ed eventualmente una pausa pranzo (che divide la giornata
+       in due finestre separate)
+    3. Il medico modifica gli orari desiderati
+    4. Il medico conferma
+    5. Il sistema valida le finestre inserite
+    6. Il sistema verifica che nessun appuntamento futuro attivo resti fuori dai nuovi orari
+    7. Il sistema sostituisce gli orari ricorrenti attivi con quelli inseriti
+    Postcondizione: i nuovi orari ricorrenti sono stati salvati in modo persistente
+    Fine
+
+Scenario alternativo:
+    5a. Precondizione: le finestre inserite non sono valide (apertura senza chiusura o viceversa,
+        chiusura non successiva all'apertura, pausa pranzo incompleta o non compresa negli orari
+        di apertura)
+        Il sistema avvisa il medico dell'errore e non salva
+    Torna al punto 3
+
+Scenario alternativo:
+    6a. Precondizione: uno o piu appuntamenti futuri attivi resterebbero fuori dai nuovi orari
+        Il sistema mostra l'elenco degli appuntamenti coinvolti e avvisa che verranno annullati,
+        chiedendo conferma
+    6b. Il medico conferma
+    6c. Il sistema annulla gli appuntamenti coinvolti (annullamento da parte del medico, con
+        motivo "Cambio orario lavoro medico") e salva i nuovi orari
+    Postcondizione: gli annullamenti e i nuovi orari sono stati salvati in modo persistente
+    Fine
+
+Scenario alternativo:
+    6b-bis. Il medico non conferma
+        Il sistema non salva alcuna modifica
+    Torna al punto 3
+
+Scenario alternativo (chiusure):
+    1a. Il medico apre l'agenda e inserisce una chiusura: a giornata intera (anche su un
+        intervallo di piu giorni) oppure parziale con ora di inizio e fine (solo su una
+        singola giornata)
+    1b. Il sistema valida la chiusura: la data non deve essere passata, la fine deve essere
+        successiva all'inizio, le chiusure parziali devono riguardare un solo giorno
+    1c. Il sistema confronta la chiusura con quelle esistenti nello stesso giorno:
+        se si sovrappone in qualsiasi modo a una chiusura esistente (anche solo
+        parzialmente o se gia coperta), avvisa dell'errore e non salva
+    1d. Il sistema verifica gli appuntamenti futuri attivi che ricadono nella chiusura:
+        se non ce ne sono, salva la chiusura
+    Postcondizione: la chiusura e stata salvata in modo persistente
+    Fine
+
+Scenario alternativo:
+    1d-bis. Precondizione: uno o piu appuntamenti futuri attivi ricadono nella chiusura
+        Il sistema mostra l'elenco degli appuntamenti coinvolti e avvisa che verranno
+        annullati per creare la chiusura, chiedendo conferma
+        - se il medico conferma: il sistema annulla gli appuntamenti (annullamento da parte
+          del medico, con motivo della chiusura o "Chiusura straordinaria studio") e salva
+          la chiusura
+        - se il medico non conferma: il sistema non salva nulla
+    Fine
+
+Nota: il blocco di una singola disponibilita di 30 minuti dall'agenda crea una chiusura
+parziale ("Disponibilita bloccata") e segue le stesse regole, inclusa la conferma se lo
+slot e occupato da un appuntamento.
+
+Scenario alternativo (aperture extra):
+    1a. Il medico apre l'agenda e inserisce un'apertura extra: data, ora di inizio e fine
+    1b. Il sistema valida l'apertura: la data non deve essere passata, la fine deve essere
+        successiva all'inizio
+    1c. Il sistema verifica le sovrapposizioni:
+        - se si sovrappone a un'altra apertura extra dello stesso giorno, avvisa dell'errore
+          e non salva
+        - se e gia interamente coperta dagli orari di apertura esistenti, avvisa che e
+          ridondante e non salva
+    1d. Il sistema salva l'apertura extra
+    Postcondizione: l'apertura extra e stata salvata in modo persistente
+    Fine
+
+Scenario alternativo (rimozione di chiusure o aperture extra):
+    1a. Il medico rimuove una chiusura o un'apertura extra dall'agenda
+    1b. Il sistema verifica gli appuntamenti futuri attivi che resterebbero scoperti
+        dalla rimozione (es. appuntamenti prenotati dentro un'apertura extra che si elimina)
+    1c. Se ce ne sono, il sistema mostra l'elenco e avvisa che verranno annullati, chiedendo
+        conferma: se il medico conferma, annulla gli appuntamenti e rimuove l'evento;
+        se non conferma, non modifica nulla
+    1d. Se non ce ne sono, il sistema rimuove l'evento
+    Postcondizione: la rimozione (ed eventuali annullamenti) e stata salvata in modo persistente
+    Fine
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC13 - Gestione tipi di visita
+===================================================================================================
+
+User story:
+    Come medico, voglio gestire il catalogo delle mie prestazioni,
+    per decidere cosa i pazienti possono prenotare e a quale prezzo.
+
+---------------------------------------------------------------------------------------------------
+Nome: Gestione tipi di visita
+Attore: Medico
+Precondizione: l'utente e autenticato con ruolo medico
+Scenario principale:
+    1. Il medico apre la pagina dei trattamenti
+    2. Il sistema mostra l'elenco delle proprie prestazioni attive (ogni prestazione
+       appartiene al medico che l'ha creata)
+    3. Il medico inserisce una nuova prestazione: nome, categoria (visita o esame)
+       e prezzo
+    4. Il medico conferma
+    5. Il sistema valida la prestazione e la salva associandola al medico
+    Postcondizione: la nuova prestazione e stata salvata in modo persistente
+    Fine
+
+Scenario alternativo:
+    5a. Precondizione: il nome inserito non e univoco tra le prestazioni del medico
+        o e una stringa vuota
+        Il sistema avvisa il medico dell'errore
+    Torna al punto 3
+
+Scenario alternativo:
+    3a. Il medico seleziona una propria prestazione esistente e ne modifica i dati
+    Vai al punto 4
+
+Scenario alternativo:
+    3b. Il medico seleziona l'eliminazione di una propria prestazione esistente
+    3c. Il sistema chiede conferma e avvisa che la prestazione verra disabilitata,
+        non sara piu prenotabile e gli appuntamenti gia prenotati resteranno validi
+    3d. Il medico conferma
+    Postcondizione: la prestazione e stata disattivata (non eliminata fisicamente,
+    per preservare lo storico degli appuntamenti)
+    Fine
+
+Scenario alternativo:
+    3e. Precondizione: il medico tenta di modificare o eliminare una prestazione
+        di un altro medico
+        Il sistema nega l'accesso
+    Fine
+
+Nota: la durata delle prestazioni e fissa a 30 minuti e non e modificabile; il prezzo,
+se omesso, viene mostrato come "Da definire". Il medico di un appuntamento e derivato
+dalla prestazione prenotata (la prestazione appartiene a un medico).
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC14 - Consultare landing page
+===================================================================================================
+
+User story:
+    Come visitatore, voglio consultare la pagina di presentazione dello studio con l'elenco
+    dei trattamenti offerti, per decidere se registrarmi e prenotare una visita.
+
+---------------------------------------------------------------------------------------------------
+Nome: Consultare landing page
+Attore: Visitatore
+Scenario principale:
+    1. Il visitatore apre il sito dello studio
+    2. Il sistema mostra la landing page con la presentazione dello studio, l'elenco dei
+       trattamenti attivi dei medici con account attivo, la sezione "come funziona" e i
+       pulsanti di accesso e registrazione
+    3. Il visitatore consulta i contenuti
+    Fine
+
+Scenario alternativo:
+    1a. Precondizione: l'utente e gia autenticato
+        Il sistema reindirizza l'utente al portale corrispondente al suo ruolo
+    Fine
+
+Scenario alternativo:
+    3a. Il visitatore seleziona il pulsante di registrazione
+    <<include>> "Registrazione"
+    Fine
+
+Scenario alternativo:
+    3b. Il visitatore seleziona il pulsante di accesso
+    <<include>> "Effettuare login"
+    Fine
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC15 - Annullare appuntamento (medico)
+===================================================================================================
+
+User story:
+    Come medico, voglio annullare un appuntamento futuro indicandone il motivo,
+    per gestire gli imprevisti dello studio anche all'ultimo momento.
+
+---------------------------------------------------------------------------------------------------
+Nome: Annullare appuntamento (medico)
+Attore: Medico
+Precondizione: l'appuntamento e attivo (confermato) ed e in data futura
+Scenario principale:
+    1. Il medico avvia l'annullamento dall'agenda o dall'elenco appuntamenti
+    2. Il sistema chiede conferma dell'operazione e un motivo facoltativo
+    3. Il medico inserisce eventualmente il motivo e conferma
+    4. Il sistema, in transazione, imposta lo stato dell'appuntamento ad annullato,
+       registrando che l'annullamento e stato effettuato dal medico;
+       l'orario torna prenotabile se ancora coperto dalle regole di apertura
+    Postcondizione: l'annullamento e stato salvato in modo persistente
+    Fine
+
+Scenario alternativo:
+    3a. Il medico non conferma
+    Fine
+
+Scenario alternativo:
+    4a. Precondizione: l'appuntamento non e piu attivo o e gia passato
+        Il sistema avvisa il medico dell'errore
+    Fine
+
+Nota: a differenza del paziente, il medico non ha il vincolo delle 24 ore e puo annullare
+fino all'inizio dell'appuntamento.
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC16 - Consultare i miei appuntamenti (paziente)
+===================================================================================================
+
+User story:
+    Come paziente, voglio consultare i miei appuntamenti imminenti e lo storico di quelli
+    passati o annullati, per tenere traccia delle mie visite.
+
+---------------------------------------------------------------------------------------------------
+Nome: Consultare i miei appuntamenti
+Attore: Paziente
+Precondizione: l'utente e autenticato con ruolo paziente
+Scenario principale:
+    1. Il paziente apre la sezione "I miei appuntamenti"
+    2. Il sistema mostra gli appuntamenti imminenti in ordine cronologico; ogni scheda riporta
+       prestazione, categoria, data e ora, prezzo, eventuali note (omesse se vuote) e le azioni
+       disponibili (info medico, sposta, annulla; sposta e annulla non sono disponibili nelle
+       24 ore precedenti)
+    3. Il paziente apre lo storico (nascosto inizialmente)
+    4. Il sistema mostra gli appuntamenti passati o annullati, dal piu recente, con il badge
+       di stato (passato, annullato da te, annullato dal medico) e l'eventuale motivo
+       dell'annullamento
+    5. Il paziente applica un filtro allo storico (passati, annullati da te, annullati dal
+       medico, tutti)
+    6. Il sistema aggiorna l'elenco secondo il filtro
+    Fine
+
+Scenario alternativo:
+    2a. Precondizione: non ci sono appuntamenti imminenti
+        Il sistema mostra un messaggio che invita a prenotare
+    Vai al punto 3
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC17 - Consultare appuntamenti (medico)
+===================================================================================================
+
+User story:
+    Come medico, voglio consultare gli appuntamenti imminenti e lo storico con i dati dei
+    pazienti, per avere il quadro completo dell'attivita dello studio.
+
+---------------------------------------------------------------------------------------------------
+Nome: Consultare appuntamenti (medico)
+Attore: Medico
+Precondizione: l'utente e autenticato con ruolo medico
+Scenario principale:
+    1. Il medico apre la sezione appuntamenti
+    2. Il sistema mostra gli appuntamenti imminenti in ordine cronologico; ogni scheda riporta
+       paziente, prestazione con categoria, data e ora, prezzo, eventuali note e le azioni
+       disponibili (info paziente, annulla)
+    3. Il medico apre lo storico (nascosto inizialmente)
+    4. Il sistema mostra gli appuntamenti passati o annullati, dal piu recente, con il badge
+       di stato (passato, annullato dal paziente, annullato da te) e l'eventuale motivo
+       dell'annullamento
+    5. Il medico applica un filtro allo storico (passati, annullati dal paziente, annullati
+       da te, tutti)
+    6. Il sistema aggiorna l'elenco secondo il filtro
+    Fine
+
+Scenario alternativo:
+    2b. Il medico apre il dettaglio di un appuntamento
+    <<include>> "Visualizzare dettaglio appuntamento e dati paziente"
+    Torna al punto 2
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+UC18 - Visualizzare dashboard medico
+===================================================================================================
+
+User story:
+    Come medico, voglio vedere una panoramica della mia attivita appena accedo al portale,
+    per sapere subito quanti appuntamenti ho e qual e il prossimo.
+
+---------------------------------------------------------------------------------------------------
+Nome: Visualizzare dashboard medico
+Attore: Medico
+Precondizione: l'utente e autenticato con ruolo medico
+Scenario principale:
+    1. Il medico apre il riepilogo
+    2. Il sistema mostra il conteggio degli appuntamenti futuri attivi
+    3. Il sistema evidenzia il prossimo appuntamento (prestazione, paziente, data e ora)
+    4. Il sistema mostra le azioni rapide (gestisci agenda, gestisci appuntamenti,
+       gestisci trattamenti)
+    Fine
+
+Scenario alternativo:
+    3a. Precondizione: non ci sono appuntamenti imminenti
+        Il sistema mostra un messaggio che indica che il prossimo appuntamento prenotato
+        comparira nel riepilogo
+    Vai al punto 4
+---------------------------------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\DoctorProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -11,9 +12,65 @@ class RootRouteTest extends TestCase
 {
   use RefreshDatabase;
 
-  public function test_guest_root_redirects_to_login(): void
+  public function test_guest_root_shows_public_landing_page(): void
   {
-    $this->get('/')->assertRedirect('/login');
+    $this->get('/')
+      ->assertOk()
+      ->assertSee('La salute della tua pelle');
+  }
+
+  public function test_guest_root_shows_active_doctor_real_data(): void
+  {
+    $doctor = $this->createDoctorProfile([
+      'email' => 'doctor.derm@example.com',
+      'display_name' => 'Dott.ssa Giulia Ferretti',
+      'phone' => '3331000000',
+      'clinic_address' => 'Via Roma 1, Milano',
+      'license_number' => 'DERM-001',
+    ]);
+
+    $response = $this->get('/');
+
+    $response->assertOk();
+    $response->assertSee('Il nostro medico');
+    $response->assertSee($doctor->display_name);
+    $response->assertSee('doctor.derm@example.com');
+    $response->assertSee('3331000000');
+    $response->assertSee('Via Roma 1, Milano');
+    $response->assertSee('DERM-001');
+  }
+
+  public function test_guest_root_omits_missing_doctor_fields(): void
+  {
+    $this->createDoctorProfile([
+      'display_name' => 'Dott. Marco Bianchi',
+      'phone' => '',
+      'clinic_address' => '',
+      'license_number' => '',
+    ]);
+
+    $response = $this->get('/');
+
+    $response->assertOk();
+    $response->assertSee('Il nostro medico');
+    $response->assertSee('Dott. Marco Bianchi');
+    $response->assertDontSee('<dt>Telefono</dt>', false);
+    $response->assertDontSee('<dt>Studio</dt>', false);
+    $response->assertDontSee('<dt>Numero iscrizione</dt>', false);
+    $response->assertDontSee('Non indicato');
+  }
+
+  public function test_guest_root_hides_doctor_section_without_active_doctor(): void
+  {
+    $this->createDoctorProfile([
+      'display_name' => 'Dott. Non Attivo',
+      'is_active' => false,
+    ]);
+
+    $this->get('/')
+      ->assertOk()
+      ->assertDontSee('Il nostro medico')
+      ->assertDontSee('Dott. Non Attivo');
   }
 
   public function test_authenticated_patient_is_redirected_to_portal(): void
@@ -43,6 +100,24 @@ class RootRouteTest extends TestCase
       'email' => $role.'@example.com',
       'password' => Hash::make('password123'),
       'role' => $role,
+    ]);
+  }
+
+  private function createDoctorProfile(array $attributes = []): DoctorProfile
+  {
+    $user = User::create([
+      'email' => $attributes['email'] ?? 'doctor@example.com',
+      'password' => Hash::make('password123'),
+      'role' => User::ROLE_DOCTOR,
+      'is_active' => $attributes['is_active'] ?? true,
+    ]);
+
+    return DoctorProfile::create([
+      'user_id' => $user->id,
+      'display_name' => $attributes['display_name'] ?? 'Dott. Test',
+      'phone' => $attributes['phone'] ?? '3330000000',
+      'clinic_address' => $attributes['clinic_address'] ?? 'Via Test 1',
+      'license_number' => $attributes['license_number'] ?? 'TEST-001',
     ]);
   }
 }
