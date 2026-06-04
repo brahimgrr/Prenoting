@@ -1,0 +1,86 @@
+.landing-eyebrow {
+  color: var(--color-teal);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.landing-hero {
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(37, 99, 235, 0.08)),
+    var(--color-canvas);
+}
+
+.landing-hero__title {
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  max-width: 48rem;
+}
+
+.landing-hero__lead {
+  font-size: 1.15rem;
+  max-width: 38rem;
+}
+
+.landing-section-title {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.landing-treatment {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--app-card-radius);
+  font-weight: 700;
+}
+
+.landing-treatment__mark {
+  background: rgba(15, 118, 110, 0.1);
+  border-radius: var(--app-control-radius);
+  color: var(--color-teal);
+  font-size: 1.25rem;
+  font-weight: 800;
+  height: 2.4rem;
+  width: 2.4rem;
+}
+
+.landing-steps {
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.06), rgba(37, 99, 235, 0.04));
+}
+
+.landing-step {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--app-card-radius);
+  box-shadow: var(--shadow-panel);
+}
+
+.landing-step__num {
+  background: rgba(37, 99, 235, 0.1);
+  border-radius: 999px;
+  color: var(--color-blue);
+  font-weight: 800;
+  height: 2.25rem;
+  width: 2.25rem;
+}
+
+.landing-step__title {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.landing-cta {
+  background: var(--color-navy);
+  color: #ffffff;
+}
+
+.landing-cta__title {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.landing-cta__text {
+  color: #9ca3af;
+}

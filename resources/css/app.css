@@ -1,6 +1,7 @@
 @import "bootstrap/dist/css/bootstrap.min.css";
 @import "./base.css";
 @import "./auth.css";
+@import "./landing.css";
 @import "./portal-layout.css";
 @import "./shared-ui.css";
 @import "./patient-dashboard.css";

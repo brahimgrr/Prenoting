@@ -9,20 +9,13 @@ use App\Http\Controllers\DoctorAppointmentController;
 use App\Http\Controllers\DoctorDashboardController;
 use App\Http\Controllers\DoctorProfileController;
 use App\Http\Controllers\DoctorTreatmentController;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\PatientAppointmentController;
 use App\Http\Controllers\PatientDashboardController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-  $user = auth()->user();
-
-  if ($user) {
-    return redirect($user->portalRoute() ?? '/unsupported-role');
-  }
-
-  return redirect('/login');
-})->name('home');
+Route::get('/', [LandingController::class, 'index'])->name('home');
 
 Route::middleware('guest')->group(function (): void {
   Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
