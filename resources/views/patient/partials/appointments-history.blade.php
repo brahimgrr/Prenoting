@@ -8,19 +8,23 @@
         data-appointments-history-hide
       >Nascondi storico appuntamenti</a>
     </div>
-    <div class="btn-group flex-wrap" role="group" aria-label="Filtra storico appuntamenti">
-    @foreach ($historyFilters as $filterValue => $filterLabel)
-      @php
-        $isActiveHistoryFilter = $historyFilter === $filterValue;
-        $filterUrl = '/patient/appointments?show_history=1&history_filter='.$filterValue;
-      @endphp
-      <a
-        class="btn btn-sm {{ $isActiveHistoryFilter ? 'btn-primary' : 'btn-outline-secondary' }}"
-        href="{{ $filterUrl }}"
+    <div class="appointment-history-filter">
+      <label class="visually-hidden" for="patient-history-filter">Filtra storico appuntamenti</label>
+      <select
+        class="form-select form-select-sm"
+        id="patient-history-filter"
+        name="history_filter"
+        aria-label="Filtra storico appuntamenti"
         data-appointments-history-filter
-        @if ($isActiveHistoryFilter) aria-current="page" @endif
-      >{{ $filterLabel }}</a>
-    @endforeach
+      >
+      @foreach ($historyFilters as $filterValue => $filterLabel)
+        @php
+          $isActiveHistoryFilter = $historyFilter === $filterValue;
+          $filterUrl = '/patient/appointments?show_history=1&history_filter='.$filterValue;
+        @endphp
+        <option value="{{ $filterUrl }}" @selected($isActiveHistoryFilter)>{{ $filterLabel }}</option>
+      @endforeach
+      </select>
     </div>
   </div>
   @forelse ($pastAppointments as $appointment)

@@ -586,4 +586,18 @@ class AuthTest extends TestCase
     $response->assertDontSee('<datalist', false);
     $response->assertDontSee('list="comuni-list"', false);
   }
+
+  public function test_auth_pages_link_back_to_the_landing_page(): void
+  {
+    $loginResponse = $this->get('/login');
+    $registerResponse = $this->get('/register');
+    $landingUrl = route('home');
+
+    $loginResponse->assertOk();
+    $registerResponse->assertOk();
+    $loginResponse->assertSee('href="'.$landingUrl.'"', false);
+    $registerResponse->assertSee('href="'.$landingUrl.'"', false);
+    $loginResponse->assertSeeText('Torna alla pagina iniziale');
+    $registerResponse->assertSeeText('Torna alla pagina iniziale');
+  }
 }

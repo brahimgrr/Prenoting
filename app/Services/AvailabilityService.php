@@ -13,6 +13,7 @@ use Illuminate\Support\Collection;
 class AvailabilityService
 {
     public const BOOKING_HORIZON_DAYS = 90;
+    public const MIN_BOOKING_NOTICE_HOURS = 24;
 
     public function __construct(private readonly ScheduleWindowService $windows)
     {
@@ -43,7 +44,7 @@ class AvailabilityService
         $windows = $this->windows->openingWindowsForDate($doctor, $day);
         $closures = $this->windows->closureIntervalsForDate($doctor, $day);
         $appointments = $this->activeAppointmentsForDate($doctor, $day, $excludingAppointment);
-        $now = CarbonImmutable::now();
+        $minimumBookableStart = CarbonImmutable::now()->addHours(self::MIN_BOOKING_NOTICE_HOURS);
         $slots = collect();
 
         foreach ($windows as $window) {
@@ -54,7 +55,7 @@ class AvailabilityService
             ) {
                 $end = $start->addMinutes($durationMinutes);
 
-                if (!$includePast && $start->lessThanOrEqualTo($now)) {
+                if (!$includePast && $start->lessThanOrEqualTo($minimumBookableStart)) {
                     continue;
                 }
 

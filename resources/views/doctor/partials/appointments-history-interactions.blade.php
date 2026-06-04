@@ -62,11 +62,13 @@
           return;
         }
 
+      });
+
+      document.addEventListener("change", (event) => {
         const historyFilter = event.target.closest("[data-appointments-history-filter]");
         if (!historyFilter) return;
 
-        event.preventDefault();
-        fetchAndReplace(historyFilter.href, "[data-appointments-history]");
+        fetchAndReplace(historyFilter.value, "[data-appointments-history]");
       });
     })();
   </script>

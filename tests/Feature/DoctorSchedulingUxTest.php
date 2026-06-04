@@ -654,9 +654,24 @@ class DoctorSchedulingUxTest extends TestCase
       ->get('/doctor/agenda?date='.$date->toDateString())
       ->assertOk()
       ->assertSee('week-strip week-strip--agenda d-flex gap-2 flex-fill overflow-auto p-1', false)
-      ->assertSee('week-day d-flex flex-column align-items-center justify-content-center gap-1 text-center p-2 week-day--selected border-primary bg-primary bg-opacity-10', false);
+      ->assertSee('week-day d-flex flex-lg-fill flex-column align-items-center justify-content-center gap-1 text-center p-2 week-day--selected border-primary bg-primary bg-opacity-10', false);
 
     $this->assertStringNotContainsString('week-day--weekend', $response->getContent());
+  }
+
+  public function test_agenda_week_days_flex_to_fit_desktop_width(): void
+  {
+    [$doctorUser] = $this->doctorContext();
+    $date = CarbonImmutable::now()->next(CarbonImmutable::MONDAY);
+
+    $response = $this->actingAs($doctorUser)
+      ->get('/doctor/agenda?date='.$date->toDateString())
+      ->assertOk();
+
+    $this->assertStringContainsString(
+      'week-day d-flex flex-lg-fill flex-column align-items-center justify-content-center gap-1 text-center p-2',
+      $response->getContent()
+    );
   }
 
   public function test_agenda_week_strip_colors_days_by_booked_open_and_closed_state(): void

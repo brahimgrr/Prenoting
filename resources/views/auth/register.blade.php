@@ -3,6 +3,8 @@
 @section('content')
   <main class="auth-page">
     <section class="auth-panel auth-panel--wide">
+      <a class="auth-panel__back-link" href="{{ route('home') }}">Torna alla pagina iniziale</a>
+
       <div class="auth-panel__header">
         <span class="app-brand__mark d-inline-flex align-items-center justify-content-center flex-shrink-0">M</span>
         <div>

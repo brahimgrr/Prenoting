@@ -3,12 +3,12 @@
 @section('content')
   <section class="portal-section operations-dashboard container-xxl">
 
-    <div class="portal-page-heading portal-heading-row d-flex align-items-center justify-content-between gap-3 mb-4">
+    <div class="portal-page-heading portal-heading-row d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 mb-4">
       <div>
         <span class="portal-eyebrow">Portale medico</span>
         <h1>Agenda</h1>
       </div>
-      <div class="d-flex flex-wrap gap-2">
+      <div class="d-grid d-sm-flex flex-sm-wrap gap-2 align-self-stretch align-self-sm-auto">
         <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#closureCreateModal">
           Chiusura extra
         </button>
@@ -19,13 +19,13 @@
     </div>
 
     <div class="row g-3 mb-3">
-      <div class="col-4">
+      <div class="col-12 col-sm-4">
         <section class="portal-panel h-100 p-3">
           <span class="d-block text-body-secondary small fw-bold text-uppercase">Appuntamenti</span>
           <strong class="d-block fs-2 lh-1 mt-2">{{ $appointments->count() }}</strong>
         </section>
       </div>
-      <div class="col-4">
+      <div class="col-12 col-sm-4">
         <section class="portal-panel h-100 p-3">
           <span class="d-block text-body-secondary small fw-bold text-uppercase">Slot disponibili</span>
           <strong class="d-block fs-2 lh-1 mt-2 text-success">
@@ -33,7 +33,7 @@
           </strong>
         </section>
       </div>
-      <div class="col-4">
+      <div class="col-12 col-sm-4">
         <section class="portal-panel h-100 p-3">
           <span class="d-block text-body-secondary small fw-bold text-uppercase">Fatturato Previsto</span>
           <strong class="d-block fs-2 lh-1 mt-2 text-primary">
@@ -52,7 +52,7 @@
             @php
               $dayDateStr = $weekDay['date']->toDateString();
               $isSelected = $dayDateStr === $date;
-              $dayClass   = 'week-day d-flex flex-column align-items-center justify-content-center gap-1 text-center p-2' . ($isSelected ? ' week-day--selected border-primary bg-primary bg-opacity-10' : '');
+              $dayClass   = 'week-day d-flex flex-lg-fill flex-column align-items-center justify-content-center gap-1 text-center p-2' . ($isSelected ? ' week-day--selected border-primary bg-primary bg-opacity-10' : '');
             @endphp
             <a class="{{ $dayClass }}"
                href="/doctor/agenda?date={{ $dayDateStr }}&week_start={{ $weekStart->toDateString() }}">

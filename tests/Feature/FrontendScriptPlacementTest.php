@@ -72,17 +72,31 @@ class FrontendScriptPlacementTest extends TestCase
   {
     $blade = file_get_contents(resource_path('views/patient/partials/appointments-history-interactions.blade.php'));
     $historyPartial = file_get_contents(resource_path('views/patient/partials/appointments-history.blade.php'));
+    $doctorBlade = file_get_contents(resource_path('views/doctor/partials/appointments-history-interactions.blade.php'));
+    $doctorHistoryPartial = file_get_contents(resource_path('views/doctor/partials/appointments-history.blade.php'));
 
     $this->assertStringContainsString('const historyFilter = event.target.closest("[data-appointments-history-filter]")', $blade);
     $this->assertStringContainsString('const historyReveal = event.target.closest("[data-appointments-history-reveal]")', $blade);
     $this->assertStringContainsString('const historyHide = event.target.closest("[data-appointments-history-hide]")', $blade);
-    $this->assertStringContainsString('fetchAndReplace(historyFilter.href, "[data-appointments-history]")', $blade);
+    $this->assertStringContainsString('document.addEventListener("change"', $blade);
+    $this->assertStringContainsString('fetchAndReplace(historyFilter.value, "[data-appointments-history]")', $blade);
     $this->assertStringContainsString('fetchAndReplace(historyReveal.href, "[data-appointments-history-placeholder]")', $blade);
     $this->assertStringContainsString('collapseHistory("[data-appointments-history]")', $blade);
     $this->assertStringContainsString('"X-Requested-With": "XMLHttpRequest"', $blade);
     $this->assertStringContainsString('data-appointments-history', $historyPartial);
     $this->assertStringContainsString('data-appointments-history-hide', $historyPartial);
+    $this->assertStringContainsString('<select', $historyPartial);
+    $this->assertStringContainsString('data-appointments-history-filter', $historyPartial);
+    $this->assertStringContainsString('name="history_filter"', $historyPartial);
+    $this->assertStringNotContainsString('btn-group', $historyPartial);
     $this->assertStringNotContainsString('<script>', $historyPartial);
+
+    $this->assertStringContainsString('document.addEventListener("change"', $doctorBlade);
+    $this->assertStringContainsString('fetchAndReplace(historyFilter.value, "[data-appointments-history]")', $doctorBlade);
+    $this->assertStringContainsString('<select', $doctorHistoryPartial);
+    $this->assertStringContainsString('data-appointments-history-filter', $doctorHistoryPartial);
+    $this->assertStringContainsString('name="history_filter"', $doctorHistoryPartial);
+    $this->assertStringNotContainsString('btn-group', $doctorHistoryPartial);
   }
 
   public function test_closure_all_day_toggle_owns_and_disables_time_fields(): void

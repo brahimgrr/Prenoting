@@ -36,6 +36,29 @@ class AppointmentWorkflowTest extends TestCase
     $this->assertSame($slot->key, $appointment->start_at->format('Y-m-d\TH:i'));
   }
 
+  public function test_patient_cannot_book_appointment_within_24_hours(): void
+  {
+    $this->travelTo(CarbonImmutable::parse('2026-05-10 09:00:00'));
+
+    try {
+      [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
+      $slot = $this->slotAt($doctor, CarbonImmutable::parse('2026-05-11 08:59:00'));
+
+      $response = $this->actingAs($patientUser)
+        ->from('/patient/book')
+        ->post('/appointments', [
+          'slot_start' => $slot->key,
+          'service_id' => $service->id,
+        ]);
+
+      $response->assertRedirect('/patient/book');
+      $response->assertSessionHasErrors('slot_start');
+      $this->assertSame(0, Appointment::count());
+    } finally {
+      $this->travelBack();
+    }
+  }
+
   public function test_booking_page_renders_service_week_days_and_generated_slots(): void
   {
     [$patientUser, $patient, $doctor, $service, $slot] = $this->bookingContext();
@@ -85,7 +108,7 @@ class AppointmentWorkflowTest extends TestCase
   public function test_booking_period_filter_shows_only_matching_slots(): void
   {
     [$patientUser, $patient, $doctor, $service] = $this->bookingContext(createSlot: false);
-    $date = CarbonImmutable::now()->addDay()->startOfDay();
+    $date = CarbonImmutable::now()->addDays(2)->startOfDay();
     $morningSlot = $this->slotAt($doctor, $date->setTime(9, 0));
     $afternoonSlot = $this->slotAt($doctor, $date->setTime(15, 0));
     $weekStart = $date->toDateString();

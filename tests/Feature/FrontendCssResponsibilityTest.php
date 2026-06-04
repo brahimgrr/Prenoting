@@ -45,7 +45,19 @@ class FrontendCssResponsibilityTest extends TestCase
   {
     $bookingCss = file_get_contents(resource_path('css/booking.css'));
 
+    foreach (['.booking-wizard', '#booking-week-region', '.booking-step', '.week-strip-wrapper'] as $selector) {
+      $this->assertMatchesRegularExpression('/'.preg_quote($selector, '/').'\s*\{[^}]*min-width:\s*0;/s', $bookingCss);
+    }
+
     $this->assertMatchesRegularExpression('/\.week-strip\s*\{[^}]*min-width:\s*0;/s', $bookingCss);
+  }
+
+  public function test_booking_week_day_cards_use_mobile_friendly_widths(): void
+  {
+    $bookingCss = file_get_contents(resource_path('css/booking.css'));
+
+    $this->assertStringNotContainsString('flex: 1 0 9.25rem;', $bookingCss);
+    $this->assertMatchesRegularExpression('/\.week-day\s*\{[^}]*flex:\s*0\s+0\s+clamp\(4\.75rem,\s*26vw,\s*9\.25rem\);/s', $bookingCss);
   }
 
   public function test_portal_main_column_can_shrink_next_to_desktop_sidebar(): void
@@ -91,5 +103,18 @@ class FrontendCssResponsibilityTest extends TestCase
         $this->assertStringContainsString('mb-4', $classList, "{$viewPath} should keep page headings separated with Bootstrap spacing.");
       }
     }
+  }
+
+  public function test_doctor_agenda_top_section_uses_mobile_first_bootstrap_layout(): void
+  {
+    $view = file_get_contents(resource_path('views/doctor/agenda.blade.php'));
+
+    $this->assertMatchesRegularExpression(
+      '/portal-page-heading[^"]*\bflex-column\b[^"]*\bflex-sm-row\b[^"]*\balign-items-start\b[^"]*\balign-items-sm-center\b/s',
+      $view
+    );
+
+    $this->assertSame(3, substr_count($view, 'class="col-12 col-sm-4"'));
+    $this->assertStringNotContainsString('class="col-4"', $view);
   }
 }
