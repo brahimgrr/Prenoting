@@ -26,7 +26,8 @@
     22 => 'Illuminate\\View\\ViewServiceProvider',
     23 => 'Carbon\\Laravel\\ServiceProvider',
     24 => 'Termwind\\Laravel\\TermwindServiceProvider',
-    25 => 'App\\Providers\\AppServiceProvider',
+    25 => 'Spatie\\Permission\\PermissionServiceProvider',
+    26 => 'App\\Providers\\AppServiceProvider',
   ),
   'eager' => 
   array (
@@ -42,7 +43,8 @@
     9 => 'Illuminate\\View\\ViewServiceProvider',
     10 => 'Carbon\\Laravel\\ServiceProvider',
     11 => 'Termwind\\Laravel\\TermwindServiceProvider',
-    12 => 'App\\Providers\\AppServiceProvider',
+    12 => 'Spatie\\Permission\\PermissionServiceProvider',
+    13 => 'App\\Providers\\AppServiceProvider',
   ),
   'deferred' => 
   array (

@@ -27,6 +27,7 @@ class AuthController extends Controller
     public function showRegister(): View
     {
         $comuni = ComuniItalianiCatalog::names();
+
         return view('auth.register', compact('comuni'));
     }
 
@@ -75,8 +76,8 @@ class AuthController extends Controller
                     'first_name' => $validated['first_name'] ?? '',
                     'last_name' => $validated['last_name'] ?? '',
                     'password' => $validated['password'],
-                    'role' => User::ROLE_PATIENT,
                 ]);
+                $user->assignRole(User::ROLE_PATIENT);
 
                 $profile = PatientProfile::create([
                     'user_id' => $user->id,
@@ -124,7 +125,7 @@ class AuthController extends Controller
         $user = User::query()
             ->where('email', $validated['email'])
             ->first();
-        if (!$user || !Hash::check($validated['password'], $user->password)) {
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => 'Credenziali non valide.',
             ]);

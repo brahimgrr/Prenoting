@@ -1,6 +1,6 @@
 # ER Diagram
 
-Schema aggiornato dopo lo spostamento dello stato attivo su `users` e della proprieta delle prestazioni su `medical_services`. Il diagramma usa i nomi reali di tabelle e colonne presenti nelle migrazioni e omette le tabelle tecniche Laravel come `cache`, `cache_locks`, `sessions`, `password_reset_tokens` e `migrations`.
+Schema aggiornato dopo lo spostamento dello stato attivo su `users`, della proprieta delle prestazioni su `medical_services` e dei ruoli utente fuori dalla colonna legacy `users.role`. Il diagramma usa i nomi reali delle tabelle applicative preesistenti e omette le tabelle tecniche Laravel come `cache`, `cache_locks`, `sessions`, `password_reset_tokens` e `migrations`, oltre alle tabelle del pacchetto Spatie (`roles`, `permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions`).
 
 > Nota: tutte le tabelle di dominio includono i timestamp standard `created_at` e `updated_at`, gestiti automaticamente da Eloquent. Sono omessi dal diagramma per leggibilita.
 
@@ -12,7 +12,6 @@ erDiagram
     string first_name
     string last_name
     string password
-    string role
     boolean is_active
     string remember_token
   }
@@ -104,6 +103,7 @@ erDiagram
 Note dominio attuale:
 
 - Lo stato attivo dell'account e su `users.is_active`. `doctor_profiles` non contiene piu `bio` o `is_active`.
+- `users.role` non esiste piu nello schema applicativo. I ruoli di accesso sono gestiti dalle tabelle Spatie, escluse da questo diagramma per mantenere il focus sulle tabelle applicative preesistenti.
 - Le prestazioni appartengono a un medico tramite `medical_services.doctor_profile_id`. La colonna e nullable nello schema per compatibilita di migrazione, ma il flusso applicativo corrente valorizza sempre il medico proprietario quando crea o aggiorna una prestazione.
 - Gli appuntamenti non salvano piu `doctor_profile_id`: il medico di una prenotazione si ricava dalla catena `appointments.service_id -> medical_services.doctor_profile_id`.
 - Le regole di disponibilita restano collegate direttamente a `doctor_profiles` tramite `working_hours`, `special_openings` e `closures`.

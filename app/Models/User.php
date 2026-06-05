@@ -6,14 +6,18 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     use HasFactory;
+    use HasRoles;
     use Notifiable;
 
     public const ROLE_DOCTOR = 'doctor';
+
     public const ROLE_PATIENT = 'patient';
+
     public const ROLE_USER = 'user';
 
     protected $fillable = [
@@ -21,7 +25,6 @@ class User extends Authenticatable
         'first_name',
         'last_name',
         'password',
-        'role',
         'is_active',
     ];
 
@@ -42,7 +45,7 @@ class User extends Authenticatable
 
     public function displayName(): string
     {
-        $name = trim($this->first_name . ' ' . $this->last_name);
+        $name = trim($this->first_name.' '.$this->last_name);
 
         return $name !== '' ? $name : $this->email;
     }
@@ -58,11 +61,15 @@ class User extends Authenticatable
 
     public function portalRole(): string
     {
-        return match ($this->role) {
-            self::ROLE_DOCTOR => self::ROLE_DOCTOR,
-            self::ROLE_PATIENT => self::ROLE_PATIENT,
-            default => self::ROLE_USER,
-        };
+        if ($this->hasRole(self::ROLE_DOCTOR)) {
+            return self::ROLE_DOCTOR;
+        }
+
+        if ($this->hasRole(self::ROLE_PATIENT)) {
+            return self::ROLE_PATIENT;
+        }
+
+        return self::ROLE_USER;
     }
 
     protected function casts(): array
